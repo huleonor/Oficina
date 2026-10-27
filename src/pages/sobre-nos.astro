@@ -1,0 +1,91 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import { business } from '../data/business';
+import { photos, srcset, src } from '../data/images';
+import { breadcrumbSchema } from '../data/schema';
+
+const crumbs = [
+  { name: 'Início', path: '/' },
+  { name: 'Sobre nós', path: '/sobre-nos/' },
+];
+---
+<Base
+  title="Sobre a INOVACAR, oficina automóvel na R. da Paz, Aveiro"
+  description="Conheça a INOVACAR, oficina automóvel na R. da Paz em Aveiro, perto de Cacia. Manutenção e reparação mecânica. Ligue 934 514 368."
+  schema={[breadcrumbSchema(Astro.site!, crumbs)]}
+>
+  <PageHero
+    title="Sobre a INOVACAR"
+    lead="Uma oficina automóvel na R. da Paz, em Aveiro, entre Cacia e o centro da cidade."
+    crumbs={crumbs}
+    photo="zonaTrabalho"
+  />
+
+  <section class="section">
+    <div class="container about-page">
+      <div class="prose">
+        <h2>A oficina</h2>
+        <p>A INOVACAR é uma oficina automóvel em Aveiro. Fazemos manutenção e reparação mecânica de automóveis: mudanças de óleo e filtros, travões, diagnóstico de avarias, baterias e arranque, suspensão e direção, embraiagem, distribuição e pré-inspeção.</p>
+        <p>Pode ligar diretamente para a oficina e falar sobre o seu carro antes de o trazer. Diga-nos a marca, o modelo e o que está a acontecer, e indicamos o passo seguinte.</p>
+        <h2>O que nos distingue</h2>
+        <ul>
+          <li>[A FORNECER: primeiro diferencial real da oficina]</li>
+          <li>[A FORNECER: segundo diferencial real da oficina]</li>
+          <li>[A FORNECER: terceiro diferencial real da oficina]</li>
+        </ul>
+      </div>
+      <figure class="about-page-photo">
+        <img src={src(photos.interior, 800)} srcset={srcset(photos.interior)} sizes="(max-width: 960px) 100vw, 40vw" width={photos.interior.width} height={photos.interior.height} alt={photos.interior.alt} loading="lazy" />
+      </figure>
+    </div>
+  </section>
+
+  <section class="section section-muted" aria-labelledby="pratico-title">
+    <div class="container">
+      <div class="section-head"><h2 class="t-h2" id="pratico-title">Informação prática</h2></div>
+      <dl class="facts">
+        <div class="fact"><Icon name="pin" class="fact-icon" /><dt class="t-label">Morada</dt><dd>{business.address.full}</dd></div>
+        <div class="fact"><Icon name="clock" class="fact-icon" /><dt class="t-label">Horário</dt><dd class="t-num">{business.hours.display}. {business.hours.closed}.</dd></div>
+        <div class="fact"><Icon name="phone" class="fact-icon" /><dt class="t-label">Telefone</dt><dd><a class="t-num" href={business.phoneHref}>{business.phoneIntl}</a></dd></div>
+        <div class="fact"><Icon name="access" class="fact-icon" /><dt class="t-label">Acessibilidade</dt><dd>{business.accessibility}</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="fotos-title">
+    <div class="container">
+      <div class="section-head"><h2 class="t-h2" id="fotos-title">Fotografias da oficina</h2></div>
+      <div class="about-gallery">
+        <img src={src(photos.ferrari, 800)} srcset={srcset(photos.ferrari)} sizes="(max-width: 760px) 100vw, 33vw" width={photos.ferrari.width} height={photos.ferrari.height} alt={photos.ferrari.alt} loading="lazy" />
+        <img src={src(photos.maserati, 800)} srcset={srcset(photos.maserati)} sizes="(max-width: 760px) 100vw, 66vw" width={photos.maserati.width} height={photos.maserati.height} alt={photos.maserati.alt} loading="lazy" />
+      </div>
+    </div>
+  </section>
+
+  <CtaBand />
+</Base>
+
+<style>
+  .about-page { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: var(--space-8); align-items: start; }
+  .about-page-photo { border-radius: var(--radius-l); overflow: hidden; aspect-ratio: 3 / 4; box-shadow: var(--shadow-raised); }
+  .about-page-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+  .fact { background: var(--surface-white); border-top: 3px solid var(--brand-dark); border-radius: var(--radius-s); padding: var(--space-5); display: grid; gap: var(--space-2); align-content: start; }
+  .fact-icon { width: 26px; height: 26px; color: var(--brand-turquoise-ink); }
+  .fact dt { color: var(--ink-soft); }
+  .fact dd { margin: 0; font-weight: 600; }
+  .fact a { text-decoration: none; }
+  .about-gallery { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space-4); }
+  .about-gallery img { width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover; border-radius: var(--radius-l); max-height: 560px; }
+  @media (max-width: 960px) {
+    .about-page { grid-template-columns: 1fr; }
+    .about-page-photo { aspect-ratio: 4 / 3; }
+    .facts { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 560px) {
+    .facts, .about-gallery { grid-template-columns: 1fr; }
+  }
+</style>

@@ -1,0 +1,204 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import GateHero from '../components/GateHero.astro';
+import TrustBand from '../components/TrustBand.astro';
+import ServiceBoard from '../components/ServiceBoard.astro';
+import Reviews from '../components/Reviews.astro';
+import ServiceArea from '../components/ServiceArea.astro';
+import FaqList from '../components/FaqList.astro';
+import CtaBand from '../components/CtaBand.astro';
+import Icon from '../components/Icon.astro';
+import { photos, srcset, src } from '../data/images';
+import { faqSchema, homeFaqs } from '../data/schema';
+
+const servicos = (await getCollection('servicos')).sort((a, b) => a.data.order - b.data.order);
+// Trabalhos só entram quando forem reais e tiverem fotos do antes e do depois.
+const projetos = (await getCollection('projetos')).filter((p) => !p.data.placeholder && p.data.beforePhoto && p.data.afterPhoto);
+
+const steps = [
+  { title: 'Fale connosco', text: 'Ligue para o 934 514 368 ou envie um pedido de marcação. Diga-nos o carro e o que está a acontecer.' },
+  { title: 'Combinamos o dia', text: 'Acertamos consigo o dia para trazer o carro à oficina na R. da Paz, em Aveiro.' },
+  { title: 'Verificamos o carro', text: 'Vemos o problema e explicamos-lhe o que encontrámos e o orçamento da reparação.' },
+  { title: 'Recolhe o carro', text: 'Quando o trabalho estiver feito, avisamos e combinamos a recolha.' },
+];
+---
+<Base
+  title="INOVACAR - Oficina Automóvel em Cacia e Aveiro | 934 514 368"
+  description="Oficina automóvel na R. da Paz, Aveiro, perto de Cacia. Manutenção, travões, diagnóstico, embraiagem e reparações mecânicas. Ligue 934 514 368."
+  schema={[faqSchema(homeFaqs)]}
+>
+  <GateHero />
+  <TrustBand />
+
+  <section class="section" aria-labelledby="servicos-title">
+    <div class="container">
+      <div class="home-head">
+        <div class="section-head">
+          <h2 class="t-h2" id="servicos-title">O que fazemos</h2>
+          <p class="t-lead">Manutenção e reparação mecânica para o carro do dia a dia. Diga-nos o que o carro está a fazer e indicamos o passo seguinte.</p>
+        </div>
+        <a class="link-arrow" href="/servicos/">Todos os serviços <Icon name="arrow" /></a>
+      </div>
+      <ServiceBoard items={servicos} />
+    </div>
+  </section>
+
+  <section class="section section-muted" aria-labelledby="sobre-title">
+    <div class="container about">
+      <figure class="about-photo">
+        <img src={src(photos.interior, 800)} srcset={srcset(photos.interior)} sizes="(max-width: 860px) 100vw, 45vw" width={photos.interior.width} height={photos.interior.height} alt={photos.interior.alt} loading="lazy" decoding="async" />
+      </figure>
+      <div class="about-copy">
+        <h2 class="t-h2" id="sobre-title">Uma oficina na R. da Paz, entre Cacia e Aveiro</h2>
+        <p class="t-lead">A INOVACAR é uma oficina automóvel em Aveiro. Tratamos da manutenção e da reparação mecânica de automóveis: revisões, travões, diagnóstico de avarias, baterias, suspensão, embraiagem e distribuição.</p>
+        <p class="t-body t-soft">Pode ligar diretamente para a oficina e falar sobre o seu carro antes de o trazer. A entrada é acessível a cadeira de rodas.</p>
+        <dl class="about-facts">
+          <div><dt class="t-label">Morada</dt><dd>R. da Paz, 3800-587 Aveiro</dd></div>
+          <div><dt class="t-label">Horário</dt><dd class="t-num">Seg a Sex, 09:00 às 18:30</dd></div>
+        </dl>
+        <a class="link-arrow" href="/sobre-nos/">Conhecer a oficina <Icon name="arrow" /></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="galeria-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="t-h2" id="galeria-title">Dentro da oficina</h2>
+        <p class="t-lead">Fotografias da nossa zona de trabalho na R. da Paz.</p>
+      </div>
+      <div class="gallery">
+        <figure class="gallery-item gallery-wide">
+          <img src={src(photos.zonaTrabalho, 800)} srcset={srcset(photos.zonaTrabalho)} sizes="(max-width: 760px) 100vw, 60vw" width={photos.zonaTrabalho.width} height={photos.zonaTrabalho.height} alt={photos.zonaTrabalho.alt} loading="lazy" decoding="async" />
+        </figure>
+        <figure class="gallery-item gallery-tall">
+          <img src={src(photos.ferrari, 800)} srcset={srcset(photos.ferrari)} sizes="(max-width: 760px) 100vw, 38vw" width={photos.ferrari.width} height={photos.ferrari.height} alt={photos.ferrari.alt} loading="lazy" decoding="async" />
+        </figure>
+        <figure class="gallery-item gallery-low">
+          <img src={src(photos.maserati, 800)} srcset={srcset(photos.maserati)} sizes="(max-width: 760px) 100vw, 60vw" width={photos.maserati.width} height={photos.maserati.height} alt={photos.maserati.alt} loading="lazy" decoding="async" />
+        </figure>
+      </div>
+
+      {projetos.length > 0 && (
+        <div class="projects">
+          <h3 class="t-h3">Trabalhos realizados</h3>
+          <ul role="list" class="projects-list">
+            {projetos.map((p) => (
+              <li class="project">
+                <div class="project-pair">
+                  <figure><img src={p.data.beforePhoto} alt={`Antes: ${p.data.title}`} loading="lazy" /><figcaption class="t-label">Antes</figcaption></figure>
+                  <figure><img src={p.data.afterPhoto} alt={`Depois: ${p.data.title}`} loading="lazy" /><figcaption class="t-label">Depois</figcaption></figure>
+                </div>
+                <h4 class="t-h3">{p.data.title}</h4>
+                <p class="t-soft">{p.data.story}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <Reviews />
+  <ServiceArea />
+
+  <section class="section" aria-labelledby="passos-title">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="t-h2" id="passos-title">Como funciona</h2>
+        <p class="t-lead">Do primeiro telefonema à recolha do carro.</p>
+      </div>
+      <ol role="list" class="steps">
+        {steps.map((s, i) => (
+          <li class="step">
+            <span class="step-num t-num" aria-hidden="true">{i + 1}</span>
+            <h3 class="t-h3">{s.title}</h3>
+            <p class="t-soft">{s.text}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <section class="section section-muted" aria-labelledby="faq-title">
+    <div class="container faq-wrap">
+      <div class="section-head">
+        <h2 class="t-h2" id="faq-title">Perguntas frequentes</h2>
+        <p class="t-lead">Se a sua dúvida não estiver aqui, ligue para a oficina.</p>
+      </div>
+      <FaqList faqs={homeFaqs} />
+    </div>
+  </section>
+
+  <CtaBand />
+</Base>
+
+<style>
+  .home-head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-5); flex-wrap: wrap; margin-bottom: var(--space-7); }
+  .home-head .section-head { margin-bottom: 0; }
+
+  .about { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: var(--space-8); align-items: center; }
+  .about-photo { border-radius: var(--radius-l); overflow: hidden; aspect-ratio: 4 / 5; max-width: 100%; box-shadow: var(--shadow-raised); }
+  .about-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .about-copy { display: grid; gap: var(--space-5); justify-items: start; }
+  .about-facts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); width: 100%; border-top: 2px solid var(--line-strong); padding-top: var(--space-4); }
+  .about-facts dt { color: var(--ink-soft); margin-bottom: 4px; }
+  .about-facts dd { margin: 0; font-weight: 600; }
+
+  .gallery {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    grid-template-rows: auto auto;
+    gap: var(--space-4);
+  }
+  .gallery-item { border-radius: var(--radius-l); overflow: hidden; background: var(--brand-dark); }
+  .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+  .gallery-wide { aspect-ratio: 4 / 3; }
+  .gallery-low { aspect-ratio: 16 / 9; }
+  .gallery-tall { grid-column: 2; grid-row: 1 / span 2; position: relative; }
+  .gallery-tall img { position: absolute; inset: 0; }
+
+  .projects { margin-top: var(--space-8); display: grid; gap: var(--space-5); }
+  .projects-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--space-6); }
+  .project { display: grid; gap: var(--space-3); }
+  .project-pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+  .project-pair img { aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-s); }
+
+  .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 2px solid var(--line-strong); }
+  .step { display: grid; align-content: start; gap: var(--space-3); padding: var(--space-5) var(--space-5) var(--space-5) 0; }
+  .step + .step { border-left: 1px solid var(--line); padding-left: var(--space-5); }
+  .step-num {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-s);
+    background: var(--brand-dark);
+    color: var(--brand-turquoise);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.2rem;
+  }
+
+  @media (max-width: 960px) {
+    .steps { grid-template-columns: 1fr 1fr; }
+    .step:nth-child(3) { border-left: 0; padding-left: 0; }
+    .step:nth-child(n + 3) { border-top: 1px solid var(--line); }
+  }
+  @media (max-width: 860px) {
+    .about { grid-template-columns: 1fr; gap: var(--space-6); }
+    .about-photo { aspect-ratio: 4 / 3; }
+  }
+  @media (max-width: 760px) {
+    .gallery { grid-template-columns: 1fr; }
+    .gallery-tall { grid-row: auto; grid-column: auto; aspect-ratio: 3 / 4; }
+    .gallery-tall img { position: static; }
+  }
+  @media (max-width: 560px) {
+    .steps { grid-template-columns: 1fr; }
+    .step, .step + .step { border-left: 0; padding-left: 0; }
+    .step + .step { border-top: 1px solid var(--line); }
+    .about-facts { grid-template-columns: 1fr; }
+  }
+</style>

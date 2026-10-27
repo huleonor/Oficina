@@ -1,0 +1,28 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import { business } from '../data/business';
+---
+<Base title="Página não encontrada | INOVACAR" description="A página que procura não existe. Volte à página inicial da INOVACAR ou ligue 934 514 368." noindex>
+  <section class="nf section-dark">
+    <div class="container nf-inner">
+      <p class="nf-code t-num" aria-hidden="true">404</p>
+      <h1 class="t-display nf-title">Esta página não existe</h1>
+      <p class="t-lead">O endereço pode ter mudado ou estar mal escrito. Escolha um destes caminhos:</p>
+      <ul role="list" class="nf-links">
+        <li><a class="link-arrow" href="/">Página inicial <Icon name="arrow" /></a></li>
+        <li><a class="link-arrow" href="/servicos/">Serviços <Icon name="arrow" /></a></li>
+        <li><a class="link-arrow" href="/localidades/">Localidades <Icon name="arrow" /></a></li>
+        <li><a class="link-arrow" href="/contactos/">Contactos <Icon name="arrow" /></a></li>
+      </ul>
+      <a class="btn btn-primary" href={business.phoneHref}><Icon name="phone" class="btn-icon" />Ligar {business.phoneDisplay}</a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .nf { padding-block: var(--space-9); border-bottom: 4px solid var(--brand-turquoise); }
+  .nf-inner { display: grid; gap: var(--space-5); justify-items: start; }
+  .nf-code { font-family: var(--font-display); font-weight: 700; font-size: clamp(4rem, 10vw, 6rem); line-height: 1; color: var(--brand-turquoise); }
+  .nf-links { display: grid; gap: var(--space-3); }
+</style>

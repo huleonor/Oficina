@@ -1,0 +1,54 @@
+---
+// Quatro factos verificados na ficha Google. Sem estatísticas nem garantias.
+import Icon from './Icon.astro';
+import { business } from '../data/business';
+---
+<section class="trust" id="factos" aria-label="Informação prática">
+  <div class="container">
+    <ul role="list" class="trust-list">
+      <li class="trust-item">
+        <Icon name="pin" class="trust-icon" />
+        <div><span class="t-label trust-label">Morada</span><span class="trust-value">{business.address.street}, {business.address.postalCode} {business.address.locality}</span></div>
+      </li>
+      <li class="trust-item">
+        <Icon name="clock" class="trust-icon" />
+        <div><span class="t-label trust-label">Horário</span><span class="trust-value t-num">{business.hours.short}</span></div>
+      </li>
+      <li class="trust-item">
+        <Icon name="phone" class="trust-icon" />
+        <div><span class="t-label trust-label">Telefone direto</span><a class="trust-value t-num" href={business.phoneHref}>{business.phoneDisplay}</a></div>
+      </li>
+      <li class="trust-item">
+        <Icon name="access" class="trust-icon" />
+        <div><span class="t-label trust-label">Acesso</span><span class="trust-value">{business.accessibility}</span></div>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<style>
+  .trust { background: var(--brand-turquoise); color: var(--brand-dark); position: relative; z-index: 1; }
+  .trust-list { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .trust-item {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    padding: var(--space-5) var(--space-5) var(--space-5) 0;
+    min-width: 0;
+  }
+  .trust-item + .trust-item { border-left: 2px solid rgba(38, 41, 60, 0.2); padding-left: var(--space-5); }
+  .trust-icon { width: 24px; height: 24px; flex: none; margin-top: 2px; }
+  .trust-label { display: block; margin-bottom: 4px; }
+  .trust-value { display: block; font-weight: 600; font-size: 1.05rem; line-height: 1.3; text-decoration: none; }
+  a.trust-value:hover { text-decoration: underline; }
+  @media (max-width: 960px) {
+    .trust-list { grid-template-columns: 1fr 1fr; }
+    .trust-item:nth-child(3) { border-left: 0; padding-left: 0; }
+    .trust-item:nth-child(n + 3) { border-top: 2px solid rgba(38, 41, 60, 0.2); }
+  }
+  @media (max-width: 520px) {
+    .trust-list { grid-template-columns: 1fr; }
+    .trust-item, .trust-item + .trust-item { border-left: 0; padding: var(--space-4) 0; }
+    .trust-item + .trust-item { border-top: 2px solid rgba(38, 41, 60, 0.2); }
+  }
+</style>

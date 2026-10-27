@@ -1,0 +1,60 @@
+---
+// Avaliações: o widget Google é o elemento principal. Nada de avaliações, estrelas ou contagens inventadas.
+import Icon from './Icon.astro';
+import { business, reviewsEmbed, pastedReviews } from '../data/business';
+---
+<section class="section reviews" aria-labelledby="reviews-title">
+  <div class="container">
+    <div class="section-head">
+      <h2 class="t-h2" id="reviews-title">O que dizem os clientes</h2>
+      <p class="t-lead">As avaliações são publicadas pelos clientes na nossa ficha do Google.</p>
+    </div>
+
+    {reviewsEmbed ? (
+      <div class="reviews-embed" set:html={reviewsEmbed} />
+    ) : (
+      <div class="missing-block reviews-embed reviews-missing" role="note">
+        <strong>Widget de avaliações Google</strong>
+        <span>Espaço reservado para o código do widget de avaliações. Ainda não foi fornecido.</span>
+      </div>
+    )}
+
+    <ul role="list" class="reviews-cards">
+      {pastedReviews.map((r, i) => (
+        <li class={`review-card${r.text ? '' : ' is-empty'}`}>
+          {r.text ? (
+            <blockquote>
+              <p>{r.text}</p>
+              <footer class="review-author">{r.author}, avaliação no Google</footer>
+            </blockquote>
+          ) : (
+            <p class="review-empty">Avaliação {i + 1}: espaço para colar uma avaliação real do Google.</p>
+          )}
+        </li>
+      ))}
+    </ul>
+
+    <a class="link-arrow reviews-link" href={business.googleProfile} target="_blank" rel="noopener">
+      Ver todas as avaliações no Google <Icon name="external" />
+    </a>
+  </div>
+</section>
+
+<style>
+  .reviews-embed { min-height: 320px; margin-bottom: var(--space-6); }
+  .reviews-missing { min-height: 320px; text-align: center; justify-items: center; }
+  .reviews-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6); }
+  .review-card {
+    background: var(--surface-white);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--brand-dark);
+    border-radius: var(--radius-s);
+    padding: var(--space-5);
+    min-height: 160px;
+  }
+  .review-card blockquote { margin: 0; display: grid; gap: var(--space-4); }
+  .review-author { font-weight: 600; font-size: var(--fs-small); }
+  .review-card.is-empty { border-style: dashed; border-top-style: solid; border-top-color: var(--line); display: grid; place-items: center; text-align: center; }
+  .review-empty { color: var(--ink-soft); font-size: var(--fs-small); max-width: 26ch; }
+  @media (max-width: 860px) { .reviews-cards { grid-template-columns: 1fr; } }
+</style>

@@ -1,0 +1,32 @@
+---
+import Icon from './Icon.astro';
+import { business } from '../data/business';
+---
+<div class="callbar" aria-label="Contacto rápido">
+  <a class="btn btn-primary callbar-btn" href={business.phoneHref}>
+    <Icon name="phone" class="btn-icon" />Ligar <span class="t-num">{business.phoneDisplay}</span>
+  </a>
+  <a class="btn btn-outline-light callbar-btn" href="/contactos/#pedido">
+    <Icon name="calendar" class="btn-icon" />Marcação
+  </a>
+</div>
+
+<style>
+  .callbar { display: none; }
+  @media (max-width: 760px) {
+    .callbar {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 40;
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: var(--space-2);
+      padding: 10px var(--gutter-r) calc(10px + env(safe-area-inset-bottom, 0px)) var(--gutter);
+      background: var(--brand-dark);
+      border-top: 1px solid var(--line-on-dark);
+    }
+    .callbar-btn { min-height: 50px; padding-inline: 0.8em; font-size: 1rem; white-space: nowrap; }
+  }
+</style>

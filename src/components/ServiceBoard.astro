@@ -1,0 +1,67 @@
+---
+// Lista de serviços em painel (da direção B), ligada à coleção Serviços.
+import type { CollectionEntry } from 'astro:content';
+import Icon from './Icon.astro';
+import ServiceIcon from './ServiceIcon.astro';
+
+interface Props {
+  items: CollectionEntry<'servicos'>[];
+  headingLevel?: 'h2' | 'h3';
+}
+const { items, headingLevel = 'h3' } = Astro.props;
+const Heading = headingLevel;
+---
+<ul role="list" class="board">
+  {items.map((s) => (
+    <li class="board-item">
+      <a class="board-row" href={`/servicos/${s.id}/`}>
+        <ServiceIcon name={s.data.icon} class="board-icon" />
+        <div class="board-text">
+          <Heading class="board-name">{s.data.name}</Heading>
+          <p class="board-desc">{s.data.shortDescription}</p>
+        </div>
+        <Icon name="arrow" class="board-arrow" />
+      </a>
+    </li>
+  ))}
+</ul>
+
+<style>
+  .board {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-7);
+    border-top: 2px solid var(--line-strong);
+  }
+  .board-item { border-bottom: 1px solid var(--line); }
+  .board-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: var(--space-4);
+    align-items: center;
+    padding: var(--space-5) var(--space-2);
+    text-decoration: none;
+    transition: background-color var(--dur-standard) var(--ease);
+  }
+  .board-row:hover { background: var(--surface-muted); }
+  .section-muted .board-row:hover { background: var(--surface-white); }
+  .board-icon {
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    border-radius: var(--radius-m);
+    background: var(--brand-dark);
+    color: var(--brand-turquoise);
+    transition: transform var(--dur-standard) var(--ease);
+  }
+  .board-text { min-width: 0; display: grid; gap: 2px; }
+  .board-name { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; line-height: 1.2; }
+  .board-desc { color: var(--ink-soft); font-size: 0.98rem; line-height: 1.45; }
+  .board-arrow { width: 22px; height: 22px; color: var(--brand-dark); transition: transform var(--dur-standard) var(--ease); }
+  .board-row:hover .board-arrow { transform: translateX(5px); }
+  .board-row:hover .board-name { text-decoration: underline; text-decoration-color: var(--brand-turquoise); text-decoration-thickness: 2px; text-underline-offset: 0.18em; }
+  @media (max-width: 860px) {
+    .board { grid-template-columns: 1fr; }
+    .board-row { padding-inline: 0; }
+  }
+</style>

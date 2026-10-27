@@ -1,0 +1,120 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import PageHero from '../../components/PageHero.astro';
+import ServiceBoard from '../../components/ServiceBoard.astro';
+import CtaBand from '../../components/CtaBand.astro';
+import Icon from '../../components/Icon.astro';
+import { business } from '../../data/business';
+import { breadcrumbSchema } from '../../data/schema';
+
+export async function getStaticPaths() {
+  const localidades = await getCollection('localidades');
+  return localidades.map((l) => ({ params: { slug: l.id }, props: { localidade: l } }));
+}
+
+const { localidade } = Astro.props;
+const { data } = localidade;
+const { Content } = await render(localidade);
+const servicos = (await getCollection('servicos')).sort((a, b) => a.data.order - b.data.order);
+const outras = (await getCollection('localidades')).filter((l) => l.id !== localidade.id).sort((a, b) => a.data.order - b.data.order);
+const directions = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(`${data.city}, Portugal`)}&destination=${encodeURIComponent(`INOVACAR - Oficina Automóvel, ${business.address.full}`)}`;
+
+const crumbs = [
+  { name: 'Início', path: '/' },
+  { name: 'Localidades', path: '/localidades/' },
+  { name: data.city, path: `/localidades/${localidade.id}/` },
+];
+const h1 = data.city === 'Aveiro' ? 'Oficina automóvel em Aveiro' : `Oficina automóvel perto de ${data.city}`;
+---
+<Base title={data.seoTitle} description={data.seoDescription} schema={[breadcrumbSchema(Astro.site!, crumbs)]}>
+  <PageHero title={h1} lead={data.intro} crumbs={crumbs} photo={data.heroImage} />
+
+  <section class="section-tight">
+    <div class="container loc-facts">
+      <div class="loc-fact">
+        <span class="t-label">Oficina</span>
+        <p>{business.address.full}</p>
+      </div>
+      <div class="loc-fact">
+        <span class="t-label">De {data.city} à oficina</span>
+        <p>{data.driveTime}</p>
+      </div>
+      <div class="loc-fact">
+        <span class="t-label">Zonas próximas</span>
+        <p>{data.neighbourhoods.join(', ')}</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-muted">
+    <div class="container loc-body">
+      <div class="prose">
+        <h2>Como chegar a partir de {data.city}</h2>
+        <Content />
+        <p><a href={directions} target="_blank" rel="noopener">Ver o percurso de {data.city} até à oficina no Google Maps</a></p>
+      </div>
+      {data.mapEmbedUrl ? (
+        <iframe class="loc-map" src={data.mapEmbedUrl} title={`Mapa de ${data.city} até à INOVACAR`} loading="lazy" referrerpolicy="no-referrer-when-downgrade" />
+      ) : (
+        <div class="missing-block loc-map" role="note">
+          <strong>Mapa de {data.city}</strong>
+          <span>Espaço reservado para o URL do mapa incorporado desta localidade. Ainda não foi fornecido.</span>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="loc-servicos">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="t-h2" id="loc-servicos">Serviços para clientes de {data.city}</h2>
+        <p class="t-lead">Todos os trabalhos são feitos na oficina da R. da Paz.</p>
+      </div>
+      <ServiceBoard items={servicos} />
+    </div>
+  </section>
+
+  <section class="section-tight section-muted" aria-labelledby="loc-outras">
+    <div class="container">
+      <h2 class="t-h3 loc-other-title" id="loc-outras">Outras localidades</h2>
+      <ul role="list" class="loc-chips">
+        {outras.map((l) => <li><a class="loc-chip" href={`/localidades/${l.id}/`}>{l.data.city}<Icon name="arrow" class="loc-chip-icon" /></a></li>)}
+      </ul>
+    </div>
+  </section>
+
+  <CtaBand title={`Vem de ${data.city}? Ligue antes de vir`} />
+</Base>
+
+<style>
+  .loc-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 2px solid var(--line-strong); }
+  .loc-fact { padding: var(--space-5) var(--space-5) var(--space-5) 0; display: grid; gap: 6px; align-content: start; }
+  .loc-fact + .loc-fact { border-left: 1px solid var(--line); padding-left: var(--space-5); }
+  .loc-fact .t-label { color: var(--ink-soft); }
+  .loc-fact p { font-weight: 600; font-size: 1.1rem; }
+  .loc-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-7); align-items: start; }
+  .loc-map { width: 100%; min-height: 360px; border: 0; border-radius: var(--radius-l); }
+  .loc-other-title { margin-bottom: var(--space-4); }
+  .loc-chips { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+  .loc-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 10px 14px;
+    border: 1px solid var(--brand-dark);
+    border-radius: var(--radius-m);
+    background: var(--surface-white);
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color var(--dur-quick) var(--ease), color var(--dur-quick) var(--ease);
+  }
+  .loc-chip:hover { background: var(--brand-dark); color: var(--ink-on-dark); }
+  .loc-chip-icon { width: 18px; height: 18px; }
+  @media (max-width: 860px) {
+    .loc-facts { grid-template-columns: 1fr; }
+    .loc-fact, .loc-fact + .loc-fact { border-left: 0; padding-left: 0; }
+    .loc-fact + .loc-fact { border-top: 1px solid var(--line); }
+    .loc-body { grid-template-columns: 1fr; }
+  }
+</style>

@@ -1,0 +1,136 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import PageHero from '../../components/PageHero.astro';
+import FaqList from '../../components/FaqList.astro';
+import CtaBand from '../../components/CtaBand.astro';
+import Icon from '../../components/Icon.astro';
+import ServiceBoard from '../../components/ServiceBoard.astro';
+import { business } from '../../data/business';
+import { faqSchema, breadcrumbSchema } from '../../data/schema';
+
+export async function getStaticPaths() {
+  const servicos = await getCollection('servicos');
+  return servicos.map((s) => ({ params: { slug: s.id }, props: { servico: s } }));
+}
+
+const { servico } = Astro.props;
+const { data } = servico;
+const { Content } = await render(servico);
+const localidades = (await getCollection('localidades')).sort((a, b) => a.data.order - b.data.order);
+const outros = (await getCollection('servicos')).filter((s) => s.id !== servico.id).sort((a, b) => a.data.order - b.data.order).slice(0, 4);
+const site = Astro.site!.toString().replace(/\/$/, '');
+
+const crumbs = [
+  { name: 'Início', path: '/' },
+  { name: 'Serviços', path: '/servicos/' },
+  { name: data.name, path: `/servicos/${servico.id}/` },
+];
+
+const serviceSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Service',
+  name: data.name,
+  description: data.shortDescription,
+  serviceType: data.name,
+  url: `${site}/servicos/${servico.id}/`,
+  provider: { '@id': `${site}/#oficina` },
+  areaServed: localidades.map((l) => ({ '@type': 'Place', name: l.data.city })),
+};
+---
+<Base title={data.seoTitle} description={data.seoDescription} schema={[serviceSchema, faqSchema(data.faqs), breadcrumbSchema(Astro.site!, crumbs)]}>
+  <PageHero title={`${data.name} em Aveiro`} lead={data.shortDescription} crumbs={crumbs} photo={data.heroImage} />
+
+  <section class="section">
+    <div class="container svc-grid">
+      <div class="prose">
+        <Content />
+      </div>
+      <aside class="svc-aside">
+        <div class="order-card">
+          <h2 class="order-card-title">Neste serviço</h2>
+          <ul role="list" class="order-checks">
+            {data.benefits.map((b) => (
+              <li class="order-check">
+                <svg class="order-box" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="1" width="20" height="20" rx="2" /><path d="M5.5 11.5l3.5 3.5 7.5-8" /></svg>
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+          <div class="order-field">
+            <span class="t-label">Preço</span>
+            <p>{data.priceGuidance}</p>
+          </div>
+          <div class="order-field">
+            <span class="t-label">Telefone</span>
+            <a class="order-phone t-num" href={business.phoneHref}>{business.phoneDisplay}</a>
+          </div>
+          <a class="btn btn-primary order-btn" href="/contactos/#pedido"><Icon name="calendar" class="btn-icon" />Pedir marcação</a>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <section class="section section-muted" aria-labelledby="svc-faq">
+    <div class="container">
+      <div class="section-head"><h2 class="t-h2" id="svc-faq">Perguntas sobre {data.name.toLowerCase()}</h2></div>
+      <FaqList faqs={data.faqs} />
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="svc-areas">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="t-h2" id="svc-areas">Para clientes destas zonas</h2>
+        <p class="t-lead">A oficina fica na R. da Paz, em Aveiro. Veja a que distância fica da sua zona.</p>
+      </div>
+      <ul role="list" class="chips">
+        {localidades.map((l) => <li><a class="chip" href={`/localidades/${l.id}/`}>{l.data.city}<Icon name="arrow" class="chip-icon" /></a></li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="section section-muted" aria-labelledby="svc-outros">
+    <div class="container">
+      <div class="section-head"><h2 class="t-h2" id="svc-outros">Outros serviços</h2></div>
+      <ServiceBoard items={outros} />
+    </div>
+  </section>
+
+  <CtaBand />
+</Base>
+
+<style>
+  .svc-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--space-8); align-items: start; }
+  .svc-aside { position: sticky; top: calc(var(--header-h) + 24px); }
+  .order-card { border: 1px solid var(--line); border-top: 3px solid var(--brand-dark); border-radius: var(--radius-s); background: var(--surface-white); box-shadow: var(--shadow-raised); }
+  .order-card-title { font-family: var(--font-display); font-size: 1.3rem; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--line); }
+  .order-checks { padding: var(--space-2) var(--space-5); }
+  .order-check { display: flex; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
+  .order-check:last-child { border-bottom: 0; }
+  .order-box { width: 22px; height: 22px; flex: none; margin-top: 2px; }
+  .order-box rect { fill: none; stroke: var(--brand-dark); stroke-width: 1.5; }
+  .order-box path { fill: none; stroke: var(--brand-turquoise-ink); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .order-field { padding: var(--space-4) var(--space-5); border-top: 1px solid var(--line); display: grid; gap: 4px; }
+  .order-field .t-label { color: var(--ink-soft); }
+  .order-phone { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; text-decoration: none; }
+  .order-btn { margin: 0 var(--space-5) var(--space-5); width: calc(100% - 2 * var(--space-5)); }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 12px 16px;
+    border: 1px solid var(--brand-dark);
+    border-radius: var(--radius-m);
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color var(--dur-quick) var(--ease), color var(--dur-quick) var(--ease);
+  }
+  .chip:hover { background: var(--brand-dark); color: var(--ink-on-dark); }
+  .chip-icon { width: 18px; height: 18px; }
+  @media (max-width: 960px) {
+    .svc-grid { grid-template-columns: 1fr; gap: var(--space-7); }
+    .svc-aside { position: static; }
+  }
+</style>

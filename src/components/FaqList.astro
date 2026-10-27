@@ -1,0 +1,45 @@
+---
+import Icon from './Icon.astro';
+import type { Faq } from '../data/schema';
+
+interface Props {
+  faqs: Faq[];
+}
+const { faqs } = Astro.props;
+---
+<div class="faq">
+  {faqs.map((f) => (
+    <details class="faq-item">
+      <summary class="faq-q">
+        <span>{f.q}</span>
+        <Icon name="chevron" class="faq-icon" />
+      </summary>
+      <div class="faq-a"><p>{f.a}</p></div>
+    </details>
+  ))}
+</div>
+
+<style>
+  .faq { border-top: 2px solid var(--line-strong); max-width: 860px; }
+  .faq-item { border-bottom: 1px solid var(--line); }
+  .faq-q {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-5) 0;
+    cursor: pointer;
+    list-style: none;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.25rem;
+    line-height: 1.25;
+  }
+  .faq-q::-webkit-details-marker { display: none; }
+  .faq-q:hover span { text-decoration: underline; text-decoration-color: var(--brand-turquoise); text-decoration-thickness: 2px; text-underline-offset: 0.18em; }
+  .faq-icon { width: 22px; height: 22px; flex: none; transition: transform var(--dur-standard) var(--ease); }
+  .faq-item[open] .faq-icon { transform: rotate(180deg); }
+  .faq-a { padding: 0 0 var(--space-5); max-width: 68ch; color: var(--ink-soft); }
+  .faq-item[open] .faq-a { animation: faq-in var(--dur-standard) var(--ease-out); }
+  @keyframes faq-in { from { opacity: 0; transform: translateY(-4px); } }
+</style>

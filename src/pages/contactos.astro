@@ -1,0 +1,92 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import BookingForm from '../components/BookingForm.astro';
+import Icon from '../components/Icon.astro';
+import { business, mapEmbed } from '../data/business';
+import { breadcrumbSchema } from '../data/schema';
+
+const crumbs = [
+  { name: 'Início', path: '/' },
+  { name: 'Contactos', path: '/contactos/' },
+];
+---
+<Base
+  title="Contactos e pedido de marcação | INOVACAR, Aveiro"
+  description="Ligue 934 514 368 ou peça marcação na INOVACAR, R. da Paz, 3800-587 Aveiro. Aberto de segunda a sexta, das 09:00 às 18:30."
+  schema={[breadcrumbSchema(Astro.site!, crumbs)]}
+>
+  <PageHero
+    title="Contactos da INOVACAR"
+    lead="Ligue para a oficina ou envie um pedido de marcação. Diga-nos o carro e o que está a acontecer."
+    crumbs={crumbs}
+  />
+
+  <section class="section section-muted">
+    <div class="container contact-grid">
+      <aside class="contact-info" aria-label="Dados de contacto">
+        <div class="contact-block">
+          <span class="t-label">Telefone</span>
+          <a class="contact-phone t-num" href={business.phoneHref}>{business.phoneIntl}</a>
+        </div>
+        {business.showEmail && (
+          <div class="contact-block">
+            <span class="t-label">Email</span>
+            <a class="contact-link" href={`mailto:${business.email}`}>{business.email}</a>
+          </div>
+        )}
+        <div class="contact-block">
+          <span class="t-label">Morada</span>
+          <address>{business.name}<br />{business.address.street}<br />{business.address.postalCode} {business.address.locality}</address>
+          <a class="link-arrow" href={business.googleProfile} target="_blank" rel="noopener">Abrir no Google Maps <Icon name="external" /></a>
+        </div>
+        <div class="contact-block">
+          <span class="t-label">Horário</span>
+          <dl class="contact-hours t-num">
+            <div><dt>Segunda a sexta</dt><dd>09:00 às 18:30</dd></div>
+            <div><dt>Sábado</dt><dd>Fechado</dd></div>
+            <div><dt>Domingo</dt><dd>Fechado</dd></div>
+          </dl>
+          <p class="t-small t-soft">{business.hours.note}</p>
+        </div>
+        <div class="contact-block">
+          <span class="t-label">Acessibilidade</span>
+          <p>{business.accessibility}</p>
+        </div>
+      </aside>
+      <BookingForm />
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="section-head"><h2 class="t-h2">Onde estamos</h2><p class="t-lead">{business.address.full}</p></div>
+      {mapEmbed ? (
+        <div class="contact-map" set:html={mapEmbed} />
+      ) : (
+        <div class="missing-block contact-map" role="note">
+          <strong>Mapa Google</strong>
+          <span>Espaço reservado para o mapa incorporado. Ainda não foi fornecido.</span>
+        </div>
+      )}
+    </div>
+  </section>
+</Base>
+
+<style>
+  .contact-grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: var(--space-7); align-items: start; }
+  .contact-info { display: grid; gap: 0; border-top: 2px solid var(--line-strong); }
+  .contact-block { display: grid; gap: var(--space-2); padding: var(--space-5) 0; border-bottom: 1px solid var(--line); justify-items: start; }
+  .contact-block .t-label { color: var(--ink-soft); }
+  .contact-block address { font-style: normal; font-weight: 600; line-height: 1.5; }
+  .contact-phone { font-family: var(--font-display); font-weight: 700; font-size: 1.9rem; line-height: 1.1; text-decoration: none; }
+  .contact-phone:hover { color: var(--brand-turquoise-ink); }
+  .contact-link { font-weight: 600; overflow-wrap: anywhere; }
+  .contact-hours { display: grid; gap: var(--space-1); width: 100%; }
+  .contact-hours div { display: flex; justify-content: space-between; gap: var(--space-4); }
+  .contact-hours dd { margin: 0; font-weight: 600; }
+  .contact-map { min-height: 380px; }
+  .contact-map :global(iframe) { width: 100%; min-height: 380px; border: 0; border-radius: var(--radius-l); }
+  .missing-block.contact-map { text-align: center; justify-items: center; }
+  @media (max-width: 960px) { .contact-grid { grid-template-columns: 1fr; } }
+</style>

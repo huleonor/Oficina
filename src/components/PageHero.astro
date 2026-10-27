@@ -1,0 +1,60 @@
+---
+// Cabeçalho das páginas interiores: faixa escura com migalhas, H1 e foto real ao lado.
+import Icon from './Icon.astro';
+import { business } from '../data/business';
+import { photos, srcset, src, type PhotoKey } from '../data/images';
+
+interface Props {
+  title: string;
+  lead: string;
+  crumbs: { name: string; path: string }[];
+  photo?: PhotoKey;
+}
+const { title, lead, crumbs, photo } = Astro.props;
+const p = photo ? photos[photo] : undefined;
+---
+<section class={`page-hero section-dark${p ? ' has-photo' : ''}`}>
+  <div class="container page-hero-grid">
+    <div class="page-hero-copy">
+      <nav aria-label="Localização na página" class="crumbs">
+        <ol role="list">
+          {crumbs.map((c, i) => (
+            <li>
+              {i < crumbs.length - 1 ? <a href={c.path}>{c.name}</a> : <span aria-current="page">{c.name}</span>}
+            </li>
+          ))}
+        </ol>
+      </nav>
+      <h1 class="t-display page-hero-title">{title}</h1>
+      <p class="t-lead">{lead}</p>
+      <div class="btn-row">
+        <a class="btn btn-primary" href={business.phoneHref}><Icon name="phone" class="btn-icon" />Ligar para a oficina</a>
+        <a class="btn btn-outline-light" href="/contactos/#pedido"><Icon name="calendar" class="btn-icon" />Pedir marcação</a>
+      </div>
+    </div>
+    {p && (
+      <figure class="page-hero-photo">
+        <img src={src(p, 800)} srcset={srcset(p)} sizes="(max-width: 960px) 100vw, 40vw" width={p.width} height={p.height} alt={p.alt} fetchpriority="high" />
+      </figure>
+    )}
+  </div>
+</section>
+
+<style>
+  .page-hero { padding-block: var(--space-8); border-bottom: 4px solid var(--brand-turquoise); overflow: hidden; }
+  .page-hero-grid { display: grid; gap: var(--space-7); align-items: center; }
+  .has-photo .page-hero-grid { grid-template-columns: 1.15fr 0.85fr; }
+  .page-hero-copy { display: grid; gap: var(--space-5); justify-items: start; }
+  .page-hero-title { font-size: clamp(2.2rem, 1.6rem + 2.6vw, 3.6rem); max-width: 20ch; }
+  .crumbs ol { display: flex; flex-wrap: wrap; gap: var(--space-2); font-size: var(--fs-small); color: var(--ink-on-dark-soft); }
+  .crumbs li + li::before { content: '/'; margin-right: var(--space-2); opacity: 0.6; }
+  .crumbs a { color: var(--ink-on-dark-soft); }
+  .crumbs a:hover { color: var(--ink-on-dark); }
+  .page-hero-photo { border-radius: var(--radius-l); overflow: hidden; aspect-ratio: 4 / 3; box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.6); }
+  .page-hero-photo img { width: 100%; height: 100%; object-fit: cover; }
+  @media (max-width: 960px) {
+    .has-photo .page-hero-grid { grid-template-columns: 1fr; }
+    .page-hero-photo { aspect-ratio: 16 / 9; }
+  }
+  @media (max-width: 760px) { .page-hero { padding-block: var(--space-7); } }
+</style>

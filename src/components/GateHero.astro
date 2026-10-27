@@ -1,0 +1,263 @@
+---
+// Hero da página inicial: o portão da oficina abre à medida que se faz scroll.
+// Sem JavaScript, ou com "reduzir movimento" ativo, mostra só a foto com o texto.
+// Com um vídeo real (gateVideo em data/business.ts), o scroll avança o vídeo em vez do portão desenhado.
+import Icon from './Icon.astro';
+import { business, gateVideo } from '../data/business';
+import { photos, srcset, src } from '../data/images';
+
+const photo = photos.zonaTrabalho;
+const panels = 7;
+---
+<section class="gate" data-gate data-video={gateVideo ? 'true' : undefined} aria-labelledby="hero-title">
+  <div class="gate-stage" data-gate-stage>
+    <div class="gate-scene" data-gate-scene>
+      <img
+        class="gate-photo"
+        src={src(photo)}
+        srcset={srcset(photo)}
+        sizes="100vw"
+        width={photo.width}
+        height={photo.height}
+        alt={photo.alt}
+        fetchpriority="high"
+        decoding="async"
+      />
+      {gateVideo && (
+        <video class="gate-video" data-gate-video muted playsinline preload="auto" poster={src(photo)} aria-hidden="true">
+          <source src={gateVideo} type="video/mp4" />
+        </video>
+      )}
+    </div>
+    <div class="gate-overlay" data-gate-overlay></div>
+
+    {!gateVideo && (
+      <div class="gate-door" data-gate-door aria-hidden="true">
+        {Array.from({ length: panels }, (_, i) => (
+          <div class={`gate-panel${i === panels - 2 ? ' has-handle' : ''}${i === panels - 1 ? ' is-last' : ''}`} data-gate-panel />
+        ))}
+      </div>
+    )}
+
+    <div class="container gate-copy">
+      <h1 class="t-display gate-title" id="hero-title">INOVACAR - Oficina Automóvel em Cacia</h1>
+      <p class="gate-lead">Reparação e manutenção automóvel em Aveiro. Fale connosco sobre o seu carro.</p>
+      <div class="btn-row">
+        <a class="btn btn-primary" href={business.phoneHref}>
+          <Icon name="phone" class="btn-icon" />Ligar para a oficina
+        </a>
+        <a class="btn btn-outline-light" href="/contactos/#pedido">
+          <Icon name="calendar" class="btn-icon" />Pedir marcação
+        </a>
+      </div>
+    </div>
+
+    <a class="gate-hint" href="#factos" data-gate-hint>
+      <span>Desça para abrir o portão</span>
+      <Icon name="chevron" class="gate-hint-icon" />
+    </a>
+  </div>
+</section>
+
+<script>
+  const gate = document.querySelector<HTMLElement>('[data-gate]');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  if (gate && !reduce.matches) {
+    const door = gate.querySelector<HTMLElement>('[data-gate-door]');
+    const panels = [...gate.querySelectorAll<HTMLElement>('[data-gate-panel]')];
+    const scene = gate.querySelector<HTMLElement>('[data-gate-scene]');
+    const overlay = gate.querySelector<HTMLElement>('[data-gate-overlay]');
+    const hint = gate.querySelector<HTMLElement>('[data-gate-hint]');
+    const video = gate.querySelector<HTMLVideoElement>('[data-gate-video]');
+
+    gate.classList.add('is-live');
+
+    let target = 0;
+    let current = 0;
+    let raf = 0;
+
+    // Metal pesado: começa devagar, sobe a direito e trava suavemente no topo.
+    const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const clamp = (v: number, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+
+    const measure = () => {
+      const rect = gate.getBoundingClientRect();
+      const travel = gate.offsetHeight - (gate.querySelector<HTMLElement>('[data-gate-stage]')?.offsetHeight ?? 0);
+      target = travel > 0 ? clamp(-rect.top / travel) : 1;
+    };
+
+    const render = () => {
+      // Inércia ligeira para o portão não seguir o dedo de forma seca.
+      current += (target - current) * 0.2;
+      if (Math.abs(target - current) < 0.0005) current = target;
+      const p = ease(current);
+
+      if (door) {
+        const h = door.offsetHeight;
+        const lift = p * h * 1.04;
+        door.style.transform = `translate3d(0, ${-lift}px, 0)`;
+        const ph = h / panels.length;
+        panels.forEach((panel, i) => {
+          // Painéis que chegam ao topo dobram para a calha do teto.
+          const top = i * ph - lift;
+          const bend = clamp(-top / ph);
+          panel.style.transform = bend > 0 ? `rotateX(${(-bend * 68).toFixed(2)}deg)` : '';
+          panel.style.filter = bend > 0 ? `brightness(${(1 - bend * 0.45).toFixed(3)})` : '';
+        });
+        door.style.visibility = p >= 0.999 ? 'hidden' : 'visible';
+      }
+      if (video && video.duration) {
+        const t = p * (video.duration - 0.05);
+        if (Math.abs(video.currentTime - t) > 0.03) video.currentTime = t;
+      }
+      if (scene) scene.style.transform = `scale(${(1.06 - p * 0.06).toFixed(4)})`;
+      if (overlay) overlay.style.opacity = String(1 - p * 0.18);
+      if (hint) hint.classList.toggle('is-hidden', current > 0.04);
+
+      raf = current !== target ? requestAnimationFrame(render) : 0;
+    };
+
+    const onScroll = () => {
+      measure();
+      if (!raf) raf = requestAnimationFrame(render);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    measure();
+    current = target;
+    render();
+
+    hint?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const end = gate.offsetTop + gate.offsetHeight - (gate.querySelector<HTMLElement>('[data-gate-stage]')?.offsetHeight ?? 0);
+      window.scrollTo({ top: end, behavior: 'smooth' });
+    });
+  }
+</script>
+
+<style>
+  .gate {
+    --stage-h: clamp(540px, calc(100vh - var(--header-h)), 900px);
+    --travel: 0px;
+    position: relative;
+    background: var(--brand-dark);
+    color: var(--ink-on-dark);
+  }
+  @supports (height: 100svh) {
+    .gate { --stage-h: clamp(540px, calc(100svh - var(--header-h)), 900px); }
+  }
+  .gate.is-live { --travel: 85vh; height: calc(var(--stage-h) + var(--travel)); }
+
+  .gate-stage {
+    position: relative;
+    height: clamp(520px, 78vh, 760px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .is-live .gate-stage { position: sticky; top: calc(env(safe-area-inset-top, 0px) + var(--header-h)); height: var(--stage-h); }
+
+  .gate-scene { position: absolute; inset: 0; transform-origin: 50% 60%; will-change: transform; }
+  .gate-photo, .gate-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .gate-video { z-index: 1; }
+  .gate-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to top, rgba(22, 24, 36, 0.78) 0%, rgba(22, 24, 36, 0.35) 55%, rgba(22, 24, 36, 0.25) 100%);
+  }
+
+  /* Portão seccionado: painéis de metal na cor do fundo do logótipo, vedante turquesa em baixo. */
+  .gate-door {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-rows: repeat(7, 1fr);
+    perspective: 1400px;
+    perspective-origin: 50% 0%;
+    will-change: transform;
+    box-shadow: 0 30px 40px -10px rgba(0, 0, 0, 0.55);
+  }
+  .gate-panel {
+    position: relative;
+    transform-origin: 50% 100%;
+    background:
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 18%, rgba(0, 0, 0, 0) 82%, rgba(0, 0, 0, 0.22)),
+      var(--brand-dark-raised);
+    border-bottom: 2px solid #1c1f2e;
+  }
+  /* Dois vincos por painel, como as nervuras do portão real. */
+  .gate-panel::before,
+  .gate-panel::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.32) 50%, rgba(255, 255, 255, 0.06) 50%);
+  }
+  .gate-panel::before { top: 33%; }
+  .gate-panel::after { top: 66%; }
+  .gate-panel.has-handle {
+    background-image:
+      linear-gradient(#8f96a8, #8f96a8),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 18%, rgba(0, 0, 0, 0) 82%, rgba(0, 0, 0, 0.22));
+    background-size: 120px 6px, 100% 100%;
+    background-position: 50% 82%, 0 0;
+    background-repeat: no-repeat;
+  }
+  .gate-panel.is-last { border-bottom: 4px solid var(--brand-turquoise); }
+
+  .gate-copy {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    gap: var(--space-4);
+    padding-bottom: clamp(56px, 9vh, 96px);
+  }
+  .gate-title { max-width: 19ch; }
+  .gate-lead { font-size: var(--fs-lead); line-height: 1.45; max-width: 44ch; color: #e6e8ee; margin-bottom: var(--space-3); }
+
+  .gate-hint {
+    position: absolute;
+    z-index: 2;
+    right: var(--gutter-r);
+    bottom: 20px;
+    display: none;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 8px 4px;
+    color: var(--ink-on-dark-soft);
+    font-size: var(--fs-small);
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: opacity var(--dur-standard) var(--ease), transform var(--dur-standard) var(--ease);
+  }
+  .is-live .gate-hint { display: inline-flex; }
+  .gate-hint:hover { color: var(--ink-on-dark); }
+  .gate-hint.is-hidden { opacity: 0; transform: translateY(6px); pointer-events: none; }
+  .gate-hint-icon { width: 20px; height: 20px; animation: nudge 1.8s cubic-bezier(0.37, 0, 0.63, 1) infinite; }
+  @keyframes nudge {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
+  }
+
+  @media (max-width: 760px) {
+    /* A barra de chamada fixa ocupa o fundo do ecrã: o palco termina acima dela. */
+    .gate { --stage-h: max(480px, calc(100vh - var(--header-h) - 72px)); }
+    @supports (height: 100svh) {
+      .gate { --stage-h: max(480px, calc(100svh - var(--header-h) - 72px - env(safe-area-inset-bottom, 0px))); }
+    }
+    .gate.is-live { --travel: 70vh; }
+    .gate-copy { padding-bottom: 64px; }
+    .gate-hint { left: var(--gutter); right: auto; bottom: 14px; }
+    .gate-panel.has-handle { background-size: 0 0, 100% 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gate-hint-icon { animation: none; }
+  }
+</style>

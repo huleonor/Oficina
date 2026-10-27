@@ -1,0 +1,101 @@
+---
+import { getCollection } from 'astro:content';
+import Icon from './Icon.astro';
+import { business } from '../data/business';
+
+const servicos = (await getCollection('servicos')).sort((a, b) => a.data.order - b.data.order);
+const localidades = (await getCollection('localidades')).sort((a, b) => a.data.order - b.data.order);
+const year = new Date().getFullYear();
+---
+<footer class="footer section-dark">
+  <div class="container footer-grid">
+    <div class="footer-col footer-brand">
+      <a href="/" class="footer-logo" aria-label="INOVACAR, página inicial">
+        <img src="/images/logo-inovacar-240.png" width="240" height="146" alt="INOVACAR - Oficina Automóvel" loading="lazy" />
+      </a>
+      <address class="footer-contact">
+        <p class="footer-line"><Icon name="pin" class="footer-icon" /><span>{business.address.full}</span></p>
+        <p class="footer-line"><Icon name="phone" class="footer-icon" /><a class="t-num" href={business.phoneHref}>{business.phoneIntl}</a></p>
+        {business.showEmail && (
+          <p class="footer-line"><Icon name="mail" class="footer-icon" /><a href={`mailto:${business.email}`}>{business.email}</a></p>
+        )}
+        <p class="footer-line"><Icon name="access" class="footer-icon" /><span>{business.accessibility}</span></p>
+      </address>
+    </div>
+
+    <div class="footer-col">
+      <h2 class="footer-title t-label">Horário</h2>
+      <dl class="footer-hours t-num">
+        <div><dt>Segunda a sexta</dt><dd>09:00 às 18:30</dd></div>
+        <div><dt>Sábado e domingo</dt><dd>Fechado</dd></div>
+      </dl>
+      <p class="t-small footer-note">{business.hours.note}</p>
+      <a class="link-arrow footer-gbp" href={business.googleProfile} target="_blank" rel="noopener">
+        Ver no Google Maps <Icon name="external" />
+      </a>
+    </div>
+
+    <nav class="footer-col" aria-label="Serviços">
+      <h2 class="footer-title t-label">Serviços</h2>
+      <ul role="list" class="footer-links">
+        {servicos.map((s) => <li><a href={`/servicos/${s.id}/`}>{s.data.name}</a></li>)}
+      </ul>
+    </nav>
+
+    <nav class="footer-col" aria-label="Localidades">
+      <h2 class="footer-title t-label">Localidades</h2>
+      <ul role="list" class="footer-links">
+        {localidades.map((l) => <li><a href={`/localidades/${l.id}/`}>{l.data.city}</a></li>)}
+      </ul>
+    </nav>
+  </div>
+
+  <div class="container"><div class="footer-base">
+    <p>© {year} {business.name}</p>
+    <ul role="list" class="footer-base-links">
+      <li><a href="/sobre-nos/">Sobre nós</a></li>
+      <li><a href="/contactos/">Contactos</a></li>
+    </ul>
+  </div></div>
+</footer>
+
+<style>
+  .footer { padding-block: var(--space-8) var(--space-5); }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap: var(--space-7) var(--space-6);
+  }
+  .footer-col { min-width: 0; display: grid; align-content: start; gap: var(--space-3); }
+  .footer-logo img { width: 150px; }
+  .footer-contact { font-style: normal; display: grid; gap: var(--space-3); margin-top: var(--space-3); }
+  .footer-line { display: flex; gap: var(--space-3); align-items: flex-start; color: var(--ink-on-dark-soft); }
+  .footer-line a { color: var(--ink-on-dark); text-decoration: none; overflow-wrap: anywhere; }
+  .footer-line a:hover { color: var(--brand-turquoise); }
+  .footer-icon { width: 20px; height: 20px; flex: none; margin-top: 3px; color: var(--brand-turquoise); }
+  .footer-title { color: var(--brand-turquoise); }
+  .footer-hours { display: grid; gap: var(--space-2); }
+  .footer-hours div { display: flex; justify-content: space-between; gap: var(--space-4); border-bottom: 1px solid var(--line-on-dark); padding-bottom: var(--space-2); }
+  .footer-hours dt { color: var(--ink-on-dark-soft); }
+  .footer-hours dd { margin: 0; font-weight: 600; }
+  .footer-note { color: var(--ink-on-dark-soft); }
+  .footer-gbp { margin-top: var(--space-2); }
+  .footer-links { display: grid; gap: var(--space-1); }
+  .footer-links a { display: inline-block; padding-block: 4px; color: var(--ink-on-dark-soft); text-decoration: none; }
+  .footer-links a:hover { color: var(--ink-on-dark); text-decoration: underline; }
+  .footer-base {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-8);
+    padding-top: var(--space-5);
+    border-top: 1px solid var(--line-on-dark);
+    color: var(--ink-on-dark-soft);
+    font-size: var(--fs-small);
+  }
+  .footer-base-links { display: flex; gap: var(--space-5); }
+  .footer-base-links a { color: var(--ink-on-dark-soft); }
+  @media (max-width: 960px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .footer-grid { grid-template-columns: 1fr; } }
+</style>

@@ -1,0 +1,37 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import PageHero from '../../components/PageHero.astro';
+import ServiceBoard from '../../components/ServiceBoard.astro';
+import CtaBand from '../../components/CtaBand.astro';
+import { breadcrumbSchema } from '../../data/schema';
+
+const servicos = (await getCollection('servicos')).sort((a, b) => a.data.order - b.data.order);
+const crumbs = [
+  { name: 'Início', path: '/' },
+  { name: 'Serviços', path: '/servicos/' },
+];
+---
+<Base
+  title="Serviços de manutenção e reparação automóvel em Aveiro | INOVACAR"
+  description="Mudança de óleo, travões, diagnóstico, bateria, suspensão, embraiagem, distribuição e pré-inspeção na INOVACAR, R. da Paz, Aveiro."
+  schema={[breadcrumbSchema(Astro.site!, crumbs)]}
+>
+  <PageHero
+    title="Serviços de manutenção e reparação em Aveiro"
+    lead="Tratamos da manutenção e das reparações mecânicas do carro do dia a dia. Escolha um serviço para saber mais, ou ligue e descreva o problema."
+    crumbs={crumbs}
+    photo="zonaTrabalho"
+  />
+  <section class="section">
+    <div class="container">
+      <ServiceBoard items={servicos} headingLevel="h2" />
+      <p class="t-soft services-price">Preços: cada carro e cada reparação são diferentes. Contacte-nos para um orçamento.</p>
+    </div>
+  </section>
+  <CtaBand />
+</Base>
+
+<style>
+  .services-price { margin-top: var(--space-6); }
+</style>
