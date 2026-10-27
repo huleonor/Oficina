@@ -19,8 +19,7 @@ npm run images     # gerar as imagens do site a partir de inovacar-assets/
 | --- | --- |
 | Cores, tipografia, espaçamentos | `src/styles/global.css` (bloco `:root`) |
 | Nome, telefone, morada, horário, email | `src/data/business.ts` |
-| Widget de avaliações, mapa, avaliações coladas à mão | `src/data/business.ts` |
-| Serviço do formulário (Formspree ou outro) | `formEndpoint` em `src/data/business.ts` |
+| Mapa, links do Google, vídeo do portão | `src/data/business.ts` |
 | Serviços (8) | `src/content/servicos/*.md` |
 | Trabalhos antes/depois | `src/content/projetos/*.md` |
 | Domínio final | variável `SITE_URL` (ver `astro.config.mjs`) |
@@ -47,4 +46,4 @@ A entrada da página inicial mostra um vídeo do portão a abrir (toca uma vez, 
    `ffmpeg -i portao-original.mov -vf "scale=1600:-2" -an -c:v libx264 -crf 26 -movflags +faststart public/video/portao.mp4`
 3. Substitua `public/video/portao.mp4` e crie a capa: `ffmpeg -i public/video/portao.mp4 -frames:v 1 public/video/portao-inicio.jpg`.
 
-Quem tem "reduzir movimento" ativo no sistema vê só a foto, sem animação.
+Quem tem "reduzir movimento" ativo no sistema vê só a imagem de capa.
