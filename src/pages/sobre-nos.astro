@@ -37,8 +37,9 @@ const crumbs = [
           <li>[A FORNECER: terceiro diferencial real da oficina]</li>
         </ul>
       </div>
-      <figure class="about-page-photo">
+      <figure class="about-page-photo has-stock-tag">
         <img src={src(photos.interior, 800)} srcset={srcset(photos.interior)} sizes="(max-width: 960px) 100vw, 40vw" width={photos.interior.width} height={photos.interior.height} alt={photos.interior.alt} loading="lazy" />
+        {photos.interior.stock && <figcaption class="stock-tag">Imagem ilustrativa</figcaption>}
       </figure>
     </div>
   </section>
@@ -59,8 +60,12 @@ const crumbs = [
     <div class="container">
       <div class="section-head"><h2 class="t-h2" id="fotos-title">Fotografias da oficina</h2></div>
       <div class="about-gallery">
-        <img src={src(photos.ferrari, 800)} srcset={srcset(photos.ferrari)} sizes="(max-width: 760px) 100vw, 33vw" width={photos.ferrari.width} height={photos.ferrari.height} alt={photos.ferrari.alt} loading="lazy" />
-        <img src={src(photos.maserati, 800)} srcset={srcset(photos.maserati)} sizes="(max-width: 760px) 100vw, 66vw" width={photos.maserati.width} height={photos.maserati.height} alt={photos.maserati.alt} loading="lazy" />
+        {(['ferrari', 'maserati'] as const).map((k) => (
+          <figure class="has-stock-tag">
+            <img src={src(photos[k], 800)} srcset={srcset(photos[k])} sizes="(max-width: 760px) 100vw, 50vw" width={photos[k].width} height={photos[k].height} alt={photos[k].alt} loading="lazy" />
+            {photos[k].stock && <figcaption class="stock-tag">Imagem ilustrativa</figcaption>}
+          </figure>
+        ))}
       </div>
     </div>
   </section>
@@ -78,8 +83,9 @@ const crumbs = [
   .fact dt { color: var(--ink-soft); }
   .fact dd { margin: 0; font-weight: 600; }
   .fact a { text-decoration: none; }
-  .about-gallery { display: grid; grid-template-columns: 1fr 2fr; gap: var(--space-4); }
-  .about-gallery img { width: 100%; height: 100%; aspect-ratio: auto; object-fit: cover; border-radius: var(--radius-l); max-height: 560px; }
+  .about-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+  .about-gallery figure { border-radius: var(--radius-l); overflow: hidden; aspect-ratio: 4 / 3; }
+  .about-gallery img { width: 100%; height: 100%; object-fit: cover; }
   @media (max-width: 960px) {
     .about-page { grid-template-columns: 1fr; }
     .about-page-photo { aspect-ratio: 4 / 3; }

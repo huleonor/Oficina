@@ -17,7 +17,7 @@ export const breadcrumbSchema = (site: URL, items: { name: string; path: string 
     '@type': 'ListItem',
     position: i + 1,
     name: item.name,
-    item: new URL(item.path, site).toString(),
+    item: new URL(import.meta.env.BASE_URL.replace(/\/$/, '') + item.path, site).toString(),
   })),
 });
 

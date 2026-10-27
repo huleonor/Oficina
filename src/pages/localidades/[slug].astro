@@ -1,4 +1,5 @@
 ---
+import { u } from '../../lib/url';
 import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
@@ -79,7 +80,7 @@ const h1 = data.city === 'Aveiro' ? 'Oficina automóvel em Aveiro' : `Oficina au
     <div class="container">
       <h2 class="t-h3 loc-other-title" id="loc-outras">Outras localidades</h2>
       <ul role="list" class="loc-chips">
-        {outras.map((l) => <li><a class="loc-chip" href={`/localidades/${l.id}/`}>{l.data.city}<Icon name="arrow" class="loc-chip-icon" /></a></li>)}
+        {outras.map((l) => <li><a class="loc-chip" href={u(`/localidades/${l.id}/`)}>{l.data.city}<Icon name="arrow" class="loc-chip-icon" /></a></li>)}
       </ul>
     </div>
   </section>

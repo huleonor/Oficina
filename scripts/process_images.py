@@ -3,22 +3,29 @@
 - Os originais nunca são alterados.
 - As matrículas são desfocadas nas cópias (caixas em fração da largura/altura).
 - Cada foto sai em WebP com 800 e 1600 px de largura para public/images/.
-- Se um original faltar, gera uma imagem provisória identificada, para o site compilar.
+- Se a foto real faltar, usa a imagem de stock provisória de stock-assets/ e marca-a como ilustrativa.
+- Escreve src/data/image-manifest.json com as dimensões e a origem de cada imagem.
 
 Uso: python3 scripts/process_images.py
 """
 
+import json
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "inovacar-assets"
+STOCK = ROOT / "stock-assets"
 OUT = ROOT / "public" / "images"
+MANIFEST = ROOT / "src" / "data" / "image-manifest.json"
+FONTS = ROOT / "node_modules" / "@fontsource" / "barlow-semi-condensed" / "files"
 
-# Caixas (x0, y0, x1, y1) em fração da imagem, por cima de cada matrícula legível.
+# Caixas (x0, y0, x1, y1) em fração da imagem, por cima de cada matrícula legível nas fotos reais.
 PHOTOS = {
-    "google-maps-02.jpg": {
+    "zonaTrabalho": {
+        "real": "google-maps-02.jpg",
+        "stock": "hero-ferramentas.jpg",
         "out": "oficina-zona-trabalho",
         "blur": [
             (0.108, 0.552, 0.188, 0.590),
@@ -26,21 +33,29 @@ PHOTOS = {
             (0.755, 0.690, 0.846, 0.735),
         ],
     },
-    "google-maps-01.jpg": {
+    "interior": {
+        "real": "google-maps-01.jpg",
+        "stock": "mecanico-oficina.jpg",
         "out": "oficina-interior",
         "blur": [
             (0.514, 0.610, 0.608, 0.650),
             (0.895, 0.650, 0.950, 0.695),
         ],
     },
-    "google-maps-03.jpg": {
+    "ferrari": {
+        "real": "google-maps-03.jpg",
+        "stock": "maos-chave.jpg",
         "out": "oficina-ferrari",
         "blur": [
             (0.300, 0.835, 0.645, 0.905),
             (0.100, 0.350, 0.155, 0.385),
         ],
     },
-    "google-maps-04.jpg": {"out": "oficina-maserati", "blur": []},
+    "maserati": {"real": "google-maps-04.jpg", "stock": "mecanico-capo.jpg", "out": "oficina-maserati", "blur": []},
+    # Fotos só de stock, para as páginas de serviço, até existirem fotos reais.
+    "oleo": {"real": "servico-oleo.jpg", "stock": "mudanca-oleo.jpg", "out": "servico-oleo", "blur": []},
+    "roda": {"real": "servico-travoes.jpg", "stock": "roda-aperto.jpg", "out": "servico-travoes", "blur": []},
+    "motor": {"real": "servico-motor.jpg", "stock": "motor-correias.jpg", "out": "servico-motor", "blur": []},
 }
 
 WIDTHS = (800, 1600)
@@ -56,56 +71,66 @@ def blur_boxes(img: Image.Image, boxes):
     return img
 
 
-def standin(label: str, size=(1600, 1200)) -> Image.Image:
-    img = Image.new("RGB", size, (58, 62, 79))
-    d = ImageDraw.Draw(img)
-    try:
-        font = ImageFont.truetype("DejaVuSans.ttf", 42)
-    except OSError:
-        font = ImageFont.load_default()
-    d.text((60, size[1] - 120), f"FOTO EM FALTA: {label}", fill=(201, 205, 216), font=font)
-    return img
-
-
 def save_sizes(img: Image.Image, name: str):
     for width in WIDTHS:
         copy = img.copy()
         if copy.width > width:
             copy = copy.resize((width, round(copy.height * width / copy.width)), Image.LANCZOS)
         copy.save(OUT / f"{name}-{width}.webp", "WEBP", quality=80, method=6)
-    print(f"  {name}: {img.width}x{img.height}")
+
+
+def provisional_logo() -> Image.Image:
+    """Logótipo provisório em texto simples, só até existir o ficheiro real. Não imita a arte original."""
+    img = Image.new("RGB", (1560, 950), (38, 41, 60))
+    d = ImageDraw.Draw(img)
+    big = ImageFont.truetype(str(FONTS / "barlow-semi-condensed-latin-700-normal.woff"), 300)
+    small = ImageFont.truetype(str(FONTS / "barlow-semi-condensed-latin-600-normal.woff"), 96)
+    for text, font, y in (("INOVACAR", big, 250), ("OFICINA AUTOMÓVEL", small, 600)):
+        w = d.textlength(text, font=font)
+        d.text(((1560 - w) / 2, y), text, font=font, fill=(54, 179, 175))
+    return img
 
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    for file, cfg in PHOTOS.items():
-        path = SRC / file
-        if path.exists():
-            img = Image.open(path).convert("RGB")
-            img = blur_boxes(img, cfg["blur"])
+    manifest = {}
+    for key, cfg in PHOTOS.items():
+        real = SRC / cfg["real"]
+        if real.exists():
+            img = blur_boxes(Image.open(real).convert("RGB"), cfg["blur"])
+            origin = "real"
         else:
-            print(f"! {file} em falta, a gerar provisória")
-            img = standin(file, (1600, 2133) if file in ("google-maps-01.jpg", "google-maps-03.jpg") else (1600, 1200))
+            img = Image.open(STOCK / cfg["stock"]).convert("RGB")
+            origin = "stock"
         save_sizes(img, cfg["out"])
+        manifest[key] = {"width": img.width, "height": img.height, "stock": origin == "stock"}
+        print(f"  {key}: {origin} {img.width}x{img.height}")
 
     logo = SRC / "logo-inovacar-referencia.png"
     if logo.exists():
         img = Image.open(logo).convert("RGB")
+        manifest["logo"] = {"width": img.width, "height": img.height, "stock": False}
     else:
-        print("! logótipo em falta, a gerar provisório")
-        img = Image.new("RGB", (1560, 950), (38, 41, 60))
-        ImageDraw.Draw(img).rectangle((40, 40, 1520, 910), outline=(54, 179, 175), width=8)
+        print("! logótipo em falta, a gerar provisório em texto")
+        img = provisional_logo()
+        manifest["logo"] = {"width": img.width, "height": img.height, "stock": True}
     for width in (240, 480):
         copy = img.resize((width, round(img.height * width / img.width)), Image.LANCZOS)
         copy.save(OUT / f"logo-inovacar-{width}.png", "PNG", optimize=True)
         copy.save(OUT / f"logo-inovacar-{width}.webp", "WEBP", quality=90, method=6)
-    # Imagem para partilha em redes sociais (1200x630) a partir da foto do hero.
-    hero = OUT / "oficina-zona-trabalho-1600.webp"
-    og = Image.open(hero).convert("RGB")
-    ratio = 1200 / 630
-    h = round(og.width / ratio)
+
+    # Imagem para partilha (1200x630) a partir da foto do hero.
+    og = Image.open(OUT / "oficina-zona-trabalho-1600.webp").convert("RGB")
+    h = round(og.width / (1200 / 630))
     top = max(0, (og.height - h) // 2)
     og.crop((0, top, og.width, top + h)).resize((1200, 630), Image.LANCZOS).save(OUT / "og-inovacar.jpg", "JPEG", quality=82)
+
+    # Favicon a partir do logótipo (fundo escuro da marca).
+    fav = Image.new("RGB", (64, 64), (38, 41, 60))
+    ImageDraw.Draw(fav).text((14, 6), "I", font=ImageFont.truetype(str(FONTS / "barlow-semi-condensed-latin-700-normal.woff"), 52), fill=(54, 179, 175))
+    fav.save(ROOT / "public" / "favicon.png")
+
+    MANIFEST.write_text(json.dumps(manifest, indent=2) + "\n")
     print("feito")
 
 

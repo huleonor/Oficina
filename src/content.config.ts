@@ -1,7 +1,7 @@
 import { defineCollection, reference, z } from 'astro:content';
 import { glob } from 'astro/loaders';
 
-const photoKey = z.enum(['zonaTrabalho', 'interior', 'ferrari', 'maserati']);
+const photoKey = z.enum(['zonaTrabalho', 'interior', 'ferrari', 'maserati', 'oleo', 'roda', 'motor']);
 
 // Serviços: um ficheiro .md por serviço. O corpo do ficheiro é a descrição completa (texto rico).
 const servicos = defineCollection({

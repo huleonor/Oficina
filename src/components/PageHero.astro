@@ -1,4 +1,5 @@
 ---
+import { u } from '../lib/url';
 // Cabeçalho das páginas interiores: faixa escura com migalhas, H1 e foto real ao lado.
 import Icon from './Icon.astro';
 import { business } from '../data/business';
@@ -20,7 +21,7 @@ const p = photo ? photos[photo] : undefined;
         <ol role="list">
           {crumbs.map((c, i) => (
             <li>
-              {i < crumbs.length - 1 ? <a href={c.path}>{c.name}</a> : <span aria-current="page">{c.name}</span>}
+              {i < crumbs.length - 1 ? <a href={u(c.path)}>{c.name}</a> : <span aria-current="page">{c.name}</span>}
             </li>
           ))}
         </ol>
@@ -29,12 +30,13 @@ const p = photo ? photos[photo] : undefined;
       <p class="t-lead">{lead}</p>
       <div class="btn-row">
         <a class="btn btn-primary" href={business.phoneHref}><Icon name="phone" class="btn-icon" />Ligar para a oficina</a>
-        <a class="btn btn-outline-light" href="/contactos/#pedido"><Icon name="calendar" class="btn-icon" />Pedir marcação</a>
+        <a class="btn btn-outline-light" href={u('/contactos/#pedido')}><Icon name="calendar" class="btn-icon" />Pedir marcação</a>
       </div>
     </div>
     {p && (
-      <figure class="page-hero-photo">
+      <figure class="page-hero-photo has-stock-tag">
         <img src={src(p, 800)} srcset={srcset(p)} sizes="(max-width: 960px) 100vw, 40vw" width={p.width} height={p.height} alt={p.alt} fetchpriority="high" />
+        {p.stock && <figcaption class="stock-tag">Imagem ilustrativa</figcaption>}
       </figure>
     )}
   </div>

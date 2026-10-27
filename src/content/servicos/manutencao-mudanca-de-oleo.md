@@ -1,7 +1,7 @@
 ---
 name: Manutenção e mudança de óleo
 shortDescription: Mudança de óleo e filtros e as verificações de rotina que mantêm o carro em dia.
-heroImage: zonaTrabalho
+heroImage: oleo
 icon: oil
 order: 1
 featured: true

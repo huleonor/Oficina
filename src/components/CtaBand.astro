@@ -1,4 +1,5 @@
 ---
+import { u } from '../lib/url';
 import Icon from './Icon.astro';
 import { business } from '../data/business';
 
@@ -24,7 +25,7 @@ const {
       <p class="cta-hours t-num"><Icon name="clock" class="cta-hours-icon" />{business.hours.display}. {business.hours.closed}.</p>
       <div class="btn-row">
         <a class="btn btn-primary" href={business.phoneHref}><Icon name="phone" class="btn-icon" />Ligar para a oficina</a>
-        <a class="btn btn-outline-light" href="/contactos/#pedido"><Icon name="calendar" class="btn-icon" />Pedir marcação</a>
+        <a class="btn btn-outline-light" href={u('/contactos/#pedido')}><Icon name="calendar" class="btn-icon" />Pedir marcação</a>
       </div>
     </div>
   </div>

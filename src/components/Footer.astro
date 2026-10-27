@@ -1,4 +1,5 @@
 ---
+import { u } from '../lib/url';
 import { getCollection } from 'astro:content';
 import Icon from './Icon.astro';
 import { business } from '../data/business';
@@ -10,8 +11,8 @@ const year = new Date().getFullYear();
 <footer class="footer section-dark">
   <div class="container footer-grid">
     <div class="footer-col footer-brand">
-      <a href="/" class="footer-logo" aria-label="INOVACAR, página inicial">
-        <img src="/images/logo-inovacar-240.png" width="240" height="146" alt="INOVACAR - Oficina Automóvel" loading="lazy" />
+      <a href={u('/')} class="footer-logo" aria-label="INOVACAR, página inicial">
+        <img src={u('/images/logo-inovacar-240.png')} width="240" height="146" alt="INOVACAR - Oficina Automóvel" loading="lazy" />
       </a>
       <address class="footer-contact">
         <p class="footer-line"><Icon name="pin" class="footer-icon" /><span>{business.address.full}</span></p>
@@ -38,14 +39,14 @@ const year = new Date().getFullYear();
     <nav class="footer-col" aria-label="Serviços">
       <h2 class="footer-title t-label">Serviços</h2>
       <ul role="list" class="footer-links">
-        {servicos.map((s) => <li><a href={`/servicos/${s.id}/`}>{s.data.name}</a></li>)}
+        {servicos.map((s) => <li><a href={u(`/servicos/${s.id}/`)}>{s.data.name}</a></li>)}
       </ul>
     </nav>
 
     <nav class="footer-col" aria-label="Localidades">
       <h2 class="footer-title t-label">Localidades</h2>
       <ul role="list" class="footer-links">
-        {localidades.map((l) => <li><a href={`/localidades/${l.id}/`}>{l.data.city}</a></li>)}
+        {localidades.map((l) => <li><a href={u(`/localidades/${l.id}/`)}>{l.data.city}</a></li>)}
       </ul>
     </nav>
   </div>
@@ -53,8 +54,8 @@ const year = new Date().getFullYear();
   <div class="container"><div class="footer-base">
     <p>© {year} {business.name}</p>
     <ul role="list" class="footer-base-links">
-      <li><a href="/sobre-nos/">Sobre nós</a></li>
-      <li><a href="/contactos/">Contactos</a></li>
+      <li><a href={u('/sobre-nos/')}>Sobre nós</a></li>
+      <li><a href={u('/contactos/')}>Contactos</a></li>
     </ul>
   </div></div>
 </footer>

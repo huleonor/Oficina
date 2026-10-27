@@ -1,4 +1,5 @@
 ---
+import { u } from '../lib/url';
 import { getCollection } from 'astro:content';
 import Icon from './Icon.astro';
 import { business, mapEmbed } from '../data/business';
@@ -13,7 +14,7 @@ const localidades = (await getCollection('localidades')).sort((a, b) => a.data.o
       <ul role="list" class="area-links">
         {localidades.map((l) => (
           <li>
-            <a class="area-link" href={`/localidades/${l.id}/`}>
+            <a class="area-link" href={u(`/localidades/${l.id}/`)}>
               <span class="area-city">{l.data.city}</span>
               <span class="area-time">{l.data.driveTime.replace(' (estimativa)', '')}</span>
               <Icon name="arrow" class="area-arrow" />
@@ -21,7 +22,7 @@ const localidades = (await getCollection('localidades')).sort((a, b) => a.data.o
           </li>
         ))}
       </ul>
-      <a class="link-arrow" href="/localidades/">Ver todas as localidades <Icon name="arrow" /></a>
+      <a class="link-arrow" href={u('/localidades/')}>Ver todas as localidades <Icon name="arrow" /></a>
     </div>
 
     {mapEmbed ? (

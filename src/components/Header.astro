@@ -1,4 +1,5 @@
 ---
+import { u } from '../lib/url';
 import Icon from './Icon.astro';
 import { business } from '../data/business';
 
@@ -9,14 +10,14 @@ const nav = [
   { href: '/contactos/', label: 'Contactos' },
 ];
 const path = Astro.url.pathname;
-const isCurrent = (href: string) => path === href || (href !== '/' && path.startsWith(href));
+const isCurrent = (href: string) => path === u(href) || (href !== '/' && path.startsWith(u(href)));
 ---
 <header class="site-header" data-header>
   <div class="container site-header-inner">
-    <a class="site-logo" href="/" aria-label="INOVACAR - Oficina Automóvel, página inicial">
+    <a class="site-logo" href={u('/')} aria-label="INOVACAR - Oficina Automóvel, página inicial">
       <picture>
-        <source type="image/webp" srcset="/images/logo-inovacar-240.webp 1x, /images/logo-inovacar-480.webp 2x" />
-        <img src="/images/logo-inovacar-240.png" width="240" height="146" alt="INOVACAR - Oficina Automóvel" />
+        <source type="image/webp" srcset={`${u('/images/logo-inovacar-240.webp')} 1x, ${u('/images/logo-inovacar-480.webp')} 2x`} />
+        <img src={u('/images/logo-inovacar-240.png')} width="240" height="146" alt="INOVACAR - Oficina Automóvel" />
       </picture>
     </a>
 
@@ -24,13 +25,13 @@ const isCurrent = (href: string) => path === href || (href !== '/' && path.start
       <ul role="list" class="site-nav-list">
         {nav.map((item) => (
           <li>
-            <a class="site-nav-link" href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+            <a class="site-nav-link" href={u(item.href)} aria-current={isCurrent(item.href) ? 'page' : undefined}>
               {item.label}
             </a>
           </li>
         ))}
       </ul>
-      <a class="btn btn-outline-light site-nav-book" href="/contactos/#pedido">
+      <a class="btn btn-outline-light site-nav-book" href={u('/contactos/#pedido')}>
         <Icon name="calendar" class="btn-icon" />Pedir marcação
       </a>
     </nav>

@@ -1,7 +1,7 @@
 ---
 name: Bateria e arranque
 shortDescription: Verificação da bateria, do motor de arranque e do sistema de carga.
-heroImage: zonaTrabalho
+heroImage: motor
 icon: battery
 order: 4
 featured: true

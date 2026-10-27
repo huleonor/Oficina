@@ -1,7 +1,7 @@
 ---
 name: Travões
 shortDescription: Inspeção e reparação de pastilhas, discos e restante sistema de travagem.
-heroImage: zonaTrabalho
+heroImage: roda
 icon: brake
 order: 2
 featured: true

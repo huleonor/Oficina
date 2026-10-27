@@ -1,7 +1,7 @@
 ---
 name: Motor e correia de distribuição
 shortDescription: Reparações de motor e substituição da correia ou kit de distribuição.
-heroImage: ferrari
+heroImage: motor
 icon: engine
 order: 7
 featured: false
