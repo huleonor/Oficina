@@ -3,7 +3,6 @@ import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
 import ServiceBoard from '../../components/ServiceBoard.astro';
-import CtaBand from '../../components/CtaBand.astro';
 import { breadcrumbSchema } from '../../data/schema';
 
 const servicos = (await getCollection('servicos')).sort((a, b) => a.data.order - b.data.order);
@@ -29,7 +28,6 @@ const crumbs = [
       <p class="t-soft services-price">Preços: cada carro e cada reparação são diferentes. Contacte-nos para um orçamento.</p>
     </div>
   </section>
-  <CtaBand />
 </Base>
 
 <style>

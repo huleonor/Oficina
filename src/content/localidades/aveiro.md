@@ -14,4 +14,4 @@ seoTitle: Oficina automóvel em Aveiro | INOVACAR
 seoDescription: Oficina automóvel em Aveiro, R. da Paz, 3800-587. Manutenção, mudança de óleo, travões e diagnóstico. Ligue 934 514 368.
 ---
 
-Para clientes de Aveiro, a INOVACAR trata da manutenção e das reparações mecânicas do carro do dia a dia. Ligue para falar sobre o seu carro ou peça marcação pelo formulário.
+Para clientes de Aveiro, a INOVACAR trata da manutenção e das reparações mecânicas do carro do dia a dia. Ligue para falar sobre o seu carro e marcar.

@@ -10,14 +10,14 @@ benefits:
   - Verificação dos níveis e dos pontos de desgaste mais comuns
   - Explicamos o que encontrámos antes de avançar com outro trabalho
 seoTitle: Mudança de óleo e manutenção em Aveiro | INOVACAR
-seoDescription: Mudança de óleo, filtros e manutenção de rotina na INOVACAR, R. da Paz, Aveiro. Ligue 934 514 368 ou peça marcação.
+seoDescription: Mudança de óleo, filtros e manutenção de rotina na INOVACAR, R. da Paz, Aveiro. Ligue 934 514 368 para marcar.
 faqs:
   - q: De quanto em quanto tempo devo mudar o óleo?
     a: Depende do motor, do óleo usado e da forma como conduz. O intervalo certo está no plano de manutenção do fabricante. Se não o tiver à mão, diga-nos a marca, o modelo e os quilómetros e ajudamos a ver.
   - q: Que filtros são mudados numa manutenção?
     a: Normalmente o filtro de óleo, e conforme o plano do carro também os filtros de ar, de habitáculo e de combustível. Indicamos quais estão previstos antes de começar.
   - q: Quanto custa uma manutenção?
-    a: O preço varia com o carro e com o que o plano de manutenção pede. Ligue ou envie um pedido e damos-lhe uma estimativa.
+    a: O preço varia com o carro e com o que o plano de manutenção pede. Ligue para o 934 514 368 e damos-lhe uma estimativa.
 ---
 
 A manutenção regular é a forma mais simples de evitar avarias maiores. Na INOVACAR mudamos o óleo e os filtros e fazemos as verificações de rotina que o seu carro precisa, seguindo o plano de manutenção do fabricante.

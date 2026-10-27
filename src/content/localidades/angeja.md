@@ -10,4 +10,4 @@ seoTitle: Oficina automóvel para clientes de Angeja | INOVACAR
 seoDescription: Vive em Angeja? A INOVACAR, na R. da Paz em Aveiro, faz revisões, travões, diagnóstico e reparações. Ligue 934 514 368.
 ---
 
-Ligue para combinar a entrega do carro ou envie o pedido pelo formulário de marcação.
+Ligue para o 934 514 368 para combinar a entrega do carro.

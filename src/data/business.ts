@@ -28,6 +28,11 @@ export const business = {
     opens: '09:00',
     closes: '18:30',
   },
+  directionsHref:
+    'https://www.google.com/maps/dir/?api=1&destination=INOVACAR%20-%20Oficina%20Autom%C3%B3vel%2C%20R.%20da%20Paz%2C%203800-587%20Aveiro',
+  // Mapa sem chave de API, a partir do nome e da morada da ficha Google.
+  mapSrc:
+    'https://www.google.com/maps?q=INOVACAR%20-%20Oficina%20Autom%C3%B3vel%2C%20R.%20da%20Paz%2C%203800-587%20Aveiro&output=embed',
   accessibility: 'Entrada acessível a cadeira de rodas',
   googleProfile:
     'https://www.google.com/maps/place/INOVACAR+-+OFICINA+AUTOM%C3%93VEL/@40.6664827,-8.6043977,17z/data=!4m2!3m1!1s0xd23998e8b0029d7:0x2b7dd3cba7177a2',
@@ -48,9 +53,6 @@ export const pastedReviews: { text: string; author: string }[] = [
   { text: '', author: '' },
   { text: '', author: '' },
 ];
-
-// [A FORNECER] Endereço do serviço de formulários (ex.: Formspree). Recebe POST com os campos do pedido.
-export const formEndpoint = '';
 
 // Vídeo do portão. Quando existir public/video/portao.mp4, mude para '/video/portao.mp4'.
 export const gateVideo = '';

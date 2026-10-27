@@ -13,4 +13,4 @@ seoTitle: Oficina automóvel para clientes de Ílhavo | INOVACAR
 seoDescription: Vive em Ílhavo ou nas Gafanhas? A INOVACAR, na R. da Paz em Aveiro, faz revisões e reparações. Ligue 934 514 368.
 ---
 
-Fale connosco por telefone ou envie um pedido de marcação.
+Ligue para o 934 514 368 para marcar.

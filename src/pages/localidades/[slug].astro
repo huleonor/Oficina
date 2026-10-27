@@ -4,7 +4,6 @@ import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
 import ServiceBoard from '../../components/ServiceBoard.astro';
-import CtaBand from '../../components/CtaBand.astro';
 import Icon from '../../components/Icon.astro';
 import { business } from '../../data/business';
 import { breadcrumbSchema } from '../../data/schema';
@@ -58,10 +57,7 @@ const h1 = data.city === 'Aveiro' ? 'Oficina automóvel em Aveiro' : `Oficina au
       {data.mapEmbedUrl ? (
         <iframe class="loc-map" src={data.mapEmbedUrl} title={`Mapa de ${data.city} até à INOVACAR`} loading="lazy" referrerpolicy="no-referrer-when-downgrade" />
       ) : (
-        <div class="missing-block loc-map" role="note">
-          <strong>Mapa de {data.city}</strong>
-          <span>Espaço reservado para o URL do mapa incorporado desta localidade. Ainda não foi fornecido.</span>
-        </div>
+        <iframe class="loc-map" src={business.mapSrc} title="Mapa com a localização da INOVACAR" loading="lazy" referrerpolicy="no-referrer-when-downgrade" />
       )}
     </div>
   </section>
@@ -84,8 +80,6 @@ const h1 = data.city === 'Aveiro' ? 'Oficina automóvel em Aveiro' : `Oficina au
       </ul>
     </div>
   </section>
-
-  <CtaBand title={`Vem de ${data.city}? Ligue antes de vir`} />
 </Base>
 
 <style>

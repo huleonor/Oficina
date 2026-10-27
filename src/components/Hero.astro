@@ -1,0 +1,77 @@
+---
+// Hero da página inicial: foto da oficina, ou o vídeo real do portão a abrir (gateVideo em data/business.ts).
+// O vídeo toca uma vez sem som e para no último fotograma, com a entrada da oficina à vista.
+// Com "reduzir movimento" ativo, o vídeo não arranca sozinho e fica a imagem de capa.
+import Icon from './Icon.astro';
+import { u } from '../lib/url';
+import { business, gateVideo } from '../data/business';
+import { photos, srcset, src } from '../data/images';
+
+const photo = photos.zonaTrabalho;
+---
+<section class="hero" aria-labelledby="hero-title">
+  <div class="hero-media">
+    {gateVideo ? (
+      <video class="hero-video" data-hero-video muted playsinline preload="auto" poster={src(photo)} aria-hidden="true">
+        <source src={u(gateVideo)} type="video/mp4" />
+      </video>
+    ) : (
+      <img
+        class="hero-photo"
+        src={src(photo)}
+        srcset={srcset(photo)}
+        sizes="100vw"
+        width={photo.width}
+        height={photo.height}
+        alt={photo.alt}
+        fetchpriority="high"
+        decoding="async"
+      />
+    )}
+  </div>
+  <div class="hero-overlay"></div>
+  {!gateVideo && photo.stock && <span class="stock-tag hero-stock-tag">Imagem ilustrativa</span>}
+
+  <div class="container hero-copy">
+    <h1 class="t-display hero-title" id="hero-title">INOVACAR - Oficina Automóvel em Cacia</h1>
+    <p class="hero-lead">Reparação e manutenção automóvel em Aveiro. Fale connosco sobre o seu carro.</p>
+    <div class="btn-row">
+      <a class="btn btn-primary" href={business.phoneHref}><Icon name="phone" class="btn-icon" />Ligar para a oficina</a>
+      <a class="btn btn-outline-light" href={business.directionsHref} target="_blank" rel="noopener"><Icon name="pin" class="btn-icon" />Como chegar</a>
+    </div>
+  </div>
+</section>
+
+<script>
+  const video = document.querySelector<HTMLVideoElement>('[data-hero-video]');
+  if (video && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    video.play().catch(() => {});
+  }
+</script>
+
+<style>
+  .hero {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    min-height: clamp(480px, 72vh, 720px);
+    overflow: hidden;
+    background: var(--brand-dark);
+    color: var(--ink-on-dark);
+  }
+  .hero-media { position: absolute; inset: 0; }
+  .hero-photo, .hero-video { width: 100%; height: 100%; object-fit: cover; }
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(22, 24, 36, 0.82) 0%, rgba(22, 24, 36, 0.4) 55%, rgba(22, 24, 36, 0.25) 100%);
+  }
+  .hero-stock-tag { left: auto; bottom: auto; right: var(--gutter-r); top: 12px; }
+  .hero-copy { position: relative; z-index: 2; display: grid; gap: var(--space-4); padding-block: var(--space-8) clamp(56px, 9vh, 96px); }
+  .hero-title { max-width: 19ch; }
+  .hero-lead { font-size: var(--fs-lead); line-height: 1.45; max-width: 44ch; color: #e6e8ee; margin-bottom: var(--space-3); }
+  @media (max-width: 760px) {
+    .hero { min-height: 520px; }
+    .hero-copy { padding-bottom: var(--space-7); }
+  }
+</style>

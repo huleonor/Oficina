@@ -30,7 +30,7 @@ const p = photo ? photos[photo] : undefined;
       <p class="t-lead">{lead}</p>
       <div class="btn-row">
         <a class="btn btn-primary" href={business.phoneHref}><Icon name="phone" class="btn-icon" />Ligar para a oficina</a>
-        <a class="btn btn-outline-light" href={u('/contactos/#pedido')}><Icon name="calendar" class="btn-icon" />Pedir marcação</a>
+        <a class="btn btn-outline-light" href={business.directionsHref} target="_blank" rel="noopener"><Icon name="pin" class="btn-icon" />Como chegar</a>
       </div>
     </div>
     {p && (

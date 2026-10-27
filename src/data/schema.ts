@@ -32,12 +32,12 @@ export const homeFaqs: Faq[] = [
     a: 'De segunda a sexta, das 09:00 às 18:30. Ao sábado e domingo estamos fechados. Em feriados o horário pode ser diferente, por isso ligue antes de vir.',
   },
   {
-    q: 'O pedido pelo formulário já é uma marcação?',
-    a: 'Não. O formulário envia um pedido. A marcação só fica combinada depois de falarmos consigo e acertarmos o dia.',
+    q: 'Como marco?',
+    a: 'Por telefone. Ligue para o 934 514 368, diga-nos o carro e o que está a acontecer, e combinamos o dia para o trazer.',
   },
   {
     q: 'Quanto custa a reparação do meu carro?',
-    a: 'Depende do carro e do trabalho necessário. Ligue para o 934 514 368 ou envie um pedido com a descrição do problema e damos-lhe uma estimativa.',
+    a: 'Depende do carro e do trabalho necessário. Ligue para o 934 514 368, descreva o problema e damos-lhe uma estimativa.',
   },
   {
     q: 'Que informação devo ter à mão quando ligo?',

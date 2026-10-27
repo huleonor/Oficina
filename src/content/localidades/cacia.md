@@ -12,4 +12,4 @@ seoTitle: Oficina automóvel perto de Cacia | INOVACAR
 seoDescription: Oficina automóvel perto de Cacia, na R. da Paz, Aveiro. Manutenção, travões, diagnóstico e reparação. Ligue 934 514 368.
 ---
 
-Se está em Cacia e precisa de uma revisão, de verificar os travões ou de perceber porque acendeu uma luz no painel, ligue-nos ou envie um pedido de marcação.
+Se está em Cacia e precisa de uma revisão, de verificar os travões ou de perceber porque acendeu uma luz no painel, ligue-nos para marcar.

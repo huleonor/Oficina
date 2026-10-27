@@ -7,8 +7,8 @@ import { business } from '../data/business';
   <a class="btn btn-primary callbar-btn" href={business.phoneHref}>
     <Icon name="phone" class="btn-icon" />Ligar <span class="t-num">{business.phoneDisplay}</span>
   </a>
-  <a class="btn btn-outline-light callbar-btn" href={u('/contactos/#pedido')}>
-    <Icon name="calendar" class="btn-icon" />Marcação
+  <a class="btn btn-outline-light callbar-btn" href={business.directionsHref} target="_blank" rel="noopener">
+    <Icon name="pin" class="btn-icon" />Como chegar
   </a>
 </div>
 

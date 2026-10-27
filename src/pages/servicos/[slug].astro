@@ -4,7 +4,6 @@ import { getCollection, render } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
 import FaqList from '../../components/FaqList.astro';
-import CtaBand from '../../components/CtaBand.astro';
 import Icon from '../../components/Icon.astro';
 import ServiceBoard from '../../components/ServiceBoard.astro';
 import { business } from '../../data/business';
@@ -66,7 +65,7 @@ const serviceSchema = {
             <span class="t-label">Telefone</span>
             <a class="order-phone t-num" href={business.phoneHref}>{business.phoneDisplay}</a>
           </div>
-          <a class="btn btn-primary order-btn" href={u('/contactos/#pedido')}><Icon name="calendar" class="btn-icon" />Pedir marcação</a>
+          <a class="btn btn-primary order-btn" href={business.phoneHref}><Icon name="phone" class="btn-icon" />Ligar para marcar</a>
         </div>
       </aside>
     </div>
@@ -97,8 +96,6 @@ const serviceSchema = {
       <ServiceBoard items={outros} />
     </div>
   </section>
-
-  <CtaBand />
 </Base>
 
 <style>

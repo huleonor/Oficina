@@ -31,8 +31,8 @@ const isCurrent = (href: string) => path === u(href) || (href !== '/' && path.st
           </li>
         ))}
       </ul>
-      <a class="btn btn-outline-light site-nav-book" href={u('/contactos/#pedido')}>
-        <Icon name="calendar" class="btn-icon" />Pedir marcação
+      <a class="btn btn-outline-light site-nav-book" href={business.phoneHref}>
+        <Icon name="phone" class="btn-icon" />Ligar {business.phoneDisplay}
       </a>
     </nav>
 
