@@ -21,22 +21,6 @@ const servicos = defineCollection({
   }),
 });
 
-// Localidades: zonas de onde os clientes vêm. Não são filiais; a oficina é só uma, na R. da Paz.
-const localidades = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './src/content/localidades' }),
-  schema: z.object({
-    city: z.string(),
-    intro: z.string(),
-    neighbourhoods: z.array(z.string()),
-    driveTime: z.string(),
-    mapEmbedUrl: z.string().default(''),
-    heroImage: photoKey,
-    seoTitle: z.string().max(65),
-    seoDescription: z.string().max(160),
-    order: z.number(),
-  }),
-});
-
 // Trabalhos: só aparecem em público quando placeholder = false e há fotos antes/depois reais.
 const projetos = defineCollection({
   loader: glob({ pattern: '**/*.md', base: './src/content/projetos' }),
@@ -46,9 +30,8 @@ const projetos = defineCollection({
     afterPhoto: z.string().default(''),
     story: z.string(),
     service: reference('servicos'),
-    location: reference('localidades'),
     placeholder: z.boolean().default(true),
   }),
 });
 
-export const collections = { servicos, localidades, projetos };
+export const collections = { servicos, projetos };

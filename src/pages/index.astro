@@ -5,16 +5,26 @@ import Base from '../layouts/Base.astro';
 import Hero from '../components/Hero.astro';
 import TrustBand from '../components/TrustBand.astro';
 import ServiceBoard from '../components/ServiceBoard.astro';
-import Reviews from '../components/Reviews.astro';
 import MapSection from '../components/MapSection.astro';
 import FaqList from '../components/FaqList.astro';
 import Icon from '../components/Icon.astro';
-import { photos, srcset, src, anyStock } from '../data/images';
+import { photos, srcset, src } from '../data/images';
 import { faqSchema, homeFaqs } from '../data/schema';
 
 const servicos = (await getCollection('servicos')).sort((a, b) => a.data.order - b.data.order);
 // Trabalhos só entram quando forem reais e tiverem fotos do antes e do depois.
 const projetos = (await getCollection('projetos')).filter((p) => !p.data.placeholder && p.data.beforePhoto && p.data.afterPhoto);
+
+// Galeria em mosaico: uma foto larga e uma alta em cima, quatro em baixo.
+const gallery = [
+  { key: 'zonaTrabalho', cls: 'g-wide', sizes: '(max-width: 760px) 100vw, 60vw' },
+  { key: 'ferrari', cls: 'g-tall', sizes: '(max-width: 760px) 100vw, 40vw' },
+  { key: 'maserati', cls: 'g-wide2', sizes: '(max-width: 760px) 100vw, 60vw' },
+  { key: 'oleo', cls: 'g-small', sizes: '(max-width: 760px) 50vw, 25vw' },
+  { key: 'roda', cls: 'g-small', sizes: '(max-width: 760px) 50vw, 25vw' },
+  { key: 'motor', cls: 'g-small', sizes: '(max-width: 760px) 50vw, 25vw' },
+  { key: 'interior', cls: 'g-small', sizes: '(max-width: 760px) 50vw, 25vw' },
+] as const;
 
 ---
 <Base
@@ -40,9 +50,8 @@ const projetos = (await getCollection('projetos')).filter((p) => !p.data.placeho
 
   <section class="section section-muted" aria-labelledby="sobre-title">
     <div class="container about">
-      <figure class="about-photo has-stock-tag">
+      <figure class="about-photo">
         <img src={src(photos.interior, 800)} srcset={srcset(photos.interior)} sizes="(max-width: 860px) 100vw, 45vw" width={photos.interior.width} height={photos.interior.height} alt={photos.interior.alt} loading="lazy" decoding="async" />
-        {photos.interior.stock && <figcaption class="stock-tag">Imagem ilustrativa</figcaption>}
         </figure>
       <div class="about-copy">
         <h2 class="t-h2" id="sobre-title">Uma oficina na R. da Paz, entre Cacia e Aveiro</h2>
@@ -61,21 +70,14 @@ const projetos = (await getCollection('projetos')).filter((p) => !p.data.placeho
     <div class="container">
       <div class="section-head">
         <h2 class="t-h2" id="galeria-title">Dentro da oficina</h2>
-        <p class="t-lead">{anyStock ? 'Imagens ilustrativas. As fotografias da oficina na R. da Paz serão publicadas em breve.' : 'Fotografias da nossa zona de trabalho na R. da Paz.'}</p>
+        <p class="t-lead">A nossa zona de trabalho na R. da Paz, em Aveiro.</p>
       </div>
       <div class="gallery">
-        <figure class="gallery-item gallery-wide has-stock-tag">
-          <img src={src(photos.zonaTrabalho, 800)} srcset={srcset(photos.zonaTrabalho)} sizes="(max-width: 760px) 100vw, 60vw" width={photos.zonaTrabalho.width} height={photos.zonaTrabalho.height} alt={photos.zonaTrabalho.alt} loading="lazy" decoding="async" />
-          {photos.zonaTrabalho.stock && <figcaption class="stock-tag">Imagem ilustrativa</figcaption>}
-        </figure>
-        <figure class="gallery-item gallery-tall has-stock-tag">
-          <img src={src(photos.ferrari, 800)} srcset={srcset(photos.ferrari)} sizes="(max-width: 760px) 100vw, 38vw" width={photos.ferrari.width} height={photos.ferrari.height} alt={photos.ferrari.alt} loading="lazy" decoding="async" />
-          {photos.ferrari.stock && <figcaption class="stock-tag">Imagem ilustrativa</figcaption>}
-        </figure>
-        <figure class="gallery-item gallery-low has-stock-tag">
-          <img src={src(photos.maserati, 800)} srcset={srcset(photos.maserati)} sizes="(max-width: 760px) 100vw, 60vw" width={photos.maserati.width} height={photos.maserati.height} alt={photos.maserati.alt} loading="lazy" decoding="async" />
-          {photos.maserati.stock && <figcaption class="stock-tag">Imagem ilustrativa</figcaption>}
-        </figure>
+        {gallery.map((g) => (
+          <figure class={`gallery-item ${g.cls}`}>
+            <img src={src(photos[g.key], 800)} srcset={srcset(photos[g.key])} sizes={g.sizes} width={photos[g.key].width} height={photos[g.key].height} alt={photos[g.key].alt} loading="lazy" decoding="async" />
+          </figure>
+        ))}
       </div>
 
       {projetos.length > 0 && (
@@ -98,7 +100,6 @@ const projetos = (await getCollection('projetos')).filter((p) => !p.data.placeho
     </div>
   </section>
 
-  <Reviews />
   <MapSection />
 
 
@@ -125,8 +126,14 @@ const projetos = (await getCollection('projetos')).filter((p) => !p.data.placeho
   .about-facts dt { color: var(--ink-soft); margin-bottom: 4px; }
   .about-facts dd { margin: 0; font-weight: 600; }
 
-  .gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
-  .gallery-item { border-radius: var(--radius-l); overflow: hidden; background: var(--brand-dark); aspect-ratio: 4 / 3; }
+  .gallery { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: clamp(150px, 15vw, 220px); gap: var(--space-3); }
+  .gallery-item { border-radius: var(--radius-l); overflow: hidden; background: var(--brand-dark); }
+  .gallery-item img { transition: transform var(--dur-slow) var(--ease-out); }
+  .gallery-item:hover img { transform: scale(1.03); }
+  .g-wide { grid-column: span 3; grid-row: span 2; }
+  .g-tall { grid-column: span 1; grid-row: span 3; }
+  .g-wide2 { grid-column: span 3; grid-row: span 1; }
+  .g-small { grid-column: span 1; grid-row: span 1; }
   .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
 
   .projects { margin-top: var(--space-8); display: grid; gap: var(--space-5); }
@@ -143,7 +150,10 @@ const projetos = (await getCollection('projetos')).filter((p) => !p.data.placeho
     .about-photo { aspect-ratio: 4 / 3; }
   }
   @media (max-width: 760px) {
-    .gallery { grid-template-columns: 1fr; }
+    .gallery { grid-template-columns: 1fr 1fr; grid-auto-rows: 160px; }
+    .g-wide, .g-wide2 { grid-column: span 2; }
+    .g-wide { grid-row: span 2; }
+    .g-tall { grid-column: span 1; grid-row: span 2; }
   }
   @media (max-width: 560px) {
     .about-facts { grid-template-columns: 1fr; }

@@ -17,37 +17,37 @@ const slots = {
   zonaTrabalho: {
     base: '/images/oficina-zona-trabalho',
     alt: 'Zona de trabalho da INOVACAR com elevadores, ferramentas e três automóveis',
-    stockAlt: 'Imagem ilustrativa: parede de ferramentas numa oficina automóvel',
+    stockAlt: 'Parede de ferramentas numa oficina automóvel',
   },
   interior: {
     base: '/images/oficina-interior',
     alt: 'Interior da oficina INOVACAR com uma autocaravana e um automóvel de capô aberto',
-    stockAlt: 'Imagem ilustrativa: mecânico a trabalhar no motor de um automóvel',
+    stockAlt: 'Mecânico a trabalhar no motor de um automóvel',
   },
   ferrari: {
     base: '/images/oficina-ferrari',
     alt: 'Ferrari vermelho de capô aberto no interior da oficina',
-    stockAlt: 'Imagem ilustrativa: mãos com uma chave de bocas junto a um motor',
+    stockAlt: 'Mãos com uma chave de bocas junto a um motor',
   },
   maserati: {
     base: '/images/oficina-maserati',
     alt: 'Interior de um Maserati com a zona de trabalho da oficina ao fundo',
-    stockAlt: 'Imagem ilustrativa: mecânico debaixo do capô aberto de um automóvel',
+    stockAlt: 'Mecânico debaixo do capô aberto de um automóvel',
   },
   oleo: {
     base: '/images/servico-oleo',
     alt: 'Mudança de óleo na oficina INOVACAR',
-    stockAlt: 'Imagem ilustrativa: óleo novo a ser deitado no motor',
+    stockAlt: '��leo novo a ser deitado no motor',
   },
   roda: {
     base: '/images/servico-travoes',
     alt: 'Trabalho numa roda na oficina INOVACAR',
-    stockAlt: 'Imagem ilustrativa: aperto dos parafusos de uma roda com máquina',
+    stockAlt: 'Aperto dos parafusos de uma roda com máquina',
   },
   motor: {
     base: '/images/servico-motor',
     alt: 'Motor de um automóvel na oficina INOVACAR',
-    stockAlt: 'Imagem ilustrativa: correias e polias de um motor',
+    stockAlt: 'Correias e polias de um motor',
   },
 } satisfies Record<string, Slot>;
 

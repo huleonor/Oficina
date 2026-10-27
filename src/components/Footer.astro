@@ -5,7 +5,6 @@ import Icon from './Icon.astro';
 import { business } from '../data/business';
 
 const servicos = (await getCollection('servicos')).sort((a, b) => a.data.order - b.data.order);
-const localidades = (await getCollection('localidades')).sort((a, b) => a.data.order - b.data.order);
 const year = new Date().getFullYear();
 ---
 <footer class="footer section-dark">
@@ -43,12 +42,6 @@ const year = new Date().getFullYear();
       </ul>
     </nav>
 
-    <nav class="footer-col" aria-label="Localidades">
-      <h2 class="footer-title t-label">Localidades</h2>
-      <ul role="list" class="footer-links">
-        {localidades.map((l) => <li><a href={u(`/localidades/${l.id}/`)}>{l.data.city}</a></li>)}
-      </ul>
-    </nav>
   </div>
 
   <div class="container"><div class="footer-base">
@@ -64,7 +57,7 @@ const year = new Date().getFullYear();
   .footer { padding-block: var(--space-8) var(--space-5); }
   .footer-grid {
     display: grid;
-    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    grid-template-columns: 1.4fr 1fr 1fr;
     gap: var(--space-7) var(--space-6);
   }
   .footer-col { min-width: 0; display: grid; align-content: start; gap: var(--space-3); }

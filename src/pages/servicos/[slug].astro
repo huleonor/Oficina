@@ -17,7 +17,6 @@ export async function getStaticPaths() {
 const { servico } = Astro.props;
 const { data } = servico;
 const { Content } = await render(servico);
-const localidades = (await getCollection('localidades')).sort((a, b) => a.data.order - b.data.order);
 const outros = (await getCollection('servicos')).filter((s) => s.id !== servico.id).sort((a, b) => a.data.order - b.data.order).slice(0, 4);
 const site = new URL(u('/'), Astro.site).toString().replace(/\/$/, '');
 
@@ -35,7 +34,7 @@ const serviceSchema = {
   serviceType: data.name,
   url: `${site}/servicos/${servico.id}/`,
   provider: { '@id': `${site}/#oficina` },
-  areaServed: localidades.map((l) => ({ '@type': 'Place', name: l.data.city })),
+  areaServed: [{ '@type': 'Place', name: 'Aveiro' }, { '@type': 'Place', name: 'Cacia' }],
 };
 ---
 <Base title={data.seoTitle} description={data.seoDescription} schema={[serviceSchema, faqSchema(data.faqs), breadcrumbSchema(Astro.site!, crumbs)]}>
@@ -78,17 +77,6 @@ const serviceSchema = {
     </div>
   </section>
 
-  <section class="section" aria-labelledby="svc-areas">
-    <div class="container">
-      <div class="section-head">
-        <h2 class="t-h2" id="svc-areas">Para clientes destas zonas</h2>
-        <p class="t-lead">A oficina fica na R. da Paz, em Aveiro. Veja a que distância fica da sua zona.</p>
-      </div>
-      <ul role="list" class="chips">
-        {localidades.map((l) => <li><a class="chip" href={u(`/localidades/${l.id}/`)}>{l.data.city}<Icon name="arrow" class="chip-icon" /></a></li>)}
-      </ul>
-    </div>
-  </section>
 
   <section class="section section-muted" aria-labelledby="svc-outros">
     <div class="container">
@@ -113,20 +101,6 @@ const serviceSchema = {
   .order-field .t-label { color: var(--ink-soft); }
   .order-phone { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; text-decoration: none; }
   .order-btn { margin: 0 var(--space-5) var(--space-5); width: calc(100% - 2 * var(--space-5)); }
-  .chips { display: flex; flex-wrap: wrap; gap: var(--space-3); }
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding: 12px 16px;
-    border: 1px solid var(--brand-dark);
-    border-radius: var(--radius-m);
-    font-weight: 600;
-    text-decoration: none;
-    transition: background-color var(--dur-quick) var(--ease), color var(--dur-quick) var(--ease);
-  }
-  .chip:hover { background: var(--brand-dark); color: var(--ink-on-dark); }
-  .chip-icon { width: 18px; height: 18px; }
   @media (max-width: 960px) {
     .svc-grid { grid-template-columns: 1fr; gap: var(--space-7); }
     .svc-aside { position: static; }

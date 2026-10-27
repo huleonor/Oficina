@@ -36,9 +36,8 @@ const crumbs = [
           <li>[A FORNECER: terceiro diferencial real da oficina]</li>
         </ul>
       </div>
-      <figure class="about-page-photo has-stock-tag">
+      <figure class="about-page-photo">
         <img src={src(photos.interior, 800)} srcset={srcset(photos.interior)} sizes="(max-width: 960px) 100vw, 40vw" width={photos.interior.width} height={photos.interior.height} alt={photos.interior.alt} loading="lazy" />
-        {photos.interior.stock && <figcaption class="stock-tag">Imagem ilustrativa</figcaption>}
       </figure>
     </div>
   </section>
@@ -60,9 +59,8 @@ const crumbs = [
       <div class="section-head"><h2 class="t-h2" id="fotos-title">Fotografias da oficina</h2></div>
       <div class="about-gallery">
         {(['ferrari', 'maserati'] as const).map((k) => (
-          <figure class="has-stock-tag">
+          <figure>
             <img src={src(photos[k], 800)} srcset={srcset(photos[k])} sizes="(max-width: 760px) 100vw, 50vw" width={photos[k].width} height={photos[k].height} alt={photos[k].alt} loading="lazy" />
-            {photos[k].stock && <figcaption class="stock-tag">Imagem ilustrativa</figcaption>}
           </figure>
         ))}
       </div>

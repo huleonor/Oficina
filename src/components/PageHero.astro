@@ -34,9 +34,8 @@ const p = photo ? photos[photo] : undefined;
       </div>
     </div>
     {p && (
-      <figure class="page-hero-photo has-stock-tag">
+      <figure class="page-hero-photo">
         <img src={src(p, 800)} srcset={srcset(p)} sizes="(max-width: 960px) 100vw, 40vw" width={p.width} height={p.height} alt={p.alt} fetchpriority="high" />
-        {p.stock && <figcaption class="stock-tag">Imagem ilustrativa</figcaption>}
       </figure>
     )}
   </div>

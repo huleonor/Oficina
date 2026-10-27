@@ -13,3 +13,9 @@ Não mostram a oficina INOVACAR e o site identifica-as como "Imagem ilustrativa"
 | mudanca-oleo.jpg | foto do serviço de manutenção | https://images.unsplash.com/photo-1487754180451-c456f719a1fc |
 | roda-aperto.jpg | foto do serviço de travões | https://images.unsplash.com/photo-1613214149922-f1809c99b414 |
 | motor-correias.jpg | foto do serviço de motor e distribuição | https://images.unsplash.com/photo-1486262715619-67b85e0b08d3 |
+
+## Vídeo provisório
+
+| Ficheiro | Origem |
+| --- | --- |
+| public/video/portao.mp4 | "Garage door opening", [Coverr](https://coverr.co) (licença Coverr, uso comercial gratuito), acelerado 6x e clareado. A substituir pelo vídeo do portão da oficina. |

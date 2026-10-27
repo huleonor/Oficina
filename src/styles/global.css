@@ -212,23 +212,6 @@ html { scrollbar-color: #9aa0ad var(--surface-muted); }
 }
 .skip-link:focus { top: 12px; }
 
-/* Etiqueta para imagens de stock provisórias */
-.stock-tag {
-  position: absolute;
-  left: 10px;
-  bottom: 10px;
-  z-index: 2;
-  padding: 4px 8px;
-  border-radius: var(--radius-s);
-  background: rgba(22, 24, 36, 0.78);
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.2;
-  pointer-events: none;
-}
-.has-stock-tag { position: relative; }
-
 /* Bloco de conteúdo em falta (embeds ainda não fornecidos) */
 .missing-block {
   border: 2px dashed #9aa0ad;
