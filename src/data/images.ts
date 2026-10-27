@@ -37,7 +37,7 @@ const slots = {
   oleo: {
     base: '/images/servico-oleo',
     alt: 'MudanÃ§a de Ã³leo na oficina INOVACAR',
-    stockAlt: 'ÿ³leo novo a ser deitado no motor',
+    stockAlt: 'Ã“leo novo a ser deitado no motor',
   },
   roda: {
     base: '/images/servico-travoes',
