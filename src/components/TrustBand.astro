@@ -1,5 +1,5 @@
 ---
-// Faixa prática por baixo do hero: morada e horário com estado ao vivo.
+// Faixa prática por baixo do hero: morada, horário com estado ao vivo, telefone.
 // Cartões claros (mesmo estilo das linhas de contactos / sobre-nós).
 import Icon from './Icon.astro';
 import { business } from '../data/business';
@@ -26,6 +26,16 @@ import { business } from '../data/business';
           </span>
         </div>
       </li>
+      <li>
+        <a class="info-item" href={business.phoneHref}>
+          <span class="info-icon info-icon-phone"><Icon name="phone" /></span>
+          <span class="info-text">
+            <span class="info-label">Ligue para marcar</span>
+            <span class="info-value t-num">{business.phoneDisplay}</span>
+          </span>
+          <Icon name="arrow" class="info-go" />
+        </a>
+      </li>
     </ul>
   </div>
 </section>
@@ -51,7 +61,7 @@ import { business } from '../data/business';
   }
   .info-list {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--space-3);
   }
   .info-item {
@@ -84,6 +94,15 @@ import { business } from '../data/business';
   }
   .info-icon :global(svg) { width: 20px; height: 20px; }
   a.info-item:hover .info-icon { transform: scale(1.08); }
+  .info-icon-phone :global(svg) { transform-origin: 50% 50%; }
+  a.info-item:hover .info-icon-phone :global(svg) { animation: ring 600ms var(--ease); }
+  @keyframes ring {
+    0%, 100% { transform: rotate(0); }
+    20% { transform: rotate(-14deg); }
+    40% { transform: rotate(12deg); }
+    60% { transform: rotate(-8deg); }
+    80% { transform: rotate(4deg); }
+  }
   .info-dot {
     position: absolute;
     top: 1px;
