@@ -1,0 +1,324 @@
+---
+import Base from '../layouts/Base.astro';
+import PageHero from '../components/PageHero.astro';
+import Icon from '../components/Icon.astro';
+import { business } from '../data/business';
+import { premiosDefault } from '../data/premios';
+import { pontosMock } from '../data/pontos-mock';
+import { breadcrumbSchema } from '../data/schema';
+
+const crumbs = [
+  { name: 'Início', path: '/' },
+  { name: 'Pontos', path: '/pontos/' },
+];
+
+const pontosApi = (import.meta.env.PUBLIC_PONTOS_API || 'mock').trim();
+const maxPremioPts = Math.max(...premiosDefault.map((p) => p.pontos), 1);
+const premiosOrdenados = [...premiosDefault].sort((a, b) => a.pontos - b.pontos);
+const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
+---
+<Base
+  title="Os seus pontos | INOVACAR, Aveiro"
+  description="Consulte o saldo de pontos INOVACAR. 1 euro gasto = 1 ponto. Troque por lavagem, descontos e ofertas na oficina."
+  schema={[breadcrumbSchema(Astro.site!, crumbs)]}
+>
+  <PageHero
+    title="Programa de pontos"
+    lead="Por cada euro que gasta na oficina ganha um ponto. Traga amigos e ganhe mais. Consulte o saldo com o seu telemóvel."
+    crumbs={crumbs}
+    actions={false}
+  />
+
+  <section
+    class="section"
+    data-pontos
+    data-api={pontosApi}
+    data-max-pts={maxPremioPts}
+    data-mock={mockJson}
+  >
+    <div class="container pontos-wrap">
+      <div class="pontos-consulta">
+        <h2 class="t-h2" id="consultar">Consultar pontos</h2>
+        <p class="t-lead">Introduza o telemóvel que a oficina tem registado.</p>
+
+        <form class="pontos-form" data-pontos-form>
+          <label class="pontos-label" for="pontos-tel">
+            <span class="t-label">Telemóvel</span>
+            <input
+              id="pontos-tel"
+              class="pontos-input t-num"
+              type="tel"
+              name="telemovel"
+              inputmode="tel"
+              autocomplete="tel"
+              placeholder="934 000 000"
+              required
+              data-pontos-tel
+            />
+          </label>
+          <button class="btn btn-primary" type="submit" data-pontos-submit>
+            <Icon name="phone" class="btn-icon" />Ver o meu saldo
+          </button>
+        </form>
+
+        <p class="pontos-status t-soft" data-pontos-status hidden role="status" aria-live="polite"></p>
+        <p class="t-small t-soft pontos-privacy">
+          Os seus dados são usados só para o programa de pontos da INOVACAR.
+          Para resgatar, ligue <a class="t-num" href={business.phoneHref}>{business.phoneDisplay}</a>
+          ou fale connosco na oficina.
+        </p>
+      </div>
+
+      <div class="pontos-track-block" aria-labelledby="premios-title">
+        <div class="pontos-track-head">
+          <div>
+            <h2 class="t-h2" id="premios-title">O seu progresso</h2>
+            <p class="t-soft" data-pontos-saudacao>Consulte o telemóvel para ver o saldo na barra.</p>
+          </div>
+          <p class="pontos-saldo-top t-num" aria-live="polite">
+            <span data-pontos-saldo>0</span>
+            <span class="pontos-saldo-unit">pts</span>
+          </p>
+        </div>
+
+        <div
+          class="pontos-bar"
+          data-pontos-bar
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax={maxPremioPts}
+          aria-valuenow="0"
+          aria-label="Progresso de pontos"
+        >
+          <div class="pontos-bar-track">
+            <div class="pontos-bar-fill" data-pontos-fill style="width: 0%"></div>
+          </div>
+
+          <ol class="pontos-marks" data-pontos-premios>
+            {premiosOrdenados.map((p) => {
+              const pct = Math.min(100, (p.pontos / maxPremioPts) * 100);
+              return (
+                <li
+                  class="pontos-mark"
+                  style={`left: ${pct}%`}
+                  data-premio-id={p.id}
+                  data-premio-pts={p.pontos}
+                  title={p.descricao}
+                >
+                  <span class="pontos-mark-pts t-num" data-premio-pts-label>{p.pontos}</span>
+                  <span class="pontos-mark-dot" aria-hidden="true"></span>
+                  <span class="pontos-mark-nome" data-premio-nome>{p.nome}</span>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+
+        <p class="t-small t-soft">
+          1&nbsp;€ gasto = 1 ponto · Indicação = 300 pontos · Resgate na oficina
+        </p>
+      </div>
+
+      <div class="pontos-resultado" data-pontos-resultado hidden tabindex="-1">
+        <h3 class="t-h3">Movimentos recentes</h3>
+        <ul role="list" class="pontos-mov-list" data-pontos-movimentos></ul>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  import '../scripts/pontos.js';
+</script>
+
+<style>
+  .pontos-wrap {
+    display: grid;
+    gap: var(--space-7);
+    max-width: 920px;
+  }
+  .pontos-consulta {
+    display: grid;
+    gap: var(--space-4);
+    justify-items: start;
+  }
+  .pontos-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    align-items: flex-end;
+    width: 100%;
+  }
+  .pontos-label {
+    display: grid;
+    gap: 6px;
+    flex: 1 1 220px;
+    min-width: 0;
+  }
+  .pontos-input {
+    width: 100%;
+    border: 2px solid var(--line-strong);
+    border-radius: var(--radius-m);
+    padding: 12px 14px;
+    background: var(--surface-white);
+  }
+  .pontos-input:focus {
+    outline: 3px solid var(--brand-turquoise);
+    outline-offset: 2px;
+  }
+  .pontos-status[data-kind='error'] { color: #a12828; }
+  .pontos-status[data-kind='warn'] { color: var(--brand-turquoise-ink); }
+  .pontos-status[data-kind='loading'] { color: var(--ink-soft); }
+  .pontos-privacy { max-width: 52ch; }
+
+  .pontos-track-block {
+    display: grid;
+    gap: var(--space-5);
+    width: 100%;
+    padding: var(--space-6);
+    background: var(--surface-muted);
+    border-radius: var(--radius-l);
+  }
+  .pontos-track-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+  }
+  .pontos-saldo-top {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2rem, 1.5rem + 1.5vw, 2.8rem);
+    line-height: 1;
+    color: var(--brand-dark);
+  }
+  .pontos-saldo-unit {
+    font-size: 0.4em;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--brand-turquoise-ink);
+    margin-left: 0.15em;
+  }
+
+  .pontos-bar {
+    position: relative;
+    width: 100%;
+    padding: 1.75rem 0.6rem 4.25rem;
+  }
+  .pontos-bar-track {
+    position: relative;
+    height: 10px;
+    border-radius: 999px;
+    background: #d5dadb;
+    overflow: hidden;
+  }
+  .pontos-bar-fill {
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: var(--brand-turquoise);
+    transition: width var(--dur-slow) var(--ease-out);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pontos-bar-fill { transition: none; }
+  }
+
+  .pontos-marks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    left: 0.6rem;
+    right: 0.6rem;
+    top: 0;
+    bottom: 0;
+  }
+  .pontos-mark {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: max-content;
+    max-width: 6.5rem;
+    text-align: center;
+  }
+  .pontos-mark-pts {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+    margin-bottom: 0.35rem;
+  }
+  .pontos-mark-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--surface-white);
+    border: 2px solid #9aa0ad;
+    margin-top: 0.15rem; /* alinha com o centro da barra (10px) + padding */
+    position: relative;
+    z-index: 1;
+    flex: none;
+  }
+  .pontos-mark-nome {
+    margin-top: 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: var(--ink-soft);
+  }
+  .pontos-mark.is-reached .pontos-mark-pts,
+  .pontos-mark.is-reached .pontos-mark-nome {
+    color: var(--brand-turquoise-ink);
+  }
+  .pontos-mark.is-reached .pontos-mark-dot {
+    background: var(--brand-turquoise);
+    border-color: var(--brand-turquoise);
+  }
+
+  .pontos-resultado {
+    width: 100%;
+    display: grid;
+    gap: var(--space-4);
+    padding-top: var(--space-2);
+  }
+  .pontos-mov-list {
+    width: 100%;
+    display: grid;
+    gap: var(--space-2);
+  }
+  .pontos-mov {
+    display: grid;
+    gap: 4px;
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .pontos-mov-main,
+  .pontos-mov-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    align-items: baseline;
+  }
+  .pontos-mov-tipo { font-weight: 600; }
+  .pontos-mov-data,
+  .pontos-mov-nota { color: var(--ink-soft); font-size: var(--fs-small); }
+  .pontos-mov-pts.is-pos { color: var(--brand-turquoise-ink); font-weight: 700; }
+  .pontos-mov-pts.is-neg { color: #a12828; font-weight: 700; }
+  .pontos-empty { color: var(--ink-soft); }
+
+  @media (max-width: 640px) {
+    .pontos-track-block { padding: var(--space-5); }
+    .pontos-bar { padding-bottom: 5rem; }
+    .pontos-mark { max-width: 4.6rem; }
+    .pontos-mark-nome { font-size: 0.68rem; }
+    /* Em ecrãs estreitos esconde nomes intermédios se houver muitos — mantém pts */
+    .pontos-mark:not(:first-child):not(:last-child) .pontos-mark-nome {
+      display: none;
+    }
+  }
+</style>

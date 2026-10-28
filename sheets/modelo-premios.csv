@@ -1,0 +1,9 @@
+id,nome,pontos,activo,descricao,custo_oficina_eur
+aromatizante,Aromatizante,30,sim,Aromatizante para o habitáculo,1.50
+kit-limpeza,Kit de limpeza,60,sim,Panos de microfibra e limpa-vidros para o carro,3
+aspiracao,Aspiração do habitáculo,80,sim,Aspiração completa do interior,4
+lavagem,Lavagem exterior,100,sim,Lavagem exterior do veículo,5
+lavagem-completa,Lavagem completa,180,sim,Lavagem exterior e limpeza do habitáculo,9
+desconto10,Desconto 10 €,200,sim,Desconto de 10 euros na próxima fatura,10
+check-up,Check-up rápido,250,sim,Verificação de níveis luzes pneus e bateria,12.50
+desconto25,Desconto 25 €,500,sim,Desconto de 25 euros na próxima fatura,25

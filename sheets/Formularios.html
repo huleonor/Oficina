@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        --ink: #26293c;
+        --soft: #4a4f63;
+        --line: #d5dadb;
+        --turq: #36b3af;
+        --bg: #f4f6f6;
+        --err: #a12828;
+        --ok: #1b7471;
+      }
+      * { box-sizing: border-box; }
+      body {
+        font: 14px/1.45 system-ui, -apple-system, sans-serif;
+        color: var(--ink);
+        margin: 0;
+        padding: 14px;
+        background: #fff;
+      }
+      h1 {
+        font-size: 1.05rem;
+        margin: 0 0 12px;
+      }
+      label {
+        display: grid;
+        gap: 4px;
+        margin-bottom: 10px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--soft);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      input, select, textarea {
+        font: inherit;
+        color: var(--ink);
+        text-transform: none;
+        letter-spacing: normal;
+        font-weight: 400;
+        width: 100%;
+        padding: 8px 10px;
+        border: 1.5px solid var(--line);
+        border-radius: 6px;
+        background: #fff;
+      }
+      input:focus, select:focus, textarea:focus {
+        outline: 2px solid var(--turq);
+        border-color: var(--turq);
+      }
+      textarea { min-height: 56px; resize: vertical; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      button {
+        font: inherit;
+        font-weight: 600;
+        border: 0;
+        border-radius: 6px;
+        padding: 10px 12px;
+        cursor: pointer;
+        width: 100%;
+      }
+      .btn-primary { background: var(--turq); color: var(--ink); margin-top: 4px; }
+      .btn-primary:disabled { opacity: 0.55; cursor: wait; }
+      .msg {
+        margin-top: 12px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        display: none;
+      }
+      .msg.ok { display: block; background: #e7f6f5; color: var(--ok); }
+      .msg.err { display: block; background: #fdecec; color: var(--err); }
+      .hint { font-size: 0.8rem; color: var(--soft); margin: -4px 0 10px; font-weight: 400; text-transform: none; letter-spacing: normal; }
+      .panel { display: none; }
+      .panel.on { display: block; }
+      #accao { margin-bottom: 14px; background: var(--bg); }
+    </style>
+  </head>
+  <body>
+    <h1>Entrada rápida</h1>
+
+    <label>
+      O que quer registar?
+      <select id="accao">
+        <option value="cliente">Novo cliente (+ 1.º carro)</option>
+        <option value="carro">Novo carro (cliente já existe)</option>
+        <option value="gasto">Gasto / serviço</option>
+        <option value="indicacao">Indicação</option>
+        <option value="resgate">Resgate de prémio</option>
+      </select>
+    </label>
+
+    <form id="form" novalidate>
+      <!-- Cliente -->
+      <div class="panel on" data-panel="cliente">
+        <label>Telemóvel *<input id="c_tel" type="tel" placeholder="934 000 000" required /></label>
+        <label>Nome *<input id="c_nome" type="text" placeholder="Ana Sousa" required /></label>
+        <label>Nota<input id="c_nota" type="text" placeholder="opcional" /></label>
+        <p class="hint">Primeiro carro (pode deixar matrícula vazia e acrescentar depois)</p>
+        <label>Matrícula<input id="c_mat" type="text" placeholder="AA-00-BB" /></label>
+        <div class="row">
+          <label>Marca<input id="c_marca" type="text" placeholder="VW" /></label>
+          <label>Modelo<input id="c_modelo" type="text" placeholder="Golf" /></label>
+        </div>
+        <label>Ano<input id="c_ano" type="number" min="1980" max="2100" placeholder="2018" /></label>
+      </div>
+
+      <!-- Carro -->
+      <div class="panel" data-panel="carro">
+        <label>Cliente (telemóvel) *
+          <select id="k_tel"></select>
+        </label>
+        <label>Matrícula *<input id="k_mat" type="text" placeholder="AA-00-BB" required /></label>
+        <div class="row">
+          <label>Marca *<input id="k_marca" type="text" required /></label>
+          <label>Modelo *<input id="k_modelo" type="text" required /></label>
+        </div>
+        <label>Ano<input id="k_ano" type="number" min="1980" max="2100" /></label>
+        <label>Nota<input id="k_nota" type="text" /></label>
+      </div>
+
+      <!-- Gasto -->
+      <div class="panel" data-panel="gasto">
+        <label>Cliente *
+          <select id="g_tel"></select>
+        </label>
+        <label>Carro (matrícula)
+          <select id="g_mat"><option value="">— sem matrícula —</option></select>
+        </label>
+        <label>Valor da fatura (€) *<input id="g_valor" type="number" min="0" step="0.01" required /></label>
+        <label>Nota / serviço<input id="g_nota" type="text" placeholder="revisão, travões…" /></label>
+        <p class="hint">Pontos = euros × regra (1 € = 1 ponto).</p>
+      </div>
+
+      <!-- Indicação -->
+      <div class="panel" data-panel="indicacao">
+        <label>Quem indicou *
+          <select id="i_quem"></select>
+        </label>
+        <label>Novo cliente (telemóvel) *<input id="i_novo_tel" type="tel" placeholder="934…" required /></label>
+        <label>Nome do novo<input id="i_novo_nome" type="text" placeholder="Bruno Martins" /></label>
+        <p class="hint">Cria o novo em Clientes (se ainda não existir) e dá 300 pts a quem indicou. Só use depois do primeiro serviço do novo.</p>
+      </div>
+
+      <!-- Resgate -->
+      <div class="panel" data-panel="resgate">
+        <label>Cliente *
+          <select id="r_tel"></select>
+        </label>
+        <label>Prémio *
+          <select id="r_premio"></select>
+        </label>
+        <label>Carro
+          <select id="r_mat"><option value="">— sem matrícula —</option></select>
+        </label>
+      </div>
+
+      <button class="btn-primary" type="submit" id="btn">Guardar</button>
+    </form>
+
+    <div id="msg" class="msg"></div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const panels = document.querySelectorAll('.panel');
+      const msg = $('msg');
+      const btn = $('btn');
+
+      function showMsg(text, ok) {
+        msg.textContent = text;
+        msg.className = 'msg ' + (ok ? 'ok' : 'err');
+      }
+
+      function accao() {
+        return $('accao').value;
+      }
+
+      function showPanel() {
+        const a = accao();
+        panels.forEach((p) => p.classList.toggle('on', p.getAttribute('data-panel') === a));
+        msg.className = 'msg';
+      }
+
+      function fillSelect(sel, items, mapFn, emptyLabel) {
+        const cur = sel.value;
+        sel.innerHTML = '';
+        if (emptyLabel != null) {
+          const o = document.createElement('option');
+          o.value = '';
+          o.textContent = emptyLabel;
+          sel.appendChild(o);
+        }
+        items.forEach((it) => {
+          const o = document.createElement('option');
+          const m = mapFn(it);
+          o.value = m.value;
+          o.textContent = m.label;
+          sel.appendChild(o);
+        });
+        if (cur) sel.value = cur;
+      }
+
+      function carregarListas() {
+        google.script.run
+          .withSuccessHandler((data) => {
+            fillSelect($('k_tel'), data.clientes, (c) => ({
+              value: c.telemovel,
+              label: c.nome + ' · ' + c.telemovel,
+            }));
+            fillSelect($('g_tel'), data.clientes, (c) => ({
+              value: c.telemovel,
+              label: c.nome + ' · ' + c.telemovel,
+            }));
+            fillSelect($('i_quem'), data.clientes, (c) => ({
+              value: c.telemovel,
+              label: c.nome + ' · ' + c.telemovel,
+            }));
+            fillSelect($('r_tel'), data.clientes, (c) => ({
+              value: c.telemovel,
+              label: c.nome + ' · ' + c.telemovel,
+            }));
+            fillSelect(
+              $('r_premio'),
+              data.premios,
+              (p) => ({
+                value: p.id,
+                label: p.nome + ' (' + p.pontos + ' pts)',
+              }),
+            );
+            actualizarCarros();
+          })
+          .withFailureHandler((e) => showMsg(e.message || String(e), false))
+          .listarParaFormulario();
+      }
+
+      function actualizarCarros() {
+        const a = accao();
+        let tel = '';
+        let matSel = null;
+        if (a === 'gasto') {
+          tel = $('g_tel').value;
+          matSel = $('g_mat');
+        } else if (a === 'resgate') {
+          tel = $('r_tel').value;
+          matSel = $('r_mat');
+        }
+        if (!matSel) return;
+        google.script.run
+          .withSuccessHandler((carros) => {
+            fillSelect(
+              matSel,
+              carros,
+              (c) => ({
+                value: c.matricula,
+                label: c.matricula + (c.modelo ? ' · ' + c.marca + ' ' + c.modelo : ''),
+              }),
+              '— sem matrícula —',
+            );
+          })
+          .carrosDoCliente(tel);
+      }
+
+      $('accao').addEventListener('change', () => {
+        showPanel();
+        actualizarCarros();
+      });
+      $('g_tel').addEventListener('change', actualizarCarros);
+      $('r_tel').addEventListener('change', actualizarCarros);
+
+      $('form').addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        btn.disabled = true;
+        showMsg('A guardar…', true);
+
+        const a = accao();
+        let payload = {};
+        let fn = '';
+
+        if (a === 'cliente') {
+          fn = 'formNovoCliente';
+          payload = {
+            telemovel: $('c_tel').value,
+            nome: $('c_nome').value,
+            nota: $('c_nota').value,
+            matricula: $('c_mat').value,
+            marca: $('c_marca').value,
+            modelo: $('c_modelo').value,
+            ano: $('c_ano').value,
+          };
+        } else if (a === 'carro') {
+          fn = 'formNovoCarro';
+          payload = {
+            telemovel: $('k_tel').value,
+            matricula: $('k_mat').value,
+            marca: $('k_marca').value,
+            modelo: $('k_modelo').value,
+            ano: $('k_ano').value,
+            nota: $('k_nota').value,
+          };
+        } else if (a === 'gasto') {
+          fn = 'formGasto';
+          payload = {
+            telemovel: $('g_tel').value,
+            matricula: $('g_mat').value,
+            valorEur: $('g_valor').value,
+            nota: $('g_nota').value,
+          };
+        } else if (a === 'indicacao') {
+          fn = 'formIndicacao';
+          payload = {
+            quemIndicou: $('i_quem').value,
+            novoTelemovel: $('i_novo_tel').value,
+            novoNome: $('i_novo_nome').value,
+          };
+        } else if (a === 'resgate') {
+          fn = 'formResgate';
+          payload = {
+            telemovel: $('r_tel').value,
+            premioId: $('r_premio').value,
+            matricula: $('r_mat').value,
+          };
+        }
+
+        google.script.run
+          .withSuccessHandler((res) => {
+            btn.disabled = false;
+            if (!res || !res.ok) {
+              showMsg((res && res.erro) || 'Erro ao guardar', false);
+              return;
+            }
+            showMsg(res.msg || 'Guardado.', true);
+            $('form').reset();
+            showPanel();
+            carregarListas();
+          })
+          .withFailureHandler((e) => {
+            btn.disabled = false;
+            showMsg(e.message || String(e), false);
+          })[fn](payload);
+      });
+
+      showPanel();
+      carregarListas();
+    </script>
+  </body>
+</html>
