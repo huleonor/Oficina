@@ -1,6 +1,6 @@
 ---
 // Faixa prática por baixo do hero: morada, horário com estado ao vivo, telefone.
-// O estado "Aberto agora / Fechado" é calculado no browser, na hora de Lisboa, a partir do horário regular.
+// Cartões claros (mesmo estilo das linhas de contactos / sobre-nós).
 import Icon from './Icon.astro';
 import { business } from '../data/business';
 ---
@@ -52,21 +52,34 @@ import { business } from '../data/business';
 </script>
 
 <style>
-  .info { background: var(--brand-turquoise); color: var(--brand-dark); position: relative; z-index: 1; }
-  .info-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .info-list > li + li { border-left: 2px solid rgba(38, 41, 60, 0.16); }
+  .info {
+    background: var(--surface-muted);
+    color: var(--ink);
+    position: relative;
+    z-index: 1;
+    padding-block: var(--space-4);
+  }
+  .info-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
   .info-item {
     display: flex;
     align-items: center;
     gap: var(--space-3);
-    padding: var(--space-5) var(--space-5);
+    padding: var(--space-4);
     height: 100%;
+    border-radius: var(--radius-l);
+    background: var(--surface-white);
     color: inherit;
     text-decoration: none;
-    transition: background-color var(--dur-standard) var(--ease);
+    transition: transform var(--dur-quick) var(--ease), box-shadow var(--dur-standard) var(--ease);
   }
-  .info-list > li:first-child .info-item { padding-left: 0; }
-  a.info-item:hover { background: rgba(255, 255, 255, 0.14); }
+  a.info-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -16px rgba(38, 41, 60, 0.45);
+  }
   .info-icon {
     position: relative;
     display: grid;
@@ -75,7 +88,7 @@ import { business } from '../data/business';
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: var(--surface-white);
+    background: rgba(54, 179, 175, 0.16);
     color: var(--brand-dark);
     transition: transform var(--dur-standard) var(--ease);
   }
@@ -97,7 +110,7 @@ import { business } from '../data/business';
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    border: 2px solid var(--brand-turquoise);
+    border: 2px solid var(--surface-white);
     background: #9aa0ad;
     display: none;
   }
@@ -108,28 +121,40 @@ import { business } from '../data/business';
     50% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
   }
   .info-text { display: grid; gap: 2px; min-width: 0; }
-  .info-label { font-size: var(--fs-label); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+  .info-label {
+    font-size: var(--fs-label);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
   .info-value { font-weight: 600; font-size: 1.08rem; line-height: 1.25; }
-  .info-go { width: 20px; height: 20px; margin-left: auto; flex: none; transition: transform var(--dur-standard) var(--ease); }
+  .info-go {
+    width: 20px;
+    height: 20px;
+    margin-left: auto;
+    flex: none;
+    color: var(--ink-soft);
+    transition: transform var(--dur-standard) var(--ease);
+  }
   a.info-item:hover .info-go { transform: translateX(4px); }
 
   @media (max-width: 760px) {
+    .info { padding-block: var(--space-3); }
     .info .container { padding: 0; }
     .info-list {
       display: flex;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       scrollbar-width: none;
-      padding: var(--space-3) var(--gutter-r) var(--space-3) var(--gutter);
+      padding: 2px var(--gutter-r) var(--space-2) var(--gutter);
       gap: var(--space-2);
     }
     .info-list::-webkit-scrollbar { display: none; }
     .info-list > li { flex: 0 0 auto; scroll-snap-align: start; }
-    .info-list > li + li { border-left: 0; }
-    .info-item, .info-list > li:first-child .info-item {
-      padding: 10px 14px 10px 10px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 999px;
+    .info-item {
+      padding: 12px 14px 12px 12px;
+      min-width: min(78vw, 280px);
     }
     .info-icon { width: 36px; height: 36px; }
     .info-icon :global(svg) { width: 17px; height: 17px; }
