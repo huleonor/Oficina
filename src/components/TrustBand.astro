@@ -41,26 +41,13 @@ import { business } from '../data/business';
 </section>
 
 <script>
-  // Horário regular: segunda a sexta, 09:00–18:30 (hora de Lisboa).
+  import { estadoAgora } from '../lib/horario';
   const el = document.querySelector<HTMLElement>('[data-open-status]');
   if (el) {
-    const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Lisbon', weekday: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
-    const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
-    const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(get('weekday'));
-    const mins = Number(get('hour')) * 60 + Number(get('minute'));
-    const weekday = day >= 1 && day <= 5;
-    const open = weekday && mins >= 9 * 60 && mins < 18 * 60 + 30;
-    const label = el.querySelector('[data-open-label]')!;
-    const value = el.querySelector('[data-open-value]')!;
-    el.classList.add(open ? 'is-open' : 'is-closed');
-    if (open) {
-      label.textContent = 'Aberto agora';
-      value.textContent = 'Fecha às 18:30';
-    } else {
-      label.textContent = 'Fechado agora';
-      const beforeOpen = weekday && mins < 9 * 60;
-      value.textContent = beforeOpen ? 'Abre hoje às 09:00' : day === 5 || day === 6 || day === 0 ? 'Abre segunda às 09:00' : 'Abre amanhã às 09:00';
-    }
+    const e = estadoAgora();
+    el.classList.add(e.aberto ? 'is-open' : 'is-closed');
+    el.querySelector('[data-open-label]')!.textContent = e.titulo;
+    el.querySelector('[data-open-value]')!.textContent = e.detalhe;
   }
 </script>
 

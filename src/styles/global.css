@@ -174,9 +174,9 @@ html { scrollbar-color: #9aa0ad var(--surface-muted); }
 .btn-icon { width: 1.15em; height: 1.15em; flex: none; }
 .btn-primary { background: var(--brand-turquoise); color: var(--brand-dark); }
 .btn-primary:hover { background: var(--brand-turquoise-hover); }
-.btn-outline-light { border-color: currentColor; color: var(--ink-on-dark); }
+.btn-outline-light { border-color: currentColor; color: var(--ink-on-dark); background: transparent; }
 .btn-outline-light:hover { background: rgba(255, 255, 255, 0.12); }
-.btn-outline-dark { border-color: var(--brand-dark); color: var(--brand-dark); }
+.btn-outline-dark { border-color: var(--brand-dark); color: var(--brand-dark); background: transparent; }
 .btn-outline-dark:hover { background: var(--brand-dark); color: var(--ink-on-dark); }
 .btn-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 
