@@ -25,6 +25,8 @@
   const fill = $('[data-pontos-fill]');
   const detail = $('[data-pontos-detail]');
   const stops = [...root.querySelectorAll('[data-pontos-stop]')];
+  const prizes = [...root.querySelectorAll('[data-pontos-prize]')];
+  const scroller = $('[data-pontos-scroll]');
   const pais = $('[data-pontos-pais]');
   const paisBox = pais?.closest('.pts-country');
 
@@ -55,6 +57,14 @@
     const p = premios[i];
     if (!p) return;
     stops.forEach((b, j) => b.setAttribute('aria-pressed', String(j === i)));
+    prizes.forEach((b, j) => b.classList.toggle('is-picked', j === i));
+    // No telemóvel a barra desliza: centra a paragem escolhida.
+    if (scroller && scroller.scrollWidth > scroller.clientWidth) {
+      const r = stops[i].getBoundingClientRect();
+      const sr = scroller.getBoundingClientRect();
+      const left = scroller.scrollLeft + (r.left + r.width / 2) - sr.left - scroller.clientWidth / 2;
+      scroller.scrollTo({ left: Math.max(0, left), behavior: reduce || !animar ? 'auto' : 'smooth' });
+    }
     const ok = saldo !== null && saldo >= p.pontos;
     $('[data-pontos-detail-name]').textContent = p.nome;
     let estado = `${p.pontos} pts`;
@@ -67,6 +77,27 @@
       detail.classList.add('swap');
     }
   }
+
+  // Cartões de prémios: estado de cada um quando há saldo.
+  function pintarPremios(s) {
+    root.classList.toggle('has-saldo', s !== null);
+    prizes.forEach((b, i) => {
+      const p = premios[i];
+      if (!p) return;
+      const ok = s !== null && s >= p.pontos;
+      b.classList.toggle('is-ok', ok);
+      const st = b.querySelector('[data-pontos-prize-state]');
+      if (st) st.textContent = s === null ? '' : ok ? 'Disponível' : `Faltam ${p.pontos - s} pts`;
+    });
+  }
+
+  // Tocar num prémio escolhe-o na barra e sobe até ao cartão.
+  prizes.forEach((b, i) =>
+    b.addEventListener('click', () => {
+      mostrarDetalhe(i);
+      card.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+    }),
+  );
 
   function pintarBarra(s) {
     const f = fracaoBarra(s);
@@ -199,6 +230,7 @@
       card.dataset.state = 'result';
       contar($('[data-pontos-saldo]'), saldo);
       requestAnimationFrame(() => pintarBarra(saldo));
+      pintarPremios(saldo);
       const proximo = premios.findIndex((p) => p.pontos > saldo);
       mostrarDetalhe(proximo === -1 ? premios.length - 1 : proximo, false);
       $('[data-pontos-hello]').focus({ preventScroll: true });
@@ -217,6 +249,7 @@
     form.hidden = false;
     card.dataset.state = 'ask';
     pintarBarra(0);
+    pintarPremios(null);
     stops.forEach((b) => b.classList.remove('is-ok'));
     mostrarDetalhe(0, false);
     input.value = '';

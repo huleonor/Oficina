@@ -111,6 +111,7 @@ const faqs = [
 
         <!-- Barra de recompensas -->
         <div class="pts-track-wrap">
+          <div class="pts-track-scroll" data-pontos-scroll>
           <div class="pts-track" data-pontos-track>
             <div class="pts-rail"><span class="pts-rail-fill" data-pontos-fill></span></div>
             <ol class="pts-stops" role="list" aria-label="Prémios">
@@ -129,6 +130,7 @@ const faqs = [
                 </li>
               ))}
             </ol>
+          </div>
           </div>
           <div class="pts-detail" data-pontos-detail aria-live="polite">
             <span class="pts-detail-name" data-pontos-detail-name>{premios[0].nome}</span>
@@ -168,10 +170,13 @@ const faqs = [
         <h2 class="t-h3 pts-block-title" id="premios-title" data-reveal>Prémios</h2>
         <ul role="list" class="pts-prizes">
           {premios.map((p, i) => (
-            <li class="pts-prize" data-reveal style={`--d:${(i % 4) * 60}ms`}>
-              <span class="pts-prize-pts t-num">{p.pontos}<small>pts</small></span>
-              <span class="pts-prize-name">{p.nome}</span>
-              <span class="pts-prize-desc">{p.descricao}</span>
+            <li data-reveal style={`--d:${(i % 4) * 60}ms`}>
+              <button type="button" class="pts-prize" data-pontos-prize={i}>
+                <span class="pts-prize-pts t-num">{p.pontos}<small>pts</small></span>
+                <span class="pts-prize-name">{p.nome}</span>
+                <span class="pts-prize-desc">{p.descricao}</span>
+                <span class="pts-prize-state t-num" data-pontos-prize-state></span>
+              </button>
             </li>
           ))}
         </ul>
@@ -435,6 +440,12 @@ const faqs = [
 
   .pts-prizes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
   .pts-prize {
+    width: 100%;
+    height: 100%;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
     display: grid;
     gap: 4px;
     align-content: start;
@@ -449,6 +460,13 @@ const faqs = [
   .pts-prize-pts small { font-size: 0.55em; margin-left: 3px; font-weight: 600; }
   .pts-prize-name { font-weight: 600; margin-top: var(--space-2); }
   .pts-prize-desc { color: var(--ink-soft); font-size: 0.88rem; line-height: 1.4; }
+  .pts-prize-state { display: none; justify-self: start; margin-top: var(--space-2); padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; background: var(--surface-muted); color: var(--ink-soft); }
+  .has-saldo .pts-prize-state { display: inline-block; }
+  .pts-prize.is-ok { border-color: var(--brand-turquoise); }
+  .pts-prize.is-ok .pts-prize-state { background: var(--brand-turquoise); color: var(--brand-dark); }
+  .pts-prize.is-picked { box-shadow: 0 0 0 2px var(--brand-dark); }
+  .pts-track-scroll { scrollbar-width: none; }
+  .pts-track-scroll::-webkit-scrollbar { display: none; }
   .pts-block .faq { max-width: none; }
 
   @media (max-width: 560px) {
@@ -459,9 +477,18 @@ const faqs = [
     .pts-card { padding: var(--space-5) var(--space-4); gap: var(--space-4); }
     .pts-label { font-size: 1.05rem; }
     .pts-go { width: 48px; height: 48px; }
-    .pts-dot { min-width: 28px; }
-    .pts-dot-pts { font-size: 0.7rem; padding: 3px 2px; }
-    .pts-dot-mark { width: 14px; height: 14px; margin-bottom: 10px; }
+    /* Barra mais larga que o ecrã: desliza na horizontal e centra-se no prémio escolhido. */
+    .pts-track-scroll {
+      overflow-x: auto;
+      margin-inline: calc(-1 * var(--space-4));
+      padding-inline: var(--space-4);
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+      mask-image: linear-gradient(90deg, transparent 0, #000 16px, #000 calc(100% - 16px), transparent 100%);
+    }
+    .pts-track { min-width: 560px; height: 62px; }
+    .pts-dot { min-width: 48px; }
+    .pts-dot-pts { font-size: 0.82rem; padding: 4px 6px; }
+    .pts-dot-mark { width: 18px; height: 18px; margin-bottom: 8px; }
     .pts-detail { padding: 10px 12px; font-size: 0.95rem; }
     .pts-country-face { font-size: 0.98rem; }
     .pts-more { gap: var(--space-6); margin-top: var(--space-6); padding: 0; }
@@ -478,8 +505,24 @@ const faqs = [
       scrollbar-width: none;
     }
     .pts-how::-webkit-scrollbar, .pts-prizes::-webkit-scrollbar { display: none; }
-    .pts-how-card { flex: 0 0 74%; scroll-snap-align: start; padding: var(--space-4); }
-    .pts-prize { flex: 0 0 42%; scroll-snap-align: start; }
+    /* Como funciona: cartões curtos com ícone à esquerda */
+    .pts-how-card {
+      flex: 0 0 80%;
+      scroll-snap-align: start;
+      grid-template-columns: auto 1fr;
+      column-gap: var(--space-3);
+      row-gap: 2px;
+      padding: var(--space-4);
+    }
+    .pts-how-icon { grid-row: span 2; width: 44px; height: 44px; }
+    .pts-how-icon .si { width: 30px; height: 30px; }
+    .pts-how-num { margin-top: 0; }
+    .pts-how-num strong { font-size: 1.4rem; }
+    .pts-how-text { font-size: 0.88rem; }
+    .pts-prizes > li { flex: 0 0 44%; scroll-snap-align: start; }
+    .pts-prize { padding: var(--space-3); }
+    .pts-prize-pts { font-size: 1.35rem; }
+    .pts-prize-desc { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     .is-entering, .pts-ask.is-leaving, .pts-detail.swap { animation: none; }
