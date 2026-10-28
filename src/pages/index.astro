@@ -119,11 +119,9 @@ const gallery = [
 
   <section class="section" aria-labelledby="faq-title">
     <div class="container faq-wrap">
-      <div class="faq-side">
-        <div class="section-head" data-reveal>
-          <h2 class="t-h2" id="faq-title">Perguntas frequentes</h2>
-          <p class="t-lead m-hide">Se a sua dúvida não estiver aqui, ligue para a oficina.</p>
-        </div>
+      <div class="section-head" data-reveal>
+        <h2 class="t-h2" id="faq-title">Perguntas frequentes</h2>
+        <p class="t-lead m-hide">Se a sua dúvida não estiver aqui, ligue para a oficina.</p>
       </div>
       <FaqList faqs={homeFaqs} />
     </div>
@@ -278,13 +276,7 @@ const gallery = [
   @media (max-width: 560px) {
   }
 
-  .faq-wrap { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: var(--space-8); align-items: start; }
-  .faq-side { display: grid; gap: var(--space-5); position: sticky; top: calc(var(--header-h) + 24px); }
-  .faq-side .section-head { margin-bottom: 0; }
-  @media (max-width: 960px) {
-    .faq-wrap { grid-template-columns: 1fr; gap: 0; }
-    .faq-side { position: static; }
-  }
+  .faq-wrap { display: grid; gap: var(--space-6); max-width: 52rem; }
 
   .pts-teaser {
     display: flex;
