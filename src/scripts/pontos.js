@@ -1,4 +1,4 @@
-/* Consulta de pontos INOVACAR — chama o Apps Script Web App. */
+/* Consulta de pontos INOVACAR — chama o Apps Script Web App (ou os dados de teste). */
 
 (() => {
   'use strict';
@@ -6,225 +6,230 @@
   const root = document.querySelector('[data-pontos]');
   if (!root) return;
 
-  const api = (root.getAttribute('data-api') || '').trim();
+  const $ = (sel) => root.querySelector(sel);
+  const api = (root.dataset.api || '').trim();
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let mockDb = {};
-  try {
-    const raw = root.getAttribute('data-mock') || '';
-    if (raw) mockDb = JSON.parse(raw);
-  } catch {
-    mockDb = {};
-  }
-  const form = root.querySelector('[data-pontos-form]');
-  const input = root.querySelector('[data-pontos-tel]');
-  const status = root.querySelector('[data-pontos-status]');
-  const resultado = root.querySelector('[data-pontos-resultado]');
-  const saudacao = root.querySelector('[data-pontos-saudacao]');
-  const saldoEl = root.querySelector('[data-pontos-saldo]');
-  const movList = root.querySelector('[data-pontos-movimentos]');
-  const marksRoot = root.querySelector('[data-pontos-premios]');
-  const fill = root.querySelector('[data-pontos-fill]');
-  const bar = root.querySelector('[data-pontos-bar]');
-  const btn = root.querySelector('[data-pontos-submit]');
+  let premiosBase = [];
+  try { mockDb = JSON.parse(root.dataset.mock || '{}'); } catch { mockDb = {}; }
+  try { premiosBase = JSON.parse(root.dataset.premios || '[]'); } catch { premiosBase = []; }
 
-  let maxPts = Number(root.getAttribute('data-max-pts')) || 500;
+  const card = $('[data-pontos-card]');
+  const form = $('[data-pontos-form]');
+  const field = $('[data-pontos-field]');
+  const input = $('[data-pontos-tel]');
+  const btn = $('[data-pontos-submit]');
+  const erro = $('[data-pontos-erro]');
+  const result = $('[data-pontos-result]');
+  const catalog = $('[data-pontos-catalog]');
 
-  const tipoLabel = {
-    gasto: 'Gasto',
-    indicacao: 'Indicação',
-    resgate: 'Resgate',
-    ajuste: 'Ajuste',
-  };
+  const tipoLabel = { gasto: 'Serviço na oficina', indicacao: 'Indicação de um amigo', resgate: 'Troca', ajuste: 'Ajuste' };
+  const check = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
 
-  function normalizar(raw) {
+  const normalizar = (raw) => {
     let d = String(raw || '').replace(/\D/g, '');
     if (d.startsWith('351') && d.length >= 12) d = d.slice(3);
-    if (d.length > 9 && d.startsWith('0')) d = d.replace(/^0+/, '');
     return d;
-  }
+  };
 
-  function setStatus(msg, kind) {
-    if (!status) return;
-    status.hidden = !msg;
-    status.textContent = msg || '';
-    status.dataset.kind = kind || '';
-  }
+  // Formata enquanto escreve: 912 345 678
+  input?.addEventListener('input', () => {
+    const d = normalizar(input.value).slice(0, 9);
+    input.value = d.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
+    if (!erro.hidden) mostrarErro('');
+  });
 
-  function formatData(iso) {
-    if (!iso) return '';
-    const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!m) return iso;
-    return `${m[3]}/${m[2]}/${m[1]}`;
-  }
-
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-  function renderMovimentos(list) {
-    if (!movList) return;
-    movList.innerHTML = '';
-    if (!list || !list.length) {
-      const li = document.createElement('li');
-      li.className = 'pontos-empty';
-      li.textContent = 'Ainda sem movimentos.';
-      movList.appendChild(li);
-      return;
+  function mostrarErro(msg) {
+    erro.textContent = msg;
+    erro.hidden = !msg;
+    field.classList.toggle('is-invalid', Boolean(msg));
+    input.toggleAttribute('aria-invalid', Boolean(msg));
+    if (msg && !reduce) {
+      field.classList.remove('shake');
+      void field.offsetWidth;
+      field.classList.add('shake');
     }
-    list.forEach((m) => {
-      const li = document.createElement('li');
-      li.className = 'pontos-mov';
-      const pts = Number(m.pontos) || 0;
-      const sinal = pts > 0 ? '+' : '';
-      li.innerHTML = `
-        <div class="pontos-mov-main">
-          <span class="pontos-mov-tipo">${tipoLabel[m.tipo] || m.tipo}</span>
-          <span class="pontos-mov-data t-num">${formatData(m.data)}</span>
-        </div>
-        <div class="pontos-mov-meta">
-          <span class="pontos-mov-nota">${escapeHtml(m.nota || '')}</span>
-          <span class="pontos-mov-pts t-num ${pts < 0 ? 'is-neg' : 'is-pos'}">${sinal}${pts} pts</span>
-        </div>`;
-      movList.appendChild(li);
+  }
+
+  const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const formatData = (iso) => {
+    const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso || '');
+  };
+
+  // Contador: sobe até ao saldo com desaceleração (sem ressalto).
+  function contar(el, alvo) {
+    if (reduce || alvo <= 0) { el.textContent = String(alvo); return; }
+    const dur = Math.min(1200, 500 + alvo * 1.2);
+    const t0 = performance.now();
+    const passo = (t) => {
+      const p = Math.min(1, (t - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 4);
+      el.textContent = String(Math.round(alvo * e));
+      if (p < 1) requestAnimationFrame(passo);
+    };
+    requestAnimationFrame(passo);
+  }
+
+  // Mantém a altura do cartão estável enquanto troca de estado, e anima a nova altura.
+  function trocarEstado(fn) {
+    const h0 = card.offsetHeight;
+    card.style.height = `${h0}px`;
+    fn();
+    requestAnimationFrame(() => {
+      card.style.height = 'auto';
+      const h1 = card.offsetHeight;
+      card.style.height = `${h0}px`;
+      void card.offsetHeight;
+      card.style.height = `${h1}px`;
+      const fim = () => { card.style.height = ''; card.removeEventListener('transitionend', fim); };
+      card.addEventListener('transitionend', fim);
+      if (reduce) card.style.height = '';
     });
   }
 
-  function syncMarksFromApi(list) {
-    if (!marksRoot || !list || !list.length) return;
-    const sorted = [...list].sort((a, b) => a.pontos - b.pontos);
-    maxPts = Math.max(...sorted.map((p) => Number(p.pontos) || 0), 1);
-    root.setAttribute('data-max-pts', String(maxPts));
-    if (bar) bar.setAttribute('aria-valuemax', String(maxPts));
+  function mostrarResultado(data) {
+    const saldo = Math.max(0, Number(data.saldo) || 0);
+    const premios = [...(data.premios && data.premios.length ? data.premios : premiosBase)]
+      .map((p) => ({ ...p, pontos: Number(p.pontos) || 0 }))
+      .sort((a, b) => a.pontos - b.pontos);
 
-    marksRoot.innerHTML = '';
-    sorted.forEach((p) => {
-      const pct = Math.min(100, (Number(p.pontos) / maxPts) * 100);
-      const li = document.createElement('li');
-      li.className = 'pontos-mark';
-      li.style.left = `${pct}%`;
-      li.setAttribute('data-premio-id', p.id);
-      li.setAttribute('data-premio-pts', String(p.pontos));
-      if (p.descricao) li.title = p.descricao;
-      li.innerHTML = `
-        <span class="pontos-mark-pts t-num" data-premio-pts-label>${p.pontos}</span>
-        <span class="pontos-mark-dot" aria-hidden="true"></span>
-        <span class="pontos-mark-nome" data-premio-nome>${escapeHtml(p.nome)}</span>`;
-      marksRoot.appendChild(li);
-    });
-  }
+    $('[data-pontos-hello]').textContent = `Olá, ${data.nome || 'cliente'}`;
 
-  function actualizarBarra(saldo) {
-    const s = Math.max(0, Number(saldo) || 0);
-    if (saldoEl) saldoEl.textContent = String(s);
-    const pct = Math.min(100, (s / maxPts) * 100);
-    if (fill) fill.style.width = `${pct}%`;
-    if (bar) bar.setAttribute('aria-valuenow', String(s));
-
-    marksRoot?.querySelectorAll('[data-premio-pts]').forEach((mark) => {
-      const custo = Number(mark.getAttribute('data-premio-pts')) || 0;
-      mark.classList.toggle('is-reached', s >= custo);
-    });
-  }
-
-  function aplicarResultado(data) {
-    const saldo = Number(data.saldo) || 0;
-    if (saudacao) {
-      saudacao.textContent = `Olá, ${data.nome || 'Cliente'}. Resgate na oficina.`;
+    // Próximo prémio
+    const proximo = premios.find((p) => p.pontos > saldo);
+    const anterior = [...premios].reverse().find((p) => p.pontos <= saldo);
+    const label = $('[data-pontos-next-label]');
+    const gap = $('[data-pontos-next-gap]');
+    const meter = $('[data-pontos-meter]');
+    const fill = $('[data-pontos-meter-fill]');
+    let pct = 100;
+    if (proximo) {
+      const base = anterior ? anterior.pontos : 0;
+      pct = Math.round(((saldo - base) / (proximo.pontos - base)) * 100);
+      label.textContent = `Próximo: ${proximo.nome}`;
+      gap.textContent = `faltam ${proximo.pontos - saldo} pts`;
+    } else {
+      label.textContent = 'Já pode trocar por qualquer prémio';
+      gap.textContent = '';
     }
-    if (data.premios && data.premios.length) syncMarksFromApi(data.premios);
-    actualizarBarra(saldo);
-    renderMovimentos(data.movimentos || []);
-    setStatus('', '');
-    if (resultado) {
-      resultado.hidden = false;
-      resultado.focus?.();
-    }
-  }
+    meter.setAttribute('aria-valuenow', String(pct));
+    fill.style.transition = 'none';
+    fill.style.transform = 'scaleX(0)';
 
-  function consultarMock(telemovel) {
-    const hit = mockDb[telemovel];
-    if (!hit || hit.ok === false) {
-      setStatus(
-        'Não encontrámos este telemóvel. Confirme o número ou fale connosco na oficina.',
-        'error',
-      );
-      if (resultado) resultado.hidden = true;
-      return;
-    }
-    aplicarResultado(hit);
-  }
+    // Lista de prémios: disponíveis primeiro (com visto), depois os que faltam
+    const lista = $('[data-pontos-rewards]');
+    lista.innerHTML = premios
+      .map((p, i) => {
+        const ok = saldo >= p.pontos;
+        const custo = ok ? `${p.pontos} pts · disponível` : `${p.pontos} pts`;
+        return `<li class="pts-reward${ok ? ' is-ok' : ''}" style="--i:${i}">
+          <span class="pts-badge">${ok ? check : ''}</span>
+          <span class="pts-reward-name">${escapeHtml(p.nome)}</span>
+          <span class="pts-reward-cost t-num">${custo}</span>
+        </li>`;
+      })
+      .join('');
 
-  async function consultar(telemovel) {
-    if (!api) {
-      setStatus(
-        'A consulta ainda não está ligada. A oficina está a preparar o programa de pontos.',
-        'warn',
-      );
-      if (resultado) resultado.hidden = true;
-      return;
-    }
+    // Movimentos
+    const movs = data.movimentos || [];
+    const hist = $('[data-pontos-history]');
+    hist.hidden = movs.length === 0;
+    hist.open = false;
+    $('[data-pontos-movimentos]').innerHTML = movs
+      .map((m) => {
+        const pts = Number(m.pontos) || 0;
+        const o = tipoLabel[m.tipo] || m.tipo || '';
+        const nota = m.nota ? ` · ${escapeHtml(m.nota)}` : '';
+        return `<li class="pts-move">
+          <span class="pts-move-what">${escapeHtml(o)}</span>
+          <span class="pts-move-when t-num">${formatData(m.data)}${nota}</span>
+          <span class="pts-move-pts t-num ${pts < 0 ? 'is-neg' : 'is-pos'}">${pts > 0 ? '+' : ''}${pts}</span>
+        </li>`;
+      })
+      .join('');
 
-    setStatus('A consultar…', 'loading');
-    if (btn) btn.disabled = true;
-    if (resultado) resultado.hidden = true;
+    const saldoEl = $('[data-pontos-saldo]');
+    saldoEl.textContent = '0';
 
-    try {
-      if (api === 'mock') {
-        consultarMock(telemovel);
-        return;
-      }
-
-      const res = await fetch(api, {
-        method: 'POST',
-        mode: 'cors',
-        redirect: 'follow',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ telemovel }),
+    const entrar = () =>
+      trocarEstado(() => {
+        form.hidden = true;
+        form.classList.remove('is-leaving');
+        result.hidden = false;
+        result.classList.add('is-entering');
+        card.dataset.state = 'result';
+        if (catalog) catalog.hidden = true;
+        contar(saldoEl, saldo);
+        requestAnimationFrame(() => {
+          fill.style.transition = '';
+          fill.style.transform = `scaleX(${Math.max(0, Math.min(100, pct)) / 100})`;
+        });
+        $('[data-pontos-hello]').setAttribute('tabindex', '-1');
+        $('[data-pontos-hello]').focus({ preventScroll: true });
       });
-      const data = await res.json();
 
-      if (!data || data.ok === false) {
-        if (data && data.erro === 'nao_encontrado') {
-          setStatus(
-            'Não encontrámos este telemóvel. Confirme o número ou fale connosco na oficina.',
-            'error',
-          );
-        } else if (data && data.erro === 'telemovel_invalido') {
-          setStatus('Introduza um telemóvel válido (9 dígitos).', 'error');
-        } else {
-          setStatus(
-            'Não foi possível consultar agora. Tente mais tarde ou ligue para a oficina.',
-            'error',
-          );
-        }
-        return;
-      }
-
-      aplicarResultado(data);
-    } catch {
-      setStatus(
-        'Falha de rede ou o serviço de pontos está indisponível. Tente mais tarde.',
-        'error',
-      );
-    } finally {
-      if (btn) btn.disabled = false;
-    }
+    if (reduce) { entrar(); return; }
+    form.classList.add('is-leaving');
+    setTimeout(entrar, 180);
   }
 
-  // Estado inicial da barra (0 pts)
-  actualizarBarra(0);
+  function voltar() {
+    trocarEstado(() => {
+      result.hidden = true;
+      result.classList.remove('is-entering');
+      form.hidden = false;
+      card.dataset.state = 'ask';
+      if (catalog) catalog.hidden = false;
+      input.value = '';
+      input.focus();
+    });
+  }
+
+  async function consultar(tel) {
+    if (!api) { mostrarErro('A consulta ainda não está disponível. Ligue para a oficina.'); return; }
+    btn.disabled = true;
+    btn.classList.add('is-loading');
+    try {
+      let data;
+      if (api === 'mock') {
+        await new Promise((r) => setTimeout(r, 450));
+        data = mockDb[tel] || { ok: false, erro: 'nao_encontrado' };
+      } else {
+        const res = await fetch(api, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ telemovel: tel }),
+        });
+        data = await res.json();
+      }
+      if (!data || data.ok === false) {
+        if (data && data.erro === 'nao_encontrado') mostrarErro('Não encontrámos este número. Confirme-o ou fale connosco na oficina.');
+        else if (data && data.erro === 'telemovel_invalido') mostrarErro('O número deve ter 9 algarismos.');
+        else mostrarErro('Não foi possível consultar agora. Tente daqui a pouco.');
+        return;
+      }
+      mostrarResultado(data);
+    } catch {
+      mostrarErro('Sem ligação ao serviço de pontos. Verifique a internet e tente de novo.');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('is-loading');
+    }
+  }
 
   form?.addEventListener('submit', (ev) => {
     ev.preventDefault();
-    const tel = normalizar(input?.value);
-    if (tel.length < 9) {
-      setStatus('Introduza um telemóvel válido (9 dígitos).', 'error');
-      input?.focus();
+    const tel = normalizar(input.value);
+    if (tel.length !== 9) {
+      mostrarErro('O número deve ter 9 algarismos.');
+      input.focus();
       return;
     }
+    mostrarErro('');
     consultar(tel);
   });
+
+  $('[data-pontos-reset]')?.addEventListener('click', voltar);
 })();

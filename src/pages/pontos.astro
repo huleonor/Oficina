@@ -1,7 +1,9 @@
 ---
+// Consulta de pontos: um cartão com dois estados (número → saldo).
+// A página só consulta; resgates fazem-se na oficina. Dados via Apps Script (ver sheets/README.md).
 import Base from '../layouts/Base.astro';
-import PageHero from '../components/PageHero.astro';
 import Icon from '../components/Icon.astro';
+import { u } from '../lib/url';
 import { business } from '../data/business';
 import { premiosDefault } from '../data/premios';
 import { pontosMock } from '../data/pontos-mock';
@@ -13,116 +15,102 @@ const crumbs = [
 ];
 
 const pontosApi = (import.meta.env.PUBLIC_PONTOS_API || 'mock').trim();
-const maxPremioPts = Math.max(...premiosDefault.map((p) => p.pontos), 1);
-const premiosOrdenados = [...premiosDefault].sort((a, b) => a.pontos - b.pontos);
+const premios = [...premiosDefault].sort((a, b) => a.pontos - b.pontos);
 const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
 ---
 <Base
   title="Os seus pontos | INOVACAR, Aveiro"
-  description="Consulte o saldo de pontos INOVACAR. 1 euro gasto = 1 ponto. Troque por lavagem, descontos e ofertas na oficina."
+  description="Consulte o saldo de pontos INOVACAR com o seu telemóvel. 1 euro gasto = 1 ponto. Troque os pontos na oficina."
   schema={[breadcrumbSchema(Astro.site!, crumbs)]}
 >
-  <PageHero
-    title="Programa de pontos"
-    lead="Por cada euro que gasta na oficina ganha um ponto. Traga amigos e ganhe mais. Consulte o saldo com o seu telemóvel."
-    crumbs={crumbs}
-    actions={false}
-  />
+  <section class="pts-page" data-pontos data-api={pontosApi} data-mock={mockJson} data-premios={JSON.stringify(premios)}>
+    <div class="container pts-inner">
+      <header class="pts-intro">
+        <h1 class="t-display pts-title">Os seus pontos</h1>
+        <p class="pts-lead">Cada euro gasto na oficina vale 1 ponto. Troque os pontos por ofertas e descontos.</p>
+      </header>
 
-  <section
-    class="section"
-    data-pontos
-    data-api={pontosApi}
-    data-max-pts={maxPremioPts}
-    data-mock={mockJson}
-  >
-    <div class="container pontos-wrap">
-      <div class="pontos-consulta">
-        <h2 class="t-h2" id="consultar">Consultar pontos</h2>
-        <p class="t-lead">Introduza o telemóvel que a oficina tem registado.</p>
-
-        <form class="pontos-form" data-pontos-form>
-          <label class="pontos-label" for="pontos-tel">
-            <span class="t-label">Telemóvel</span>
+      <div class="pts-card" data-pontos-card data-state="ask" aria-live="polite">
+        <!-- Estado 1: pedir o número -->
+        <form class="pts-ask" data-pontos-form novalidate>
+          <label class="pts-label" for="pontos-tel">O seu telemóvel</label>
+          <div class="pts-field" data-pontos-field>
+            <span class="pts-prefix t-num" aria-hidden="true">+351</span>
             <input
               id="pontos-tel"
-              class="pontos-input t-num"
+              class="pts-input t-num"
               type="tel"
               name="telemovel"
-              inputmode="tel"
-              autocomplete="tel"
-              placeholder="934 000 000"
+              inputmode="numeric"
+              autocomplete="tel-national"
+              placeholder="912 345 678"
+              maxlength="11"
               required
+              aria-describedby="pontos-help pontos-erro"
               data-pontos-tel
             />
-          </label>
-          <button class="btn btn-primary" type="submit" data-pontos-submit>
-            <Icon name="phone" class="btn-icon" />Ver o meu saldo
-          </button>
+            <button class="pts-go" type="submit" data-pontos-submit aria-label="Ver os meus pontos">
+              <Icon name="arrow" class="pts-go-icon" />
+              <span class="pts-spinner" aria-hidden="true"></span>
+            </button>
+          </div>
+          <p class="pts-help t-small" id="pontos-help">Use o número que deu na oficina.</p>
+          <p class="pts-error" id="pontos-erro" data-pontos-erro hidden></p>
         </form>
 
-        <p class="pontos-status t-soft" data-pontos-status hidden role="status" aria-live="polite"></p>
-        <p class="t-small t-soft pontos-privacy">
-          Os seus dados são usados só para o programa de pontos da INOVACAR.
-          Para resgatar, ligue <a class="t-num" href={business.phoneHref}>{business.phoneDisplay}</a>
-          ou fale connosco na oficina.
-        </p>
-      </div>
-
-      <div class="pontos-track-block" aria-labelledby="premios-title">
-        <div class="pontos-track-head">
-          <div>
-            <h2 class="t-h2" id="premios-title">O seu progresso</h2>
-            <p class="t-soft" data-pontos-saudacao>Consulte o telemóvel para ver o saldo na barra.</p>
+        <!-- Estado 2: resultado -->
+        <div class="pts-result" data-pontos-result hidden>
+          <div class="pts-result-head">
+            <p class="pts-hello" data-pontos-hello></p>
+            <button class="pts-reset" type="button" data-pontos-reset>Outro número</button>
           </div>
-          <p class="pontos-saldo-top t-num" aria-live="polite">
-            <span data-pontos-saldo>0</span>
-            <span class="pontos-saldo-unit">pts</span>
+
+          <p class="pts-balance t-num">
+            <span class="pts-balance-num" data-pontos-saldo>0</span>
+            <span class="pts-balance-unit">pontos</span>
           </p>
-        </div>
 
-        <div
-          class="pontos-bar"
-          data-pontos-bar
-          role="progressbar"
-          aria-valuemin="0"
-          aria-valuemax={maxPremioPts}
-          aria-valuenow="0"
-          aria-label="Progresso de pontos"
-        >
-          <div class="pontos-bar-track">
-            <div class="pontos-bar-fill" data-pontos-fill style="width: 0%"></div>
+          <div class="pts-next" data-pontos-next>
+            <div class="pts-next-text">
+              <span data-pontos-next-label></span>
+              <strong class="t-num" data-pontos-next-gap></strong>
+            </div>
+            <div class="pts-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-pontos-meter>
+              <span class="pts-meter-fill" data-pontos-meter-fill></span>
+            </div>
           </div>
 
-          <ol class="pontos-marks" data-pontos-premios>
-            {premiosOrdenados.map((p) => {
-              const pct = Math.min(100, (p.pontos / maxPremioPts) * 100);
-              return (
-                <li
-                  class="pontos-mark"
-                  style={`left: ${pct}%`}
-                  data-premio-id={p.id}
-                  data-premio-pts={p.pontos}
-                  title={p.descricao}
-                >
-                  <span class="pontos-mark-pts t-num" data-premio-pts-label>{p.pontos}</span>
-                  <span class="pontos-mark-dot" aria-hidden="true"></span>
-                  <span class="pontos-mark-nome" data-premio-nome>{p.nome}</span>
-                </li>
-              );
-            })}
-          </ol>
+          <ul role="list" class="pts-rewards" data-pontos-rewards></ul>
+
+          <details class="pts-history" data-pontos-history>
+            <summary>Ver movimentos <Icon name="chevron" class="pts-history-icon" /></summary>
+            <ul role="list" class="pts-moves" data-pontos-movimentos></ul>
+          </details>
+
+          <a class="btn btn-primary pts-call" href={business.phoneHref}>
+            <Icon name="phone" class="btn-icon" />Trocar pontos: ligar {business.phoneDisplay}
+          </a>
         </div>
-
-        <p class="t-small t-soft">
-          1&nbsp;€ gasto = 1 ponto · Indicação = 300 pontos · Resgate na oficina
-        </p>
       </div>
 
-      <div class="pontos-resultado" data-pontos-resultado hidden tabindex="-1">
-        <h3 class="t-h3">Movimentos recentes</h3>
-        <ul role="list" class="pontos-mov-list" data-pontos-movimentos></ul>
-      </div>
+      <ul role="list" class="pts-rules">
+        <li><strong class="t-num">1 €</strong><span>= 1 ponto</span></li>
+        <li><strong class="t-num">300</strong><span>pontos por cada amigo que trouxer</span></li>
+        <li><strong>Na oficina</strong><span>é onde troca os pontos</span></li>
+      </ul>
+
+      <section class="pts-catalog" aria-labelledby="catalogo-title" data-pontos-catalog>
+        <h2 class="t-h3" id="catalogo-title">O que pode receber</h2>
+        <ul role="list" class="pts-catalog-list">
+          {premios.map((p) => (
+            <li><span>{p.nome}</span><span class="t-num">{p.pontos} pts</span></li>
+          ))}
+        </ul>
+      </section>
+
+      <p class="pts-privacy t-small">
+        O número serve apenas para consultar os seus pontos. Dúvidas? <a href={business.phoneHref}>Ligue {business.phoneDisplay}</a> ou veja os <a href={u('/contactos/')}>contactos</a>.
+      </p>
     </div>
   </section>
 </Base>
@@ -131,194 +119,221 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
   import '../scripts/pontos.js';
 </script>
 
-<style>
-  .pontos-wrap {
-    display: grid;
-    gap: var(--space-7);
-    max-width: 920px;
+<style is:global>
+  /* Global porque a lista de prémios e os movimentos são criados por JavaScript. Tudo prefixado com pts-. */
+  .pts-page [hidden] { display: none !important; }
+  .pts-page {
+    background:
+      linear-gradient(var(--brand-dark), var(--brand-dark)) top / 100% 300px no-repeat,
+      var(--surface-muted);
+    padding-block: var(--space-7) var(--space-8);
   }
-  .pontos-consulta {
-    display: grid;
-    gap: var(--space-4);
-    justify-items: start;
-  }
-  .pontos-form {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-    align-items: flex-end;
-    width: 100%;
-  }
-  .pontos-label {
-    display: grid;
-    gap: 6px;
-    flex: 1 1 220px;
-    min-width: 0;
-  }
-  .pontos-input {
-    width: 100%;
-    border: 2px solid var(--line-strong);
-    border-radius: var(--radius-m);
-    padding: 12px 14px;
-    background: var(--surface-white);
-  }
-  .pontos-input:focus {
-    outline: 3px solid var(--brand-turquoise);
-    outline-offset: 2px;
-  }
-  .pontos-status[data-kind='error'] { color: #a12828; }
-  .pontos-status[data-kind='warn'] { color: var(--brand-turquoise-ink); }
-  .pontos-status[data-kind='loading'] { color: var(--ink-soft); }
-  .pontos-privacy { max-width: 52ch; }
+  .pts-inner { max-width: calc(560px + 2 * 16px); display: grid; gap: var(--space-5); }
+  .pts-intro { color: var(--ink-on-dark); display: grid; gap: var(--space-2); }
+  .pts-title { font-size: clamp(2.2rem, 1.6rem + 2.4vw, 3.2rem); }
+  .pts-lead { color: var(--ink-on-dark-soft); font-size: var(--fs-lead); line-height: 1.45; }
 
-  .pontos-track-block {
-    display: grid;
-    gap: var(--space-5);
-    width: 100%;
-    padding: var(--space-6);
-    background: var(--surface-muted);
+  /* Cartão principal */
+  .pts-card {
+    position: relative;
+    background: var(--surface-white);
     border-radius: var(--radius-l);
+    box-shadow: 0 24px 48px -24px rgba(38, 41, 60, 0.45), 0 2px 6px rgba(38, 41, 60, 0.06);
+    padding: var(--space-6);
+    overflow: hidden;
+    transition: height var(--dur-slow) var(--ease);
   }
-  .pontos-track-head {
+  .pts-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 4px;
+    background: var(--brand-turquoise);
+    transform-origin: left;
+    transform: scaleX(0.18);
+    transition: transform 700ms var(--ease);
+  }
+  .pts-card[data-state='result']::before { transform: scaleX(1); }
+
+  /* Estado: pedir número */
+  .pts-ask { display: grid; gap: var(--space-2); }
+  .pts-label { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; }
+  .pts-field {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: var(--space-4);
-    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    border: 2px solid var(--line);
+    border-radius: var(--radius-l);
+    padding: 6px 6px 6px 16px;
+    background: var(--surface-white);
+    transition: border-color var(--dur-quick) var(--ease), box-shadow var(--dur-quick) var(--ease);
   }
-  .pontos-saldo-top {
+  .pts-field:focus-within { border-color: var(--brand-turquoise); box-shadow: 0 0 0 4px rgba(54, 179, 175, 0.18); }
+  .pts-field.is-invalid { border-color: #b42318; }
+  .pts-field.shake { animation: pts-shake 340ms var(--ease); }
+  @keyframes pts-shake {
+    20% { transform: translateX(-8px); }
+    45% { transform: translateX(6px); }
+    70% { transform: translateX(-3px); }
+    100% { transform: none; }
+  }
+  .pts-prefix { color: var(--ink-soft); font-weight: 600; font-size: 1.15rem; }
+  .pts-input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    padding: 12px 4px;
+    font-size: clamp(1.35rem, 1.1rem + 1vw, 1.7rem);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    background: transparent;
+  }
+  .pts-input::placeholder { color: #a3a8b5; font-weight: 500; }
+  .pts-go {
+    position: relative;
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border: 0;
+    border-radius: var(--radius-m);
+    background: var(--brand-turquoise);
+    color: var(--brand-dark);
+    cursor: pointer;
+    transition: background-color var(--dur-quick) var(--ease), transform var(--dur-quick) var(--ease);
+  }
+  .pts-go:hover { background: var(--brand-turquoise-hover); }
+  .pts-go:active { transform: scale(0.94); }
+  .pts-go-icon { width: 24px; height: 24px; transition: transform var(--dur-standard) var(--ease); }
+  .pts-go:hover .pts-go-icon { transform: translateX(3px); }
+  .pts-spinner {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border: 3px solid var(--brand-dark);
+    border-right-color: transparent;
+    border-radius: 50%;
+    opacity: 0;
+    animation: pts-spin 0.7s linear infinite;
+  }
+  .pts-go.is-loading .pts-go-icon { opacity: 0; }
+  .pts-go.is-loading .pts-spinner { opacity: 1; }
+  @keyframes pts-spin { to { transform: rotate(360deg); } }
+  .pts-help { color: var(--ink-soft); }
+  .pts-error { color: #b42318; font-weight: 600; font-size: var(--fs-small); }
+
+  /* Troca de estado: sai depressa, entra com calma */
+  .pts-ask.is-leaving { animation: pts-out 180ms var(--ease) forwards; }
+  .pts-result.is-entering { animation: pts-in 360ms var(--ease-out) both; }
+  @keyframes pts-out { to { opacity: 0; transform: translateY(-8px); } }
+  @keyframes pts-in { from { opacity: 0; transform: translateY(12px); } }
+
+  /* Estado: resultado */
+  .pts-result { display: grid; gap: var(--space-5); }
+  .pts-result-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+  .pts-hello { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; }
+  .pts-hello:focus:not(:focus-visible) { outline: none; }
+  .pts-reset {
+    border: 0;
+    background: none;
+    padding: 6px 0;
+    color: var(--brand-turquoise-ink);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    cursor: pointer;
+  }
+  .pts-balance { display: flex; align-items: baseline; gap: var(--space-3); line-height: 0.9; margin-top: calc(-1 * var(--space-2)); }
+  .pts-balance-num {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: clamp(2rem, 1.5rem + 1.5vw, 2.8rem);
-    line-height: 1;
+    font-size: clamp(4rem, 3rem + 5vw, 5.75rem);
+    letter-spacing: -0.02em;
     color: var(--brand-dark);
   }
-  .pontos-saldo-unit {
-    font-size: 0.4em;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--brand-turquoise-ink);
-    margin-left: 0.15em;
-  }
+  .pts-balance-unit { font-weight: 600; color: var(--ink-soft); font-size: 1.1rem; }
 
-  .pontos-bar {
-    position: relative;
-    width: 100%;
-    padding: 1.75rem 0.6rem 4.25rem;
-  }
-  .pontos-bar-track {
-    position: relative;
-    height: 10px;
-    border-radius: 999px;
-    background: #d5dadb;
-    overflow: hidden;
-  }
-  .pontos-bar-fill {
+  .pts-next { display: grid; gap: var(--space-2); padding: var(--space-4); background: var(--surface-muted); border-radius: var(--radius-m); }
+  .pts-next-text { display: flex; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+  .pts-next-text strong { color: var(--brand-turquoise-ink); white-space: nowrap; }
+  .pts-meter { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
+  .pts-meter-fill {
+    display: block;
     height: 100%;
-    width: 0;
+    width: 100%;
     border-radius: inherit;
     background: var(--brand-turquoise);
-    transition: width var(--dur-slow) var(--ease-out);
+    transform-origin: left;
+    transform: scaleX(0);
+    transition: transform 800ms var(--ease) 350ms;
+  }
+
+  .pts-rewards { display: grid; }
+  .pts-reward {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    gap: var(--space-3);
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line);
+    animation: pts-in 320ms var(--ease-out) both;
+    animation-delay: calc(500ms + var(--i, 0) * 45ms);
+  }
+  .pts-reward:last-child { border-bottom: 0; }
+  .pts-badge {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    color: var(--ink-soft);
+  }
+  .pts-badge svg { width: 16px; height: 16px; }
+  .pts-reward.is-ok .pts-badge { background: var(--brand-turquoise); border-color: var(--brand-turquoise); color: var(--brand-dark); }
+  .pts-reward-name { font-weight: 600; }
+  .pts-reward-cost { font-size: var(--fs-small); color: var(--ink-soft); white-space: nowrap; text-align: right; }
+  .pts-reward.is-ok .pts-reward-cost { color: var(--brand-turquoise-ink); font-weight: 600; }
+  .pts-reward:not(.is-ok) .pts-reward-name { color: var(--ink-soft); }
+
+  .pts-history { border-top: 1px solid var(--line); padding-top: var(--space-3); }
+  .pts-history summary { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; font-weight: 600; list-style: none; padding: 6px 0; }
+  .pts-history summary::-webkit-details-marker { display: none; }
+  .pts-history-icon { width: 18px; height: 18px; transition: transform var(--dur-standard) var(--ease); }
+  .pts-history[open] .pts-history-icon { transform: rotate(180deg); }
+  .pts-moves { display: grid; margin-top: var(--space-2); }
+  .pts-move { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--space-3); padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 0.97rem; }
+  .pts-move:last-child { border-bottom: 0; }
+  .pts-move-what { font-weight: 600; }
+  .pts-move-when { grid-column: 1; color: var(--ink-soft); font-size: var(--fs-small); }
+  .pts-move-pts { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; }
+  .pts-move-pts.is-pos { color: var(--brand-turquoise-ink); }
+  .pts-move-pts.is-neg { color: var(--ink-soft); }
+  .pts-call { justify-self: stretch; }
+
+  /* Regras e catálogo (sempre visíveis, discretos) */
+  .pts-rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+  .pts-rules li { display: grid; gap: 2px; padding: var(--space-4); background: var(--surface-white); border-radius: var(--radius-m); font-size: var(--fs-small); color: var(--ink-soft); line-height: 1.35; }
+  .pts-rules strong { font-family: var(--font-display); font-size: 1.35rem; color: var(--brand-dark); }
+  .pts-catalog { display: grid; gap: var(--space-3); }
+  .pts-catalog[hidden] { display: none; }
+  .pts-catalog-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-5); }
+  .pts-catalog-list li { display: flex; justify-content: space-between; gap: var(--space-3); padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .pts-catalog-list li span:last-child { color: var(--ink-soft); white-space: nowrap; }
+  .pts-privacy { color: var(--ink-soft); }
+
+  @media (max-width: 560px) {
+    .pts-page { background-size: 100% 260px, auto; padding-top: var(--space-6); }
+    .pts-card { padding: var(--space-5) var(--space-4); }
+    .pts-rules { grid-template-columns: 1fr; }
+    .pts-rules li { grid-template-columns: auto 1fr; align-items: baseline; gap: var(--space-2); }
+    .pts-catalog-list { grid-template-columns: 1fr; }
+    .pts-go { width: 52px; height: 52px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .pontos-bar-fill { transition: none; }
-  }
-
-  .pontos-marks {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    position: absolute;
-    left: 0.6rem;
-    right: 0.6rem;
-    top: 0;
-    bottom: 0;
-  }
-  .pontos-mark {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: max-content;
-    max-width: 6.5rem;
-    text-align: center;
-  }
-  .pontos-mark-pts {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--ink-soft);
-    margin-bottom: 0.35rem;
-  }
-  .pontos-mark-dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: var(--surface-white);
-    border: 2px solid #9aa0ad;
-    margin-top: 0.15rem; /* alinha com o centro da barra (10px) + padding */
-    position: relative;
-    z-index: 1;
-    flex: none;
-  }
-  .pontos-mark-nome {
-    margin-top: 0.85rem;
-    font-size: 0.78rem;
-    font-weight: 600;
-    line-height: 1.25;
-    color: var(--ink-soft);
-  }
-  .pontos-mark.is-reached .pontos-mark-pts,
-  .pontos-mark.is-reached .pontos-mark-nome {
-    color: var(--brand-turquoise-ink);
-  }
-  .pontos-mark.is-reached .pontos-mark-dot {
-    background: var(--brand-turquoise);
-    border-color: var(--brand-turquoise);
-  }
-
-  .pontos-resultado {
-    width: 100%;
-    display: grid;
-    gap: var(--space-4);
-    padding-top: var(--space-2);
-  }
-  .pontos-mov-list {
-    width: 100%;
-    display: grid;
-    gap: var(--space-2);
-  }
-  .pontos-mov {
-    display: grid;
-    gap: 4px;
-    padding: var(--space-3) 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .pontos-mov-main,
-  .pontos-mov-meta {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--space-4);
-    align-items: baseline;
-  }
-  .pontos-mov-tipo { font-weight: 600; }
-  .pontos-mov-data,
-  .pontos-mov-nota { color: var(--ink-soft); font-size: var(--fs-small); }
-  .pontos-mov-pts.is-pos { color: var(--brand-turquoise-ink); font-weight: 700; }
-  .pontos-mov-pts.is-neg { color: #a12828; font-weight: 700; }
-  .pontos-empty { color: var(--ink-soft); }
-
-  @media (max-width: 640px) {
-    .pontos-track-block { padding: var(--space-5); }
-    .pontos-bar { padding-bottom: 5rem; }
-    .pontos-mark { max-width: 4.6rem; }
-    .pontos-mark-nome { font-size: 0.68rem; }
-    /* Em ecrãs estreitos esconde nomes intermédios se houver muitos — mantém pts */
-    .pontos-mark:not(:first-child):not(:last-child) .pontos-mark-nome {
-      display: none;
-    }
+    .pts-reward, .pts-result.is-entering, .pts-ask.is-leaving { animation: none; }
+    .pts-meter-fill, .pts-card::before { transition: none; }
   }
 </style>
