@@ -4,6 +4,8 @@ import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
 import ServiceCards from '../../components/ServiceCards.astro';
 import { breadcrumbSchema } from '../../data/schema';
+import Icon from '../../components/Icon.astro';
+import { business } from '../../data/business';
 
 const servicos = (await getCollection('servicos')).sort((a, b) => a.data.order - b.data.order);
 const crumbs = [
@@ -24,12 +26,37 @@ const crumbs = [
   />
   <section class="section">
     <div class="container">
-      <ServiceCards items={servicos} headingLevel="h2" />
-      <p class="t-soft services-price">Preços: cada carro e cada reparação são diferentes. Contacte-nos para um orçamento.</p>
+      <ServiceCards items={servicos} headingLevel="h2" compact />
+      <aside class="svc-help" data-reveal>
+        <div>
+          <h2 class="svc-help-title">Não sabe qual é o serviço?</h2>
+          <p>Ligue e diga-nos o que o carro está a fazer. Cada carro é diferente, por isso o orçamento é dado caso a caso.</p>
+        </div>
+        <a class="btn btn-primary" href={business.phoneHref}><Icon name="phone" class="btn-icon" />Ligar {business.phoneDisplay}</a>
+      </aside>
     </div>
   </section>
 </Base>
 
 <style>
-  .services-price { margin-top: var(--space-6); }
+  .svc-help {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-5);
+    flex-wrap: wrap;
+    margin-top: var(--space-7);
+    padding: var(--space-6);
+    border-radius: var(--radius-l);
+    background: var(--brand-dark);
+    color: var(--ink-on-dark);
+  }
+  .svc-help div { display: grid; gap: var(--space-2); max-width: 52ch; }
+  .svc-help-title { font-family: var(--font-display); font-size: 1.5rem; line-height: 1.15; }
+  .svc-help p { color: var(--ink-on-dark-soft); }
+  @media (max-width: 760px) {
+    .svc-help { margin-top: var(--space-5); padding: var(--space-5) var(--space-4); }
+    .svc-help-title { font-size: 1.25rem; }
+    .svc-help .btn { width: 100%; }
+  }
 </style>

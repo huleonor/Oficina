@@ -9,11 +9,13 @@ import ServiceIcon from './ServiceIcon.astro';
 interface Props {
   items: CollectionEntry<'servicos'>[];
   headingLevel?: 'h2' | 'h3';
+  /** No telemóvel: grelha de 2 colunas com todos os serviços à vista, em vez de carrossel. */
+  compact?: boolean;
 }
-const { items, headingLevel = 'h3' } = Astro.props;
+const { items, headingLevel = 'h3', compact = false } = Astro.props;
 const Heading = headingLevel;
 ---
-<div class="svc" data-carousel>
+<div class={`svc${compact ? ' svc-compact' : ''}`} data-carousel>
   <ul role="list" class="svc-track" data-carousel-track>
     {items.map((s, i) => (
       <li class="svc-slide">
@@ -157,5 +159,21 @@ const Heading = headingLevel;
       overflow: hidden;
     }
     .svc-progress span { display: block; height: 100%; width: 30%; border-radius: inherit; background: var(--brand-dark); transition: transform 80ms linear; }
+
+    .svc-compact { margin-inline: 0; }
+    .svc-compact .svc-track {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-3);
+      overflow: visible;
+      padding: 0;
+    }
+    .svc-compact .svc-card { padding: var(--space-4) var(--space-3) var(--space-3); gap: var(--space-2); }
+    .svc-compact .svc-tile { width: 48px; height: 48px; margin-bottom: 0; }
+    .svc-compact .svc-tile :global(svg) { width: 34px; height: 34px; }
+    .svc-compact .svc-name { font-size: 1.02rem; }
+    .svc-compact .svc-desc { -webkit-line-clamp: 2; font-size: 0.85rem; }
+    .svc-compact .svc-more { padding-top: var(--space-1); font-size: 0.85rem; }
+    .svc-compact .svc-progress { display: none; }
   }
 </style>

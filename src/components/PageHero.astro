@@ -61,5 +61,14 @@ const p = photo ? photos[photo] : undefined;
     .has-photo .page-hero-grid { grid-template-columns: 1fr; }
     .page-hero-photo { aspect-ratio: 16 / 9; }
   }
-  @media (max-width: 760px) { .page-hero { padding-block: var(--space-7); } }
+  @media (max-width: 760px) {
+    .page-hero { padding-block: var(--space-5) var(--space-6); }
+    .page-hero-grid { gap: var(--space-5); }
+    .page-hero-copy { gap: var(--space-3); }
+    .page-hero-title { font-size: clamp(1.9rem, 1.4rem + 3vw, 2.4rem); }
+    .page-hero .t-lead { font-size: 1rem; }
+    /* A barra fixa em baixo já tem Ligar e Como chegar. */
+    .page-hero .btn-row { display: none; }
+    .page-hero-photo { aspect-ratio: 2 / 1; }
+  }
 </style>

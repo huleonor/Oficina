@@ -40,9 +40,9 @@ const serviceSchema = {
 <Base title={data.seoTitle} description={data.seoDescription} schema={[serviceSchema, faqSchema(data.faqs), breadcrumbSchema(Astro.site!, crumbs)]}>
   <PageHero title={`${data.name} em Aveiro`} lead={data.shortDescription} crumbs={crumbs} photo={data.heroImage} />
 
-  <section class="section">
+  <section class="section svc-main">
     <div class="container svc-grid">
-      <div class="prose">
+      <div class="prose svc-body" data-reveal>
         <Content />
       </div>
       <aside class="svc-aside">
@@ -56,11 +56,11 @@ const serviceSchema = {
               </li>
             ))}
           </ul>
-          <div class="order-field">
+          <div class="order-field order-price">
             <span class="t-label">Preço</span>
             <p>{data.priceGuidance}</p>
           </div>
-          <div class="order-field">
+          <div class="order-field order-tel">
             <span class="t-label">Telefone</span>
             <a class="order-phone t-num" href={business.phoneHref}>{business.phoneDisplay}</a>
           </div>
@@ -78,7 +78,7 @@ const serviceSchema = {
   </section>
 
 
-  <section class="section section-muted" aria-labelledby="svc-outros">
+  <section class="section" aria-labelledby="svc-outros">
     <div class="container">
       <div class="section-head"><h2 class="t-h2" id="svc-outros">Outros serviços</h2></div>
       <ServiceCards items={outros} />
@@ -104,5 +104,60 @@ const serviceSchema = {
   @media (max-width: 960px) {
     .svc-grid { grid-template-columns: 1fr; gap: var(--space-7); }
     .svc-aside { position: static; }
+  }
+
+  /* Telemóvel: "Neste serviço" passa para o topo como cartões horizontais; o telefone fica na barra fixa. */
+  @media (max-width: 760px) {
+    .svc-main { padding-top: var(--space-5); }
+    .svc-grid { gap: var(--space-5); }
+    .svc-aside { order: -1; margin-inline: calc(-1 * var(--gutter)) calc(-1 * var(--gutter-r)); }
+    .order-card { border: 0; box-shadow: none; background: none; border-radius: 0; }
+    .order-card-title { padding: 0 var(--gutter-r) var(--space-3) var(--gutter); border: 0; font-size: 1.15rem; }
+    .order-checks {
+      display: flex;
+      gap: var(--space-3);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline: var(--gutter);
+      padding: 2px var(--gutter-r) var(--space-2) var(--gutter);
+      scrollbar-width: none;
+    }
+    .order-checks::-webkit-scrollbar { display: none; }
+    .order-check {
+      flex: 0 0 72%;
+      scroll-snap-align: start;
+      flex-direction: column;
+      gap: var(--space-2);
+      padding: var(--space-4);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-l);
+      background: var(--surface-white);
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    .order-check:last-child { border-bottom: 1px solid var(--line); }
+    .order-tel, .order-btn { display: none; }
+    .order-price {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-2);
+      margin: var(--space-2) var(--gutter-r) 0 var(--gutter);
+      padding: 12px 14px;
+      border: 0;
+      border-radius: var(--radius-m);
+      background: var(--surface-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Listas do texto como etiquetas, para ocuparem menos altura. */
+    .svc-body :global(ul) { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: 0; list-style: none; }
+    .svc-body :global(li) {
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(54, 179, 175, 0.14);
+      font-size: 0.92rem;
+      font-weight: 500;
+    }
+    .svc-body :global(h2) { font-size: 1.3rem; margin-top: var(--space-3); }
   }
 </style>
