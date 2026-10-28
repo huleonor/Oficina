@@ -1,9 +1,9 @@
 ---
-// Consulta de pontos: um cartão com dois estados (número → saldo).
+// Consulta de pontos: um cartão compacto. Em cima pede o número (ou mostra o saldo);
+// em baixo, sempre visível, a barra de recompensas, que enche quando há saldo.
 // A página só consulta; resgates fazem-se na oficina. Dados via Apps Script (ver sheets/README.md).
 import Base from '../layouts/Base.astro';
 import Icon from '../components/Icon.astro';
-import { u } from '../lib/url';
 import { business } from '../data/business';
 import { premiosDefault } from '../data/premios';
 import { pontosMock } from '../data/pontos-mock';
@@ -27,11 +27,11 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
     <div class="container pts-inner">
       <header class="pts-intro">
         <h1 class="t-display pts-title">Os seus pontos</h1>
-        <p class="pts-lead">Cada euro gasto na oficina vale 1 ponto. Troque os pontos por ofertas e descontos.</p>
+        <p class="pts-lead">1 € gasto na oficina = 1 ponto. Troque por ofertas e descontos.</p>
       </header>
 
-      <div class="pts-card" data-pontos-card data-state="ask" aria-live="polite">
-        <!-- Estado 1: pedir o número -->
+      <div class="pts-card" data-pontos-card data-state="ask">
+        <!-- Pedir o número -->
         <form class="pts-ask" data-pontos-form novalidate>
           <label class="pts-label" for="pontos-tel">O seu telemóvel</label>
           <div class="pts-field" data-pontos-field>
@@ -46,7 +46,7 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
               placeholder="912 345 678"
               maxlength="11"
               required
-              aria-describedby="pontos-help pontos-erro"
+              aria-describedby="pontos-erro"
               data-pontos-tel
             />
             <button class="pts-go" type="submit" data-pontos-submit aria-label="Ver os meus pontos">
@@ -54,62 +54,62 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
               <span class="pts-spinner" aria-hidden="true"></span>
             </button>
           </div>
-          <p class="pts-help t-small" id="pontos-help">Use o número que deu na oficina.</p>
-          <p class="pts-error" id="pontos-erro" data-pontos-erro hidden></p>
+          <p class="pts-error" id="pontos-erro" data-pontos-erro role="alert" hidden></p>
         </form>
 
-        <!-- Estado 2: resultado -->
+        <!-- Saldo -->
         <div class="pts-result" data-pontos-result hidden>
           <div class="pts-result-head">
-            <p class="pts-hello" data-pontos-hello></p>
+            <p class="pts-hello" data-pontos-hello tabindex="-1"></p>
             <button class="pts-reset" type="button" data-pontos-reset>Outro número</button>
           </div>
-
-          <p class="pts-balance t-num">
+          <p class="pts-balance t-num" aria-live="polite">
             <span class="pts-balance-num" data-pontos-saldo>0</span>
             <span class="pts-balance-unit">pontos</span>
           </p>
+        </div>
 
-          <div class="pts-next" data-pontos-next>
-            <div class="pts-next-text">
-              <span data-pontos-next-label></span>
-              <strong class="t-num" data-pontos-next-gap></strong>
-            </div>
-            <div class="pts-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" data-pontos-meter>
-              <span class="pts-meter-fill" data-pontos-meter-fill></span>
-            </div>
+        <!-- Barra de recompensas -->
+        <div class="pts-track-wrap">
+          <div class="pts-track" data-pontos-track>
+            <div class="pts-rail"><span class="pts-rail-fill" data-pontos-fill></span></div>
+            <ol class="pts-stops" role="list" aria-label="Prémios">
+              {premios.map((p, i) => (
+                <li class="pts-stop" style={`--pos:${((i + 1) / premios.length) * 100}%`}>
+                  <button
+                    type="button"
+                    class="pts-dot"
+                    data-pontos-stop={i}
+                    aria-label={`${p.nome}, ${p.pontos} pontos`}
+                    aria-pressed={i === 0 ? 'true' : 'false'}
+                  >
+                    <span class="pts-dot-pts t-num">{p.pontos}</span>
+                    <span class="pts-dot-mark" aria-hidden="true"></span>
+                  </button>
+                </li>
+              ))}
+            </ol>
           </div>
+          <div class="pts-detail" data-pontos-detail aria-live="polite">
+            <span class="pts-detail-name" data-pontos-detail-name>{premios[0].nome}</span>
+            <span class="pts-detail-state t-num" data-pontos-detail-state>{premios[0].pontos} pts</span>
+          </div>
+        </div>
 
-          <ul role="list" class="pts-rewards" data-pontos-rewards></ul>
-
+        <!-- Extras do resultado -->
+        <div class="pts-extra" data-pontos-extra hidden>
           <details class="pts-history" data-pontos-history>
-            <summary>Ver movimentos <Icon name="chevron" class="pts-history-icon" /></summary>
+            <summary>Movimentos <Icon name="chevron" class="pts-history-icon" /></summary>
             <ul role="list" class="pts-moves" data-pontos-movimentos></ul>
           </details>
-
           <a class="btn btn-primary pts-call" href={business.phoneHref}>
-            <Icon name="phone" class="btn-icon" />Trocar pontos: ligar {business.phoneDisplay}
+            <Icon name="phone" class="btn-icon" />Trocar pontos: {business.phoneDisplay}
           </a>
         </div>
       </div>
 
-      <ul role="list" class="pts-rules">
-        <li><strong class="t-num">1 €</strong><span>= 1 ponto</span></li>
-        <li><strong class="t-num">300</strong><span>pontos por cada amigo que trouxer</span></li>
-        <li><strong>Na oficina</strong><span>é onde troca os pontos</span></li>
-      </ul>
-
-      <section class="pts-catalog" aria-labelledby="catalogo-title" data-pontos-catalog>
-        <h2 class="t-h3" id="catalogo-title">O que pode receber</h2>
-        <ul role="list" class="pts-catalog-list">
-          {premios.map((p) => (
-            <li><span>{p.nome}</span><span class="t-num">{p.pontos} pts</span></li>
-          ))}
-        </ul>
-      </section>
-
-      <p class="pts-privacy t-small">
-        O número serve apenas para consultar os seus pontos. Dúvidas? <a href={business.phoneHref}>Ligue {business.phoneDisplay}</a> ou veja os <a href={u('/contactos/')}>contactos</a>.
+      <p class="pts-rules t-small">
+        <span>1 € = 1 ponto</span><span>Amigo que trouxer = 300 pts</span><span>Troca na oficina</span>
       </p>
     </div>
   </section>
@@ -120,52 +120,41 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
 </script>
 
 <style is:global>
-  /* Global porque a lista de prémios e os movimentos são criados por JavaScript. Tudo prefixado com pts-. */
+  /* Global porque os movimentos são criados por JavaScript. Tudo prefixado com pts-. */
   .pts-page [hidden] { display: none !important; }
   .pts-page {
     background:
-      linear-gradient(var(--brand-dark), var(--brand-dark)) top / 100% 300px no-repeat,
+      linear-gradient(var(--brand-dark), var(--brand-dark)) top / 100% 260px no-repeat,
       var(--surface-muted);
-    padding-block: var(--space-7) var(--space-8);
+    padding-block: var(--space-7);
   }
-  .pts-inner { max-width: calc(560px + 2 * 16px); display: grid; gap: var(--space-5); }
+  .pts-inner { max-width: calc(560px + 2 * 16px); display: grid; gap: var(--space-4); }
   .pts-intro { color: var(--ink-on-dark); display: grid; gap: var(--space-2); }
-  .pts-title { font-size: clamp(2.2rem, 1.6rem + 2.4vw, 3.2rem); }
-  .pts-lead { color: var(--ink-on-dark-soft); font-size: var(--fs-lead); line-height: 1.45; }
+  .pts-title { font-size: clamp(2rem, 1.5rem + 2.2vw, 3rem); }
+  .pts-lead { color: var(--ink-on-dark-soft); font-size: var(--fs-lead); line-height: 1.4; }
 
-  /* Cartão principal */
   .pts-card {
     position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
     background: var(--surface-white);
     border-radius: var(--radius-l);
     box-shadow: 0 24px 48px -24px rgba(38, 41, 60, 0.45), 0 2px 6px rgba(38, 41, 60, 0.06);
     padding: var(--space-6);
     overflow: hidden;
-    transition: height var(--dur-slow) var(--ease);
   }
-  .pts-card::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto;
-    height: 4px;
-    background: var(--brand-turquoise);
-    transform-origin: left;
-    transform: scaleX(0.18);
-    transition: transform 700ms var(--ease);
-  }
-  .pts-card[data-state='result']::before { transform: scaleX(1); }
 
-  /* Estado: pedir número */
-  .pts-ask { display: grid; gap: var(--space-2); }
-  .pts-label { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; }
+  /* Pedir número */
+  .pts-ask { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+  .pts-label { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; }
   .pts-field {
     display: flex;
     align-items: center;
     gap: var(--space-2);
     border: 2px solid var(--line);
     border-radius: var(--radius-l);
-    padding: 6px 6px 6px 16px;
-    background: var(--surface-white);
+    padding: 5px 5px 5px 14px;
     transition: border-color var(--dur-quick) var(--ease), box-shadow var(--dur-quick) var(--ease);
   }
   .pts-field:focus-within { border-color: var(--brand-turquoise); box-shadow: 0 0 0 4px rgba(54, 179, 175, 0.18); }
@@ -177,16 +166,16 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
     70% { transform: translateX(-3px); }
     100% { transform: none; }
   }
-  .pts-prefix { color: var(--ink-soft); font-weight: 600; font-size: 1.15rem; }
+  .pts-prefix { color: var(--ink-soft); font-weight: 600; }
   .pts-input {
     flex: 1;
     min-width: 0;
+    width: 100%;
     border: 0;
     outline: 0;
-    padding: 12px 4px;
-    font-size: clamp(1.35rem, 1.1rem + 1vw, 1.7rem);
+    padding: 10px 2px;
+    font-size: clamp(1.25rem, 1.05rem + 0.9vw, 1.6rem);
     font-weight: 600;
-    letter-spacing: 0.02em;
     background: transparent;
   }
   .pts-input::placeholder { color: #a3a8b5; font-weight: 500; }
@@ -195,8 +184,8 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
     flex: none;
     display: grid;
     place-items: center;
-    width: 56px;
-    height: 56px;
+    width: 52px;
+    height: 52px;
     border: 0;
     border-radius: var(--radius-m);
     background: var(--brand-turquoise);
@@ -221,20 +210,19 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
   .pts-go.is-loading .pts-go-icon { opacity: 0; }
   .pts-go.is-loading .pts-spinner { opacity: 1; }
   @keyframes pts-spin { to { transform: rotate(360deg); } }
-  .pts-help { color: var(--ink-soft); }
   .pts-error { color: #b42318; font-weight: 600; font-size: var(--fs-small); }
 
   /* Troca de estado: sai depressa, entra com calma */
-  .pts-ask.is-leaving { animation: pts-out 180ms var(--ease) forwards; }
-  .pts-result.is-entering { animation: pts-in 360ms var(--ease-out) both; }
-  @keyframes pts-out { to { opacity: 0; transform: translateY(-8px); } }
-  @keyframes pts-in { from { opacity: 0; transform: translateY(12px); } }
+  .pts-ask.is-leaving { animation: pts-out 160ms var(--ease) forwards; }
+  .is-entering { animation: pts-in 360ms var(--ease-out) both; }
+  @keyframes pts-out { to { opacity: 0; transform: translateY(-6px); } }
+  @keyframes pts-in { from { opacity: 0; transform: translateY(10px); } }
 
-  /* Estado: resultado */
-  .pts-result { display: grid; gap: var(--space-5); }
+  /* Saldo */
+  .pts-result { display: grid; gap: var(--space-1); }
   .pts-result-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
-  .pts-hello { font-family: var(--font-display); font-weight: 600; font-size: 1.3rem; }
-  .pts-hello:focus:not(:focus-visible) { outline: none; }
+  .pts-hello { font-family: var(--font-display); font-weight: 600; font-size: 1.2rem; }
+  .pts-hello:focus { outline: none; }
   .pts-reset {
     border: 0;
     background: none;
@@ -245,95 +233,122 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
     text-underline-offset: 0.2em;
     cursor: pointer;
   }
-  .pts-balance { display: flex; align-items: baseline; gap: var(--space-3); line-height: 0.9; margin-top: calc(-1 * var(--space-2)); }
+  .pts-balance { display: flex; align-items: baseline; gap: var(--space-2); line-height: 0.95; }
   .pts-balance-num {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: clamp(4rem, 3rem + 5vw, 5.75rem);
+    font-size: clamp(3.6rem, 2.8rem + 4vw, 5.25rem);
     letter-spacing: -0.02em;
     color: var(--brand-dark);
   }
-  .pts-balance-unit { font-weight: 600; color: var(--ink-soft); font-size: 1.1rem; }
+  .pts-balance-unit { font-weight: 600; color: var(--ink-soft); }
 
-  .pts-next { display: grid; gap: var(--space-2); padding: var(--space-4); background: var(--surface-muted); border-radius: var(--radius-m); }
-  .pts-next-text { display: flex; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
-  .pts-next-text strong { color: var(--brand-turquoise-ink); white-space: nowrap; }
-  .pts-meter { height: 8px; border-radius: 999px; background: var(--line); overflow: hidden; }
-  .pts-meter-fill {
+  /* Barra de recompensas: paragens à mesma distância, pontos por cima, nome numa linha por baixo. */
+  .pts-track-wrap { display: grid; gap: var(--space-3); }
+  .pts-track { position: relative; height: 58px; margin-inline: 4px 14px; }
+  .pts-rail {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 13px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--line);
+    overflow: hidden;
+  }
+  .pts-rail-fill {
     display: block;
     height: 100%;
     width: 100%;
     border-radius: inherit;
     background: var(--brand-turquoise);
     transform-origin: left;
-    transform: scaleX(0);
-    transition: transform 800ms var(--ease) 350ms;
+    transform: scaleX(var(--fill, 0));
+    transition: transform 1000ms var(--ease);
   }
-
-  .pts-rewards { display: grid; }
-  .pts-reward {
+  .pts-stops { position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; }
+  .pts-stop { position: absolute; top: 0; bottom: 0; left: var(--pos); transform: translateX(-50%); }
+  .pts-dot {
     display: grid;
-    grid-template-columns: 28px 1fr auto;
-    gap: var(--space-3);
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--line);
-    animation: pts-in 320ms var(--ease-out) both;
-    animation-delay: calc(500ms + var(--i, 0) * 45ms);
-  }
-  .pts-reward:last-child { border-bottom: 0; }
-  .pts-badge {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    border: 2px solid var(--line);
+    justify-items: center;
+    align-content: space-between;
+    height: 100%;
+    min-width: 34px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
     color: var(--ink-soft);
   }
-  .pts-badge svg { width: 16px; height: 16px; }
-  .pts-reward.is-ok .pts-badge { background: var(--brand-turquoise); border-color: var(--brand-turquoise); color: var(--brand-dark); }
-  .pts-reward-name { font-weight: 600; }
-  .pts-reward-cost { font-size: var(--fs-small); color: var(--ink-soft); white-space: nowrap; text-align: right; }
-  .pts-reward.is-ok .pts-reward-cost { color: var(--brand-turquoise-ink); font-weight: 600; }
-  .pts-reward:not(.is-ok) .pts-reward-name { color: var(--ink-soft); }
+  .pts-dot-pts { font-size: 0.78rem; font-weight: 600; line-height: 1; padding: 4px 3px; border-radius: 4px; transition: color var(--dur-standard) var(--ease), background-color var(--dur-standard) var(--ease); }
+  .pts-dot-mark {
+    width: 18px;
+    height: 18px;
+    margin-bottom: 8px;
+    border-radius: 50%;
+    background: var(--surface-white);
+    border: 2px solid #b6bbc6;
+    transition: background-color var(--dur-standard) var(--ease), border-color var(--dur-standard) var(--ease), transform var(--dur-standard) var(--ease);
+    transition-delay: var(--delay, 0ms);
+  }
+  .pts-dot.is-ok .pts-dot-mark { background: var(--brand-turquoise); border-color: var(--brand-turquoise); }
+  .pts-dot.is-ok .pts-dot-pts { color: var(--brand-turquoise-ink); }
+  .pts-dot[aria-pressed='true'] .pts-dot-mark { transform: scale(1.3); box-shadow: 0 0 0 3px var(--surface-white), 0 0 0 5px var(--brand-dark); }
+  .pts-dot[aria-pressed='true'] .pts-dot-pts { color: var(--surface-white); background: var(--brand-dark); }
+  .pts-dot:hover .pts-dot-mark { border-color: var(--brand-dark); }
+  .pts-dot:focus-visible { outline: none; }
+  .pts-dot:focus-visible .pts-dot-mark { box-shadow: 0 0 0 3px var(--brand-turquoise); }
 
-  .pts-history { border-top: 1px solid var(--line); padding-top: var(--space-3); }
+  .pts-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-3);
+    padding: 12px 14px;
+    border-radius: var(--radius-m);
+    background: var(--surface-muted);
+  }
+  .pts-detail-name { font-weight: 600; }
+  .pts-detail-state { color: var(--ink-soft); font-size: var(--fs-small); white-space: nowrap; }
+  .pts-detail.is-ok .pts-detail-state { color: var(--brand-turquoise-ink); font-weight: 600; }
+  .pts-detail.swap { animation: pts-in 220ms var(--ease-out); }
+
+  /* Extras */
+  .pts-extra { display: grid; gap: var(--space-4); }
+  .pts-history { border-top: 1px solid var(--line); padding-top: var(--space-2); }
   .pts-history summary { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; font-weight: 600; list-style: none; padding: 6px 0; }
   .pts-history summary::-webkit-details-marker { display: none; }
   .pts-history-icon { width: 18px; height: 18px; transition: transform var(--dur-standard) var(--ease); }
   .pts-history[open] .pts-history-icon { transform: rotate(180deg); }
-  .pts-moves { display: grid; margin-top: var(--space-2); }
-  .pts-move { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--space-3); padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 0.97rem; }
+  .pts-moves { display: grid; }
+  .pts-move { display: grid; grid-template-columns: 1fr auto; gap: 2px var(--space-3); padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 0.95rem; }
   .pts-move:last-child { border-bottom: 0; }
   .pts-move-what { font-weight: 600; }
   .pts-move-when { grid-column: 1; color: var(--ink-soft); font-size: var(--fs-small); }
   .pts-move-pts { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-weight: 700; }
   .pts-move-pts.is-pos { color: var(--brand-turquoise-ink); }
   .pts-move-pts.is-neg { color: var(--ink-soft); }
-  .pts-call { justify-self: stretch; }
 
-  /* Regras e catálogo (sempre visíveis, discretos) */
-  .pts-rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
-  .pts-rules li { display: grid; gap: 2px; padding: var(--space-4); background: var(--surface-white); border-radius: var(--radius-m); font-size: var(--fs-small); color: var(--ink-soft); line-height: 1.35; }
-  .pts-rules strong { font-family: var(--font-display); font-size: 1.35rem; color: var(--brand-dark); }
-  .pts-catalog { display: grid; gap: var(--space-3); }
-  .pts-catalog[hidden] { display: none; }
-  .pts-catalog-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-5); }
-  .pts-catalog-list li { display: flex; justify-content: space-between; gap: var(--space-3); padding: 10px 0; border-bottom: 1px solid var(--line); }
-  .pts-catalog-list li span:last-child { color: var(--ink-soft); white-space: nowrap; }
-  .pts-privacy { color: var(--ink-soft); }
+  .pts-rules { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 0; color: var(--ink-soft); }
+  .pts-rules span + span::before { content: '·'; margin-inline: 10px; }
 
   @media (max-width: 560px) {
-    .pts-page { background-size: 100% 260px, auto; padding-top: var(--space-6); }
-    .pts-card { padding: var(--space-5) var(--space-4); }
-    .pts-rules { grid-template-columns: 1fr; }
-    .pts-rules li { grid-template-columns: auto 1fr; align-items: baseline; gap: var(--space-2); }
-    .pts-catalog-list { grid-template-columns: 1fr; }
-    .pts-go { width: 52px; height: 52px; }
+    .pts-page { padding-block: var(--space-5) var(--space-6); background-size: 100% 200px, auto; }
+    .pts-intro { gap: 4px; }
+    .pts-title { font-size: 2rem; }
+    .pts-lead { font-size: 1rem; }
+    .pts-card { padding: var(--space-5) var(--space-4); gap: var(--space-4); }
+    .pts-label { font-size: 1.05rem; }
+    .pts-go { width: 48px; height: 48px; }
+    .pts-dot { min-width: 28px; }
+    .pts-dot-pts { font-size: 0.7rem; padding: 3px 2px; }
+    .pts-dot-mark { width: 14px; height: 14px; margin-bottom: 10px; }
+    .pts-detail { padding: 10px 12px; font-size: 0.95rem; }
+    .pts-rules { display: grid; justify-items: center; gap: 2px; }
+    .pts-rules span + span::before { content: none; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .pts-reward, .pts-result.is-entering, .pts-ask.is-leaving { animation: none; }
-    .pts-meter-fill, .pts-card::before { transition: none; }
+    .is-entering, .pts-ask.is-leaving, .pts-detail.swap { animation: none; }
+    .pts-rail-fill, .pts-dot-mark { transition: none; }
   }
 </style>
