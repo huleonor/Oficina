@@ -97,9 +97,9 @@ com a folha `Regras` actual:
 | --- | --- | --- |
 | 934514368 | Ana Sousa | sim |
 
-| matricula | telemovel | marca | modelo | ano | ativo |
-| --- | --- | --- | --- | --- | --- |
-| AA-00-BB | 934514368 | VW | Golf | 2018 | sim |
+| matricula | telemovel | marca | modelo | ano | ativo | feito | entrada_em | pronto_em | duracao_min |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| AA-00-BB | 934514368 | VW | Golf | 2018 | sim | nao | 2026-10-28 09:10:00 |  |  |
 
 **Gasto** — `tipo` + `valor_eur` (+ `matricula` do carro); os pontos aparecem sozinhos:
 

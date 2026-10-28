@@ -87,6 +87,8 @@
       <select id="accao">
         <option value="cliente">Novo cliente (+ 1.º carro)</option>
         <option value="carro">Novo carro (cliente já existe)</option>
+        <option value="chegou">Carro chegou (inicia tempo)</option>
+        <option value="pronto">Carro pronto (mostra tempo)</option>
         <option value="gasto">Gasto / serviço</option>
         <option value="indicacao">Indicação</option>
         <option value="resgate">Resgate de prémio</option>
@@ -120,6 +122,23 @@
         </div>
         <label>Ano<input id="k_ano" type="number" min="1980" max="2100" /></label>
         <label>Nota<input id="k_nota" type="text" /></label>
+        <p class="hint">Ao guardar, o cronómetro começa (coluna «feito» = não).</p>
+      </div>
+
+      <!-- Chegou -->
+      <div class="panel" data-panel="chegou">
+        <label>Carro *
+          <select id="h_mat"></select>
+        </label>
+        <p class="hint">Reinicia a entrada: feito = não, tempo a contar desde agora.</p>
+      </div>
+
+      <!-- Pronto -->
+      <div class="panel" data-panel="pronto">
+        <label>Carro em trabalho *
+          <select id="p_mat"></select>
+        </label>
+        <p class="hint">Marca feito = sim e mostra quanto demorou desde a entrada.</p>
       </div>
 
       <!-- Gasto -->
@@ -230,6 +249,23 @@
                 label: p.nome + ' (' + p.pontos + ' pts)',
               }),
             );
+            const labelCarro = (c) =>
+              c.matricula + (c.modelo ? ' · ' + c.marca + ' ' + c.modelo : '');
+            fillSelect(
+              $('h_mat'),
+              data.carros || [],
+              (c) => ({ value: c.matricula, label: labelCarro(c) }),
+              '— escolher —',
+            );
+            fillSelect(
+              $('p_mat'),
+              data.carrosEmTrabalho || [],
+              (c) => ({
+                value: c.matricula,
+                label: labelCarro(c) + (c.entrada_em ? ' · desde ' + c.entrada_em : ''),
+              }),
+              '— escolher —',
+            );
             actualizarCarros();
           })
           .withFailureHandler((e) => showMsg(e.message || String(e), false))
@@ -300,6 +336,12 @@
             ano: $('k_ano').value,
             nota: $('k_nota').value,
           };
+        } else if (a === 'chegou') {
+          fn = 'formCarroChegou';
+          payload = { matricula: $('h_mat').value };
+        } else if (a === 'pronto') {
+          fn = 'formCarroPronto';
+          payload = { matricula: $('p_mat').value };
         } else if (a === 'gasto') {
           fn = 'formGasto';
           payload = {

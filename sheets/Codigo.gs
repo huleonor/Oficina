@@ -126,6 +126,10 @@ function prepararFolha() {
     'ano',
     'ativo',
     'nota',
+    'feito',
+    'entrada_em',
+    'pronto_em',
+    'duracao_min',
   ]);
   garantirFolha_(ss, FOLHAS.movimentos, [
     'data',
@@ -152,6 +156,7 @@ function prepararFolha() {
   var iTipo = cabecalhoIndex_(mov, 'tipo');
   var iAtivoC = cabecalhoIndex_(cli, 'ativo');
   var iAtivoK = cabecalhoIndex_(car, 'ativo');
+  var iFeito = cabecalhoIndex_(car, 'feito');
 
   if (iTipo >= 0) {
     mov.getRange(2, iTipo + 1, Math.max(mov.getMaxRows() - 1, 1), 1).setDataValidation(
@@ -170,6 +175,9 @@ function prepararFolha() {
   }
   if (iAtivoK >= 0) {
     car.getRange(2, iAtivoK + 1, Math.max(car.getMaxRows() - 1, 1), 1).setDataValidation(dvSimNao);
+  }
+  if (iFeito >= 0) {
+    car.getRange(2, iFeito + 1, Math.max(car.getMaxRows() - 1, 1), 1).setDataValidation(dvSimNao);
   }
 
   try {
@@ -196,11 +204,23 @@ function carregarDadosTeste() {
     ['934000003', 'Carla Reis', 'sim', ''],
   ]);
   escreverFolha_(ss, FOLHAS.carros, [
-    ['matricula', 'telemovel', 'marca', 'modelo', 'ano', 'ativo', 'nota'],
-    ['AA-00-BB', '934000001', 'Volkswagen', 'Golf', 2018, 'sim', ''],
-    ['CC-11-DD', '934000001', 'Renault', 'Clio', 2012, 'sim', 'segundo carro'],
-    ['EE-22-FF', '934000002', 'Peugeot', '208', 2020, 'sim', ''],
-    ['GG-33-HH', '934000003', 'Seat', 'Ibiza', 2016, 'sim', ''],
+    [
+      'matricula',
+      'telemovel',
+      'marca',
+      'modelo',
+      'ano',
+      'ativo',
+      'nota',
+      'feito',
+      'entrada_em',
+      'pronto_em',
+      'duracao_min',
+    ],
+    ['AA-00-BB', '934000001', 'Volkswagen', 'Golf', 2018, 'sim', '', 'sim', '2026-10-27 09:00:00', '2026-10-27 11:15:00', 135],
+    ['CC-11-DD', '934000001', 'Renault', 'Clio', 2012, 'sim', 'segundo carro', 'nao', '2026-10-28 08:30:00', '', ''],
+    ['EE-22-FF', '934000002', 'Peugeot', '208', 2020, 'sim', '', 'nao', '2026-10-28 09:10:00', '', ''],
+    ['GG-33-HH', '934000003', 'Seat', 'Ibiza', 2016, 'sim', '', 'sim', '2026-10-26 14:00:00', '2026-10-26 16:40:00', 160],
   ]);
   escreverFolha_(ss, FOLHAS.movimentos, [
     ['data', 'telemovel', 'tipo', 'valor_eur', 'pontos', 'matricula', 'nota'],
@@ -278,7 +298,13 @@ function listarParaFormulario() {
   clientes.sort(function (a, b) {
     return a.nome.localeCompare(b.nome, 'pt');
   });
-  return { clientes: clientes, premios: premiosActivos_(ss) };
+  var oficina = listarCarrosOficina();
+  return {
+    clientes: clientes,
+    premios: premiosActivos_(ss),
+    carrosEmTrabalho: oficina.emTrabalho,
+    carros: oficina.todos,
+  };
 }
 
 function carrosDoCliente(telemovel) {
@@ -323,20 +349,19 @@ function formNovoCliente(p) {
     .trim()
     .toUpperCase();
   if (mat) {
-    appendByHeaders_(ss, FOLHAS.carros, {
+    appendByHeaders_(ss, FOLHAS.carros, camposNovoCarroOficina_({
       matricula: mat,
       telemovel: tel,
       marca: String(p.marca || '').trim(),
       modelo: String(p.modelo || '').trim(),
       ano: p.ano || '',
-      ativo: 'sim',
       nota: '',
-    });
+    }));
   }
   return {
     ok: true,
     msg: mat
-      ? 'Cliente e carro guardados (' + nome + ').'
+      ? 'Cliente e carro guardados (' + nome + '). Cronómetro a contar desde agora.'
       : 'Cliente guardado (' + nome + '). Pode acrescentar o carro depois.',
   };
 }
@@ -356,16 +381,117 @@ function formNovoCarro(p) {
     return c.matricula === mat;
   });
   if (ja) return { ok: false, erro: 'Esta matrícula já está neste cliente.' };
-  appendByHeaders_(ss, FOLHAS.carros, {
-    matricula: mat,
-    telemovel: tel,
-    marca: String(p.marca || '').trim(),
-    modelo: String(p.modelo || '').trim(),
-    ano: p.ano || '',
+  appendByHeaders_(
+    ss,
+    FOLHAS.carros,
+    camposNovoCarroOficina_({
+      matricula: mat,
+      telemovel: tel,
+      marca: String(p.marca || '').trim(),
+      modelo: String(p.modelo || '').trim(),
+      ano: p.ano || '',
+      nota: String(p.nota || '').trim(),
+    }),
+  );
+  return { ok: true, msg: 'Carro ' + mat + ' adicionado. Cronómetro a contar desde agora.' };
+}
+
+/** Campos de oficina: ao aparecer, feito=nao e o tempo começa a contar. */
+function camposNovoCarroOficina_(base) {
+  return {
+    matricula: base.matricula,
+    telemovel: base.telemovel,
+    marca: base.marca,
+    modelo: base.modelo,
+    ano: base.ano || '',
     ativo: 'sim',
-    nota: String(p.nota || '').trim(),
+    nota: base.nota || '',
+    feito: 'nao',
+    entrada_em: agoraDateTimeIso_(),
+    pronto_em: '',
+    duracao_min: '',
+  };
+}
+
+/** Reinicia o cronómetro: o carro voltou a entrar na oficina. */
+function formCarroChegou(p) {
+  var ss = ss_();
+  var mat = String(p.matricula || '')
+    .trim()
+    .toUpperCase();
+  if (!mat) return { ok: false, erro: 'Escolha a matrícula.' };
+  var row = encontrarLinhaCarro_(ss, mat);
+  if (!row) return { ok: false, erro: 'Matrícula não encontrada em Carros.' };
+  actualizarLinhaCarro_(ss, row.rowNumber, {
+    feito: 'nao',
+    entrada_em: agoraDateTimeIso_(),
+    pronto_em: '',
+    duracao_min: '',
   });
-  return { ok: true, msg: 'Carro ' + mat + ' adicionado.' };
+  return { ok: true, msg: mat + ' em trabalho — cronómetro a contar desde agora.' };
+}
+
+/** Marca o carro como feito e devolve o tempo desde a entrada. */
+function formCarroPronto(p) {
+  var ss = ss_();
+  var mat = String(p.matricula || '')
+    .trim()
+    .toUpperCase();
+  if (!mat) return { ok: false, erro: 'Escolha a matrícula.' };
+  var row = encontrarLinhaCarro_(ss, mat);
+  if (!row) return { ok: false, erro: 'Matrícula não encontrada em Carros.' };
+  var entrada = parseDateTimeFlex_(row.entrada_em);
+  if (!entrada) {
+    return {
+      ok: false,
+      erro: 'Este carro não tem hora de entrada. Use «Carro chegou» primeiro.',
+    };
+  }
+  var agora = new Date();
+  var mins = Math.max(0, Math.round((agora.getTime() - entrada.getTime()) / 60000));
+  actualizarLinhaCarro_(ss, row.rowNumber, {
+    feito: 'sim',
+    pronto_em: agoraDateTimeIso_(),
+    duracao_min: mins,
+  });
+  return {
+    ok: true,
+    msg: mat + ' pronto em ' + formatDuracao_(mins) + ' (' + mins + ' min).',
+    duracaoMin: mins,
+    duracaoTexto: formatDuracao_(mins),
+  };
+}
+
+function listarCarrosOficina() {
+  var ss = ss_();
+  var emTrabalho = [];
+  var todos = [];
+  try {
+    sheetValues_(ss, FOLHAS.carros).rows.forEach(function (row) {
+      if (!sim_(row.ativo == null ? 'sim' : row.ativo)) return;
+      var mat = String(row.matricula || '')
+        .trim()
+        .toUpperCase();
+      if (!mat) return;
+      var feito = String(row.feito || '')
+        .trim()
+        .toLowerCase();
+      var item = {
+        matricula: mat,
+        marca: String(row.marca || '').trim(),
+        modelo: String(row.modelo || '').trim(),
+        feito: feito === 'sim' ? 'sim' : 'nao',
+        entrada_em: String(row.entrada_em || '').trim(),
+        pronto_em: String(row.pronto_em || '').trim(),
+        duracao_min: row.duracao_min === '' || row.duracao_min == null ? null : num_(row.duracao_min, null),
+      };
+      todos.push(item);
+      if (item.feito !== 'sim' && item.entrada_em) emTrabalho.push(item);
+    });
+  } catch (err) {
+    /* sem folha */
+  }
+  return { emTrabalho: emTrabalho, todos: todos };
 }
 
 function formGasto(p) {
@@ -635,6 +761,85 @@ function hojeIso_() {
   );
 }
 
+function agoraDateTimeIso_() {
+  return Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone() || 'Europe/Lisbon',
+    'yyyy-MM-dd HH:mm:ss',
+  );
+}
+
+function formatDuracao_(mins) {
+  var m = Math.max(0, Math.round(Number(mins) || 0));
+  var h = Math.floor(m / 60);
+  var r = m % 60;
+  if (h <= 0) return r + ' min';
+  if (r === 0) return h + ' h';
+  return h + ' h ' + r + ' min';
+}
+
+/** Aceita Date da folha ou texto «yyyy-MM-dd HH:mm:ss» / ISO. */
+function parseDateTimeFlex_(raw) {
+  if (raw instanceof Date && !isNaN(raw.getTime())) return raw;
+  var s = String(raw || '').trim();
+  if (!s) return null;
+  var m = s.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/,
+  );
+  if (m) {
+    return new Date(
+      Number(m[1]),
+      Number(m[2]) - 1,
+      Number(m[3]),
+      Number(m[4] || 0),
+      Number(m[5] || 0),
+      Number(m[6] || 0),
+    );
+  }
+  var d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function encontrarLinhaCarro_(ss, matricula) {
+  var mat = String(matricula || '')
+    .trim()
+    .toUpperCase();
+  var sh = ss.getSheetByName(FOLHAS.carros);
+  if (!sh || sh.getLastRow() < 2) return null;
+  var values = sh.getDataRange().getValues();
+  var headers = values[0].map(function (h) {
+    return String(h).trim().toLowerCase();
+  });
+  var iMat = headers.indexOf('matricula');
+  if (iMat < 0) return null;
+  for (var r = 1; r < values.length; r++) {
+    var cell = String(values[r][iMat] || '')
+      .trim()
+      .toUpperCase();
+    if (cell !== mat) continue;
+    var obj = { rowNumber: r + 1 };
+    for (var c = 0; c < headers.length; c++) {
+      obj[headers[c]] = values[r][c];
+    }
+    return obj;
+  }
+  return null;
+}
+
+function actualizarLinhaCarro_(ss, rowNumber, updates) {
+  var sh = ss.getSheetByName(FOLHAS.carros);
+  if (!sh) throw new Error('Folha Carros em falta.');
+  var lastCol = Math.max(sh.getLastColumn(), 1);
+  var headers = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) {
+    return String(h).trim().toLowerCase();
+  });
+  Object.keys(updates).forEach(function (key) {
+    var i = headers.indexOf(String(key).toLowerCase());
+    if (i < 0) return;
+    sh.getRange(rowNumber, i + 1).setValue(updates[key]);
+  });
+}
+
 function garantirFolha_(ss, nome, headers) {
   var sh = ss.getSheetByName(nome);
   if (!sh) {
@@ -646,7 +851,22 @@ function garantirFolha_(ss, nome, headers) {
   if (sh.getLastRow() === 0) {
     sh.appendRow(headers);
     sh.setFrozenRows(1);
+    return sh;
   }
+  // Acrescenta colunas em falta à direita (folhas já existentes).
+  var lastCol = Math.max(sh.getLastColumn(), 1);
+  var existing = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) {
+    return String(h).trim().toLowerCase();
+  });
+  var missing = [];
+  for (var i = 0; i < headers.length; i++) {
+    var h = String(headers[i]).trim().toLowerCase();
+    if (existing.indexOf(h) < 0) missing.push(headers[i]);
+  }
+  if (missing.length) {
+    sh.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
+  }
+  sh.setFrozenRows(1);
   return sh;
 }
 

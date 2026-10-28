@@ -12,6 +12,8 @@ Não precisa de escrever nas linhas à mão. O formulário abre **dentro da folh
 4. Escolha o que quer fazer e preencha:
    - Novo cliente (+ 1.º carro)
    - Novo carro
+   - Carro chegou (reinicia o cronómetro)
+   - Carro pronto (marca feito e mostra o tempo)
    - Gasto / serviço
    - Indicação
    - Resgate de prémio
@@ -65,6 +67,14 @@ Uma linha **por carro** (a mesma pessoa pode ter 2, 3, …).
 | **ano** | não | `2018` | Ajuda na oficina |
 | **ativo** | sim | `sim` | `nao` se vendeu / deixou de vir |
 | **nota** | não | `segundo carro` | Livre |
+| **feito** | sim (oficina) | `nao` / `sim` | `nao` = ainda em trabalho |
+| **entrada_em** | automático | `2026-10-28 09:10:00` | Quando o carro **aparece** (novo ou «chegou») |
+| **pronto_em** | automático | `2026-10-28 11:25:00` | Quando marca **pronto** |
+| **duracao_min** | automático | `135` | Minutos entre entrada e pronto |
+
+**Cronómetro na oficina:** ao criar o carro (ou «Carro chegou»), `feito=nao` e
+`entrada_em` fica com a hora actual. Em **Carro pronto**, o script põe `feito=sim`,
+preenche `pronto_em` / `duracao_min` e diz quanto demorou (ex.: «1 h 23 min»).
 
 **Ordem:** primeiro criar o cliente, depois os carros.
 

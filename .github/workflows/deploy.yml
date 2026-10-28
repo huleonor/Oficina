@@ -24,7 +24,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run build
+      - name: Build
+        env:
+          PUBLIC_PONTOS_API: ${{ secrets.PUBLIC_PONTOS_API }}
+        run: npm run build
       # O GitHub Pages tem de estar ativo: Settings > Pages > Source: GitHub Actions.
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
