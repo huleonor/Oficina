@@ -25,15 +25,12 @@
   const fill = $('[data-pontos-fill]');
   const detail = $('[data-pontos-detail]');
   const stops = [...root.querySelectorAll('[data-pontos-stop]')];
+  const pais = $('[data-pontos-pais]');
+  const paisBox = pais?.closest('.pts-country');
 
   let saldo = null; // null = ainda não consultou
   const tipoLabel = { gasto: 'Serviço na oficina', indicacao: 'Indicação de um amigo', resgate: 'Troca', ajuste: 'Ajuste' };
 
-  const normalizar = (raw) => {
-    let d = String(raw || '').replace(/\D/g, '');
-    if (d.startsWith('351') && d.length >= 12) d = d.slice(3);
-    return d;
-  };
   const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const formatData = (iso) => {
     const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -87,10 +84,50 @@
 
   /* ---------- Pedir número ---------- */
 
-  input?.addEventListener('input', () => {
-    const d = normalizar(input.value).slice(0, 9);
+  // Portugal: 9 algarismos, enviados sem indicativo (como estão na folha).
+  // Outros países: 6 a 12 algarismos, enviados com o indicativo à frente (ex.: 33612345678).
+  const indicativo = () => pais?.value || '351';
+  const ePT = () => indicativo() === '351';
+  const maxDigitos = () => (ePT() ? 9 : 12);
+
+  const formatar = () => {
+    let d = String(input.value || '').replace(/\D/g, '');
+    if (d.startsWith(indicativo()) && d.length > maxDigitos()) d = d.slice(indicativo().length);
+    d = d.slice(0, maxDigitos());
     input.value = d.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
+  };
+
+  input?.addEventListener('input', () => {
+    formatar();
     if (!erro.hidden) mostrarErro('');
+  });
+
+  pais?.addEventListener('change', () => {
+    const opt = pais.selectedOptions[0];
+    $('[data-pontos-flag]').textContent = opt?.dataset.flag || '';
+    $('[data-pontos-code]').textContent = `+${indicativo()}`;
+    input.placeholder = ePT() ? '912 345 678' : 'Número sem o indicativo';
+    formatar();
+    if (!reduce && paisBox) {
+      paisBox.classList.remove('bump');
+      void paisBox.offsetWidth;
+      paisBox.classList.add('bump');
+    }
+    input.focus();
+  });
+
+  // Aceita colar "+33 6 12 34 56 78": escolhe o país pelo indicativo, se estiver na lista.
+  input?.addEventListener('paste', (ev) => {
+    const txt = (ev.clipboardData || window.clipboardData)?.getData('text') || '';
+    if (!pais || !/^\s*(\+|00)/.test(txt)) return;
+    const d = txt.replace(/\D/g, '').replace(/^00/, '');
+    const match = [...pais.options].map((o) => o.value).sort((a, b) => b.length - a.length).find((c) => d.startsWith(c));
+    if (!match) return;
+    ev.preventDefault();
+    pais.value = match;
+    pais.dispatchEvent(new Event('change'));
+    input.value = d.slice(match.length);
+    formatar();
   });
 
   function mostrarErro(msg) {
@@ -206,7 +243,7 @@
       }
       if (!data || data.ok === false) {
         if (data && data.erro === 'nao_encontrado') mostrarErro('Não encontrámos este número. Confirme-o ou fale connosco na oficina.');
-        else if (data && data.erro === 'telemovel_invalido') mostrarErro('O número deve ter 9 algarismos.');
+        else if (data && data.erro === 'telemovel_invalido') mostrarErro('Confirme o número e o país.');
         else mostrarErro('Não foi possível consultar agora. Tente daqui a pouco.');
         return;
       }
@@ -221,14 +258,14 @@
 
   form?.addEventListener('submit', (ev) => {
     ev.preventDefault();
-    const tel = normalizar(input.value);
-    if (tel.length !== 9) {
-      mostrarErro('O número deve ter 9 algarismos.');
+    const d = String(input.value || '').replace(/\D/g, '');
+    if (ePT() ? d.length !== 9 : d.length < 6 || d.length > 12) {
+      mostrarErro(ePT() ? 'O número deve ter 9 algarismos.' : 'Confirme o número (sem o indicativo).');
       input.focus();
       return;
     }
     mostrarErro('');
-    consultar(tel);
+    consultar(ePT() ? d : indicativo() + d);
   });
 
   $('[data-pontos-reset]')?.addEventListener('click', voltar);

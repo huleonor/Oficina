@@ -139,3 +139,9 @@ Saldo Ana = 280 pts (e o que mais tiver).
 
 Na consulta, o cliente mete **só o telemóvel**. O site devolve saldo + movimentos.
 A lista de carros é **só para a oficina** (não aparece no site, por agora).
+
+## Clientes com número estrangeiro
+
+No site, o cliente escolhe o país antes de escrever o número.
+- **Portugal (+351):** guarde o telemóvel com **9 algarismos**, sem indicativo (ex. `912345678`).
+- **Outros países:** guarde o número **com o indicativo à frente, sem `+` nem `00`** (ex. França `33612345678`, Suíça `41791234567`).

@@ -7,7 +7,9 @@ import Icon from '../components/Icon.astro';
 import { business } from '../data/business';
 import { premiosDefault } from '../data/premios';
 import { pontosMock } from '../data/pontos-mock';
-import { breadcrumbSchema } from '../data/schema';
+import { breadcrumbSchema, faqSchema } from '../data/schema';
+import ServiceIcon from '../components/ServiceIcon.astro';
+import FaqList from '../components/FaqList.astro';
 
 const crumbs = [
   { name: 'Início', path: '/' },
@@ -17,11 +19,42 @@ const crumbs = [
 const pontosApi = (import.meta.env.PUBLIC_PONTOS_API || 'mock').trim();
 const premios = [...premiosDefault].sort((a, b) => a.pontos - b.pontos);
 const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
+
+// Indicativos mais prováveis para clientes da oficina (emigração e turismo). Portugal primeiro.
+const paises = [
+  { code: '351', flag: '🇵🇹', nome: 'Portugal' },
+  { code: '33', flag: '🇫🇷', nome: 'França' },
+  { code: '41', flag: '🇨🇭', nome: 'Suíça' },
+  { code: '352', flag: '🇱🇺', nome: 'Luxemburgo' },
+  { code: '34', flag: '🇪🇸', nome: 'Espanha' },
+  { code: '49', flag: '🇩🇪', nome: 'Alemanha' },
+  { code: '44', flag: '🇬🇧', nome: 'Reino Unido' },
+  { code: '32', flag: '🇧🇪', nome: 'Bélgica' },
+  { code: '31', flag: '🇳🇱', nome: 'Países Baixos' },
+  { code: '39', flag: '🇮🇹', nome: 'Itália' },
+  { code: '55', flag: '🇧🇷', nome: 'Brasil' },
+  { code: '244', flag: '🇦🇴', nome: 'Angola' },
+  { code: '238', flag: '🇨🇻', nome: 'Cabo Verde' },
+  { code: '258', flag: '🇲🇿', nome: 'Moçambique' },
+  { code: '1', flag: '🇺🇸', nome: 'EUA / Canadá' },
+];
+
+const ganhar = [
+  { n: '1 €', t: '= 1 ponto', d: 'Cada euro gasto num serviço na oficina soma um ponto ao seu saldo.', icon: 'oil' },
+  { n: '+300', t: 'por cada amigo', d: 'Traga um amigo. Os pontos contam quando ele fizer o primeiro serviço.', icon: 'engine' },
+  { n: 'Troca', t: 'na oficina', d: 'Escolha o prémio e troque os pontos ao balcão ou por telefone.', icon: 'inspection' },
+] as const;
+
+const faqs = [
+  { q: 'Como ganho pontos?', a: 'Por cada euro gasto num serviço na oficina ganha um ponto. Também ganha 300 pontos por cada amigo que trouxer, quando ele fizer o primeiro serviço.' },
+  { q: 'Posso trocar os pontos pelo site?', a: 'Não. O site serve só para consultar. A troca faz-se na oficina, ou combine por telefone para o 934 514 368.' },
+  { q: 'O meu número não aparece. O que faço?', a: 'Confirme o número e o país. Se continuar a não aparecer, fale connosco na oficina para o registarmos.' },
+];
 ---
 <Base
   title="Os seus pontos | INOVACAR, Aveiro"
   description="Consulte o saldo de pontos INOVACAR com o seu telemóvel. 1 euro gasto = 1 ponto. Troque os pontos na oficina."
-  schema={[breadcrumbSchema(Astro.site!, crumbs)]}
+  schema={[breadcrumbSchema(Astro.site!, crumbs), faqSchema(faqs)]}
 >
   <section class="pts-page" data-pontos data-api={pontosApi} data-mock={mockJson} data-premios={JSON.stringify(premios)}>
     <div class="container pts-inner">
@@ -35,7 +68,14 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
         <form class="pts-ask" data-pontos-form novalidate>
           <label class="pts-label" for="pontos-tel">O seu telemóvel</label>
           <div class="pts-field" data-pontos-field>
-            <span class="pts-prefix t-num" aria-hidden="true">+351</span>
+            <label class="pts-country" title="País do número">
+              <span class="visually-hidden">País do número</span>
+              <select class="pts-country-select" data-pontos-pais aria-label="País do número">
+                {paises.map((c) => <option value={c.code} data-flag={c.flag}>{c.flag} {c.nome} (+{c.code})</option>)}
+              </select>
+              <span class="pts-country-face t-num" aria-hidden="true"><span data-pontos-flag>🇵🇹</span> <span data-pontos-code>+351</span></span>
+              <svg class="pts-country-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+            </label>
             <input
               id="pontos-tel"
               class="pts-input t-num"
@@ -108,9 +148,39 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
         </div>
       </div>
 
-      <p class="pts-rules t-small">
-        <span>1 € = 1 ponto</span><span>Amigo que trouxer = 300 pts</span><span>Troca na oficina</span>
-      </p>
+    </div>
+
+    <div class="container pts-more">
+      <section class="pts-block" aria-labelledby="ganhar-title">
+        <h2 class="t-h3 pts-block-title" id="ganhar-title" data-reveal>Como funciona</h2>
+        <ul role="list" class="pts-how">
+          {ganhar.map((g, i) => (
+            <li class="pts-how-card" data-reveal style={`--d:${i * 80}ms`}>
+              <span class="pts-how-icon"><ServiceIcon name={g.icon} /></span>
+              <p class="pts-how-num"><strong class="t-num">{g.n}</strong> <span>{g.t}</span></p>
+              <p class="pts-how-text">{g.d}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section class="pts-block" aria-labelledby="premios-title">
+        <h2 class="t-h3 pts-block-title" id="premios-title" data-reveal>Prémios</h2>
+        <ul role="list" class="pts-prizes">
+          {premios.map((p, i) => (
+            <li class="pts-prize" data-reveal style={`--d:${(i % 4) * 60}ms`}>
+              <span class="pts-prize-pts t-num">{p.pontos}<small>pts</small></span>
+              <span class="pts-prize-name">{p.nome}</span>
+              <span class="pts-prize-desc">{p.descricao}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section class="pts-block" aria-labelledby="pts-faq-title">
+        <h2 class="t-h3 pts-block-title" id="pts-faq-title" data-reveal>Perguntas</h2>
+        <FaqList faqs={faqs} />
+      </section>
     </div>
   </section>
 </Base>
@@ -166,7 +236,28 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
     70% { transform: translateX(-3px); }
     100% { transform: none; }
   }
-  .pts-prefix { color: var(--ink-soft); font-weight: 600; }
+  /* Seletor de país: <select> nativo invisível por cima de uma face compacta (bandeira + indicativo). */
+  .pts-country {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: none;
+    padding: 8px 8px 8px 6px;
+    margin-left: -6px;
+    border-radius: var(--radius-m);
+    color: var(--ink-soft);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color var(--dur-quick) var(--ease);
+  }
+  .pts-country:hover { background: var(--surface-muted); }
+  .pts-country-face { white-space: nowrap; font-size: 1.05rem; }
+  .pts-country-chev { transition: transform var(--dur-standard) var(--ease); }
+  .pts-country:focus-within { background: var(--surface-muted); box-shadow: 0 0 0 2px var(--brand-turquoise); }
+  .pts-country-select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+  .pts-country.bump .pts-country-face { animation: pts-bump 260ms var(--ease-out); }
+  @keyframes pts-bump { 40% { transform: scale(1.12); } }
   .pts-input {
     flex: 1;
     min-width: 0;
@@ -329,8 +420,36 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
   .pts-move-pts.is-pos { color: var(--brand-turquoise-ink); }
   .pts-move-pts.is-neg { color: var(--ink-soft); }
 
-  .pts-rules { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 0; color: var(--ink-soft); }
-  .pts-rules span + span::before { content: '·'; margin-inline: 10px; }
+  /* Secções por baixo do cartão */
+  .pts-more { max-width: calc(860px + 2 * 16px); display: grid; gap: var(--space-7); margin-top: var(--space-7); }
+  .pts-block { display: grid; gap: var(--space-4); }
+  .pts-block-title { font-size: 1.5rem; }
+  .pts-how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+  .pts-how-card { display: grid; gap: var(--space-2); align-content: start; padding: var(--space-5); background: var(--surface-white); border-radius: var(--radius-l); border: 1px solid var(--line); }
+  .pts-how-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: var(--radius-m); background: rgba(54, 179, 175, 0.14); color: var(--brand-dark); }
+  .pts-how-icon .si { width: 36px; height: 36px; }
+  .pts-how-num { display: flex; align-items: baseline; gap: 6px; margin-top: var(--space-2); }
+  .pts-how-num strong { font-family: var(--font-display); font-size: 1.9rem; line-height: 1; color: var(--brand-dark); }
+  .pts-how-num span { color: var(--brand-turquoise-ink); font-weight: 600; }
+  .pts-how-text { color: var(--ink-soft); font-size: 0.95rem; line-height: 1.45; }
+
+  .pts-prizes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
+  .pts-prize {
+    display: grid;
+    gap: 4px;
+    align-content: start;
+    padding: var(--space-4);
+    background: var(--surface-white);
+    border-radius: var(--radius-l);
+    border: 1px solid var(--line);
+    transition: transform var(--dur-standard) var(--ease), box-shadow var(--dur-standard) var(--ease);
+  }
+  .pts-prize:hover { transform: translateY(-3px); box-shadow: 0 14px 28px -16px rgba(38, 41, 60, 0.4); }
+  .pts-prize-pts { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; line-height: 1; color: var(--brand-turquoise-ink); }
+  .pts-prize-pts small { font-size: 0.55em; margin-left: 3px; font-weight: 600; }
+  .pts-prize-name { font-weight: 600; margin-top: var(--space-2); }
+  .pts-prize-desc { color: var(--ink-soft); font-size: 0.88rem; line-height: 1.4; }
+  .pts-block .faq { max-width: none; }
 
   @media (max-width: 560px) {
     .pts-page { padding-block: var(--space-5) var(--space-6); background-size: 100% 200px, auto; }
@@ -344,8 +463,23 @@ const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
     .pts-dot-pts { font-size: 0.7rem; padding: 3px 2px; }
     .pts-dot-mark { width: 14px; height: 14px; margin-bottom: 10px; }
     .pts-detail { padding: 10px 12px; font-size: 0.95rem; }
-    .pts-rules { display: grid; justify-items: center; gap: 2px; }
-    .pts-rules span + span::before { content: none; }
+    .pts-country-face { font-size: 0.98rem; }
+    .pts-more { gap: var(--space-6); margin-top: var(--space-6); padding: 0; }
+    .pts-block-title { padding-inline: var(--gutter) var(--gutter-r); }
+    .pts-block .faq { margin-inline: var(--gutter) var(--gutter-r); }
+    /* Cartões em carrossel horizontal no telemóvel */
+    .pts-more .pts-how, .pts-more .pts-prizes {
+      display: flex;
+      gap: var(--space-3);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline: var(--gutter);
+      padding: 4px var(--gutter-r) var(--space-2) var(--gutter);
+      scrollbar-width: none;
+    }
+    .pts-how::-webkit-scrollbar, .pts-prizes::-webkit-scrollbar { display: none; }
+    .pts-how-card { flex: 0 0 74%; scroll-snap-align: start; padding: var(--space-4); }
+    .pts-prize { flex: 0 0 42%; scroll-snap-align: start; }
   }
   @media (prefers-reduced-motion: reduce) {
     .is-entering, .pts-ask.is-leaving, .pts-detail.swap { animation: none; }
