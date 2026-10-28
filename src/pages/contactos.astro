@@ -42,7 +42,7 @@ const semana = [
         <a class="ct-phone t-num" href={business.phoneHref}>{business.phoneDisplay}</a>
         <div class="ct-call-actions">
           <a class="btn btn-primary" href={business.phoneHref}><Icon name="phone" class="btn-icon" />Ligar agora</a>
-          <button type="button" class="btn btn-outline-light ct-copy" data-copy={business.phoneDisplay}>
+          <button type="button" class="btn btn-outline-dark ct-copy" data-copy={business.phoneDisplay}>
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
             <span data-copy-label>Copiar número</span>
           </button>
@@ -147,8 +147,9 @@ const semana = [
     gap: var(--space-2);
     padding: var(--space-6);
     border-radius: var(--radius-l);
-    background: var(--brand-dark);
-    color: var(--ink-on-dark);
+    background: var(--surface-white);
+    color: var(--ink);
+    box-shadow: var(--shadow-raised);
     position: relative;
     overflow: hidden;
   }
@@ -159,24 +160,24 @@ const semana = [
     height: 4px;
     background: var(--brand-turquoise);
   }
-  .ct-status { display: inline-flex; align-items: center; gap: 8px; justify-self: start; padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); font-size: var(--fs-small); font-weight: 600; }
-  .ct-status-detail { color: var(--ink-on-dark-soft); font-weight: 500; }
+  .ct-status { display: inline-flex; align-items: center; gap: 8px; justify-self: start; padding: 6px 12px; border-radius: 999px; background: var(--surface-muted); font-size: var(--fs-small); font-weight: 600; }
+  .ct-status-detail { color: var(--ink-soft); font-weight: 500; }
   .ct-dot { width: 9px; height: 9px; border-radius: 50%; background: #9aa0ad; }
   .is-open .ct-dot { background: #22c55e; animation: ct-breathe 2.4s cubic-bezier(0.37, 0, 0.63, 1) infinite; }
   @keyframes ct-breathe { 0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); } 50% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); } }
-  .ct-call-label { margin-top: var(--space-3); color: var(--ink-on-dark-soft); }
+  .ct-call-label { margin-top: var(--space-3); color: var(--ink-soft); }
   .ct-phone {
     font-family: var(--font-display);
     font-weight: 700;
     font-size: clamp(2.4rem, 1.8rem + 3vw, 3.6rem);
     line-height: 1;
-    color: var(--brand-turquoise);
+    color: var(--brand-dark);
     text-decoration: none;
     justify-self: start;
   }
   .ct-phone:hover { text-decoration: underline; text-decoration-thickness: 2px; }
   .ct-call-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-4); }
-  .ct-copy.is-done { border-color: var(--brand-turquoise); color: var(--brand-turquoise); }
+  .ct-copy.is-done { border-color: var(--brand-turquoise-ink); color: var(--brand-turquoise-ink); }
 
   .ct-actions { display: grid; gap: var(--space-2); }
   .ct-action {

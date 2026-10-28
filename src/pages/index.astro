@@ -10,6 +10,7 @@ import FaqList from '../components/FaqList.astro';
 import Icon from '../components/Icon.astro';
 import { photos, srcset, src } from '../data/images';
 import { faqSchema, homeFaqs } from '../data/schema';
+import { business } from '../data/business';
 
 const servicos = (await getCollection('servicos')).sort((a, b) => a.data.order - b.data.order);
 // Trabalhos só entram quando forem reais e tiverem fotos do antes e do depois.
@@ -119,9 +120,15 @@ const gallery = [
 
   <section class="section" aria-labelledby="faq-title">
     <div class="container faq-wrap">
-      <div class="section-head" data-reveal>
-        <h2 class="t-h2" id="faq-title">Perguntas frequentes</h2>
-        <p class="t-lead m-hide">Se a sua dúvida não estiver aqui, ligue para a oficina.</p>
+      <div class="faq-side">
+        <div class="section-head" data-reveal>
+          <h2 class="t-h2" id="faq-title">Perguntas frequentes</h2>
+          <p class="t-lead m-hide">Se a sua dúvida não estiver aqui, ligue para a oficina.</p>
+        </div>
+        <a class="faq-call m-hide" href={business.phoneHref} data-reveal>
+          <span class="faq-call-label">Ligue para marcar</span>
+          <span class="faq-call-num t-num">{business.phoneDisplay}</span>
+        </a>
       </div>
       <FaqList faqs={homeFaqs} />
     </div>
@@ -173,7 +180,7 @@ const gallery = [
   .about-photo img { width: 100%; height: 100%; object-fit: cover; }
   .about-copy { display: grid; gap: var(--space-5); justify-items: start; }
 
-  .gallery { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: clamp(150px, 15vw, 220px); gap: var(--space-3); }
+  .gallery { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: clamp(120px, 10.5vw, 170px); gap: var(--space-3); }
   .gallery-item {
     position: relative;
     display: block;
@@ -276,6 +283,29 @@ const gallery = [
   @media (max-width: 560px) {
   }
 
+  .faq-wrap { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: var(--space-8); align-items: start; }
+  .faq-side { display: grid; gap: var(--space-5); position: sticky; top: calc(var(--header-h) + 24px); }
+  .faq-side .section-head { margin-bottom: 0; }
+  .faq-call {
+    display: grid;
+    gap: 4px;
+    justify-self: start;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-l);
+    background: rgba(54, 179, 175, 0.14);
+    border: 1px solid rgba(54, 179, 175, 0.35);
+    color: var(--ink);
+    text-decoration: none;
+    transition: transform var(--dur-standard) var(--ease);
+  }
+  .faq-call:hover { transform: translateY(-3px); }
+  .faq-call-label { font-size: var(--fs-small); color: var(--ink-soft); }
+  .faq-call-num { font-family: var(--font-display); font-weight: 700; font-size: 1.8rem; color: var(--brand-dark); line-height: 1.05; }
+  @media (max-width: 960px) {
+    .faq-wrap { grid-template-columns: 1fr; gap: 0; }
+    .faq-side { position: static; }
+  }
+
   .pts-teaser {
     display: flex;
     align-items: center;
@@ -292,7 +322,7 @@ const gallery = [
   .pts-teaser-num small { font-size: 0.45em; font-weight: 600; }
   .pts-teaser-text { display: grid; gap: 2px; flex: 1; }
   .pts-teaser-text strong { font-family: var(--font-display); font-size: 1.25rem; }
-  .pts-teaser-go { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--brand-dark); color: var(--brand-turquoise); transition: transform var(--dur-standard) var(--ease); }
+  .pts-teaser-go { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--surface-white); color: var(--brand-dark); transition: transform var(--dur-standard) var(--ease); }
   .pts-teaser-go :global(svg) { width: 20px; height: 20px; }
   .pts-teaser:hover .pts-teaser-go { transform: translateX(4px); }
 

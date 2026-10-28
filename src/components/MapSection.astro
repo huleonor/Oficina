@@ -46,7 +46,7 @@ const { title = 'Onde estamos' } = Astro.props;
   .map-copy { display: grid; gap: var(--space-3); }
   .map-frame { border-radius: var(--radius-l); overflow: hidden; background: var(--line); aspect-ratio: 21 / 9; min-height: 340px; box-shadow: var(--shadow-raised); }
   .map-frame :global(iframe) { display: block; width: 100%; height: 100%; border: 0; }
-  .map-hours { display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-4); }
+  .map-hours { display: none; gap: var(--space-2); align-items: center; margin-top: var(--space-4); }
   .map-hours-icon { width: 18px; height: 18px; flex: none; }
   .map-frame { position: relative; }
   .map-card {

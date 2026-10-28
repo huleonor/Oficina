@@ -469,6 +469,21 @@ const faqs = [
   .pts-track-scroll::-webkit-scrollbar { display: none; }
   .pts-block .faq { max-width: none; }
 
+  /* Computador: texto à esquerda, cartão à direita; secções de baixo alinhadas na mesma largura. */
+  @media (min-width: 961px) {
+    .pts-page { background-size: 100% 380px, auto; padding-block: var(--space-8); }
+    .pts-inner {
+      max-width: calc(1100px + 2 * 16px);
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      column-gap: var(--space-8);
+      align-items: start;
+    }
+    .pts-intro { padding-top: var(--space-6); align-content: start; }
+    .pts-title { font-size: 3.4rem; }
+    .pts-lead { max-width: 30ch; }
+    .pts-more { max-width: calc(1100px + 2 * 16px); }
+  }
+
   @media (max-width: 560px) {
     .pts-page { padding-block: var(--space-5) var(--space-6); background-size: 100% 200px, auto; }
     .pts-intro { gap: 4px; }
