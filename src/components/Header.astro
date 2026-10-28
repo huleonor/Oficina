@@ -50,6 +50,9 @@ const isCurrent = (href: string) => path === u(href) || (href !== '/' && path.st
 </header>
 
 <script>
+  const onScroll = () => document.querySelector('[data-header]')?.classList.toggle('is-scrolled', window.scrollY > 8);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
   const btn = document.querySelector<HTMLButtonElement>('[data-menu-btn]');
   const header = document.querySelector<HTMLElement>('[data-header]');
   btn?.addEventListener('click', () => {
@@ -74,7 +77,9 @@ const isCurrent = (href: string) => path === u(href) || (href !== '/' && path.st
     background: var(--brand-dark);
     color: var(--ink-on-dark);
     border-bottom: 1px solid var(--line-on-dark);
+    transition: box-shadow var(--dur-standard) var(--ease);
   }
+  .site-header.is-scrolled { box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.6); }
   .site-header::before {
     content: '';
     position: fixed;

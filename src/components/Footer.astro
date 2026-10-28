@@ -19,7 +19,6 @@ const year = new Date().getFullYear();
         {business.showEmail && (
           <p class="footer-line"><Icon name="mail" class="footer-icon" /><a href={`mailto:${business.email}`}>{business.email}</a></p>
         )}
-        <p class="footer-line"><Icon name="access" class="footer-icon" /><span>{business.accessibility}</span></p>
       </address>
     </div>
 
@@ -93,4 +92,11 @@ const year = new Date().getFullYear();
   .footer-base-links a { color: var(--ink-on-dark-soft); }
   @media (max-width: 960px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 560px) { .footer-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 560px) {
+    .footer { padding-top: var(--space-7); }
+    .footer-grid { gap: var(--space-6); }
+    .footer-links { grid-template-columns: 1fr 1fr; column-gap: var(--space-4); }
+    .footer-links a { font-size: 0.92rem; }
+    .footer-base { margin-top: var(--space-6); }
+  }
 </style>

@@ -8,8 +8,8 @@ interface Props {
 const { faqs } = Astro.props;
 ---
 <div class="faq">
-  {faqs.map((f) => (
-    <details class="faq-item">
+  {faqs.map((f, i) => (
+    <details class="faq-item" data-reveal style={`--d:${i * 60}ms`}>
       <summary class="faq-q">
         <span>{f.q}</span>
         <Icon name="chevron" class="faq-icon" />

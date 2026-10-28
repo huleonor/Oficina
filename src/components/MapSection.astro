@@ -10,7 +10,7 @@ const { title = 'Onde estamos' } = Astro.props;
 ---
 <section class="section section-muted map-section" aria-labelledby="map-title">
   <div class="container">
-    <div class="map-head">
+    <div class="map-head" data-reveal>
       <div class="map-copy">
         <h2 class="t-h2" id="map-title">{title}</h2>
         <p class="t-lead">{business.address.full}</p>
@@ -20,7 +20,7 @@ const { title = 'Onde estamos' } = Astro.props;
         <a class="btn btn-outline-dark" href={business.directionsHref} target="_blank" rel="noopener"><Icon name="pin" class="btn-icon" />Como chegar</a>
       </div>
     </div>
-    <div class="map-frame">
+    <div class="map-frame" data-reveal>
       {mapEmbed ? (
         <Fragment set:html={mapEmbed} />
       ) : (
@@ -44,5 +44,9 @@ const { title = 'Onde estamos' } = Astro.props;
   .map-frame :global(iframe) { display: block; width: 100%; height: 100%; border: 0; }
   .map-hours { display: flex; gap: var(--space-2); align-items: center; margin-top: var(--space-4); }
   .map-hours-icon { width: 18px; height: 18px; flex: none; }
-  @media (max-width: 760px) { .map-frame { aspect-ratio: 4 / 5; min-height: 0; } }
+  @media (max-width: 760px) {
+    .map-frame { aspect-ratio: 4 / 3; min-height: 0; }
+    .map-head .btn-row { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+    .map-head .btn { padding-inline: 0.6em; font-size: 0.95rem; }
+  }
 </style>

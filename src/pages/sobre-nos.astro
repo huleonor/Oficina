@@ -49,7 +49,6 @@ const crumbs = [
         <div class="fact"><Icon name="pin" class="fact-icon" /><dt class="t-label">Morada</dt><dd>{business.address.full}</dd></div>
         <div class="fact"><Icon name="clock" class="fact-icon" /><dt class="t-label">Horário</dt><dd class="t-num">{business.hours.display}. {business.hours.closed}.</dd></div>
         <div class="fact"><Icon name="phone" class="fact-icon" /><dt class="t-label">Telefone</dt><dd><a class="t-num" href={business.phoneHref}>{business.phoneIntl}</a></dd></div>
-        <div class="fact"><Icon name="access" class="fact-icon" /><dt class="t-label">Acessibilidade</dt><dd>{business.accessibility}</dd></div>
       </dl>
     </div>
   </section>
@@ -72,7 +71,7 @@ const crumbs = [
   .about-page { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: var(--space-8); align-items: start; }
   .about-page-photo { border-radius: var(--radius-l); overflow: hidden; aspect-ratio: 3 / 4; box-shadow: var(--shadow-raised); }
   .about-page-photo img { width: 100%; height: 100%; object-fit: cover; }
-  .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+  .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
   .fact { background: var(--surface-white); border-top: 3px solid var(--brand-dark); border-radius: var(--radius-s); padding: var(--space-5); display: grid; gap: var(--space-2); align-content: start; }
   .fact-icon { width: 26px; height: 26px; color: var(--brand-turquoise-ink); }
   .fact dt { color: var(--ink-soft); }

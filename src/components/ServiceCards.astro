@@ -1,0 +1,161 @@
+---
+// Serviços em cartões. Computador: grelha de 4. Telemóvel: carrossel horizontal com barra de progresso.
+// Os ícones animam uma vez quando o cartão entra no ecrã e em contínuo ao passar o rato.
+import type { CollectionEntry } from 'astro:content';
+import { u } from '../lib/url';
+import Icon from './Icon.astro';
+import ServiceIcon from './ServiceIcon.astro';
+
+interface Props {
+  items: CollectionEntry<'servicos'>[];
+  headingLevel?: 'h2' | 'h3';
+}
+const { items, headingLevel = 'h3' } = Astro.props;
+const Heading = headingLevel;
+---
+<div class="svc" data-carousel>
+  <ul role="list" class="svc-track" data-carousel-track>
+    {items.map((s, i) => (
+      <li class="svc-slide">
+        <a class="svc-card" href={u(`/servicos/${s.id}/`)} data-reveal style={`--d:${(i % 4) * 70}ms`}>
+          <span class="svc-tile"><ServiceIcon name={s.data.icon} /></span>
+          <Heading class="svc-name">{s.data.name}</Heading>
+          <p class="svc-desc">{s.data.shortDescription}</p>
+          <span class="svc-more">Saber mais <Icon name="arrow" class="svc-arrow" /></span>
+        </a>
+      </li>
+    ))}
+  </ul>
+  <div class="svc-progress" aria-hidden="true"><span data-carousel-bar></span></div>
+</div>
+
+<script>
+  // Barra de progresso do carrossel (só tem efeito quando a lista desliza na horizontal).
+  document.querySelectorAll<HTMLElement>('[data-carousel]').forEach((root) => {
+    const track = root.querySelector<HTMLElement>('[data-carousel-track]');
+    const bar = root.querySelector<HTMLElement>('[data-carousel-bar]');
+    if (!track || !bar) return;
+    const update = () => {
+      const max = track.scrollWidth - track.clientWidth;
+      const view = track.clientWidth / track.scrollWidth;
+      bar.style.width = `${Math.max(view, 0.12) * 100}%`;
+      bar.style.transform = `translateX(${max > 0 ? (track.scrollLeft / max) * ((1 - view) / view) * 100 : 0}%)`;
+    };
+    track.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  });
+</script>
+
+<style>
+  .svc-track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+  .svc-slide { display: flex; }
+  .svc-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    width: 100%;
+    padding: var(--space-5);
+    border-radius: var(--radius-l);
+    background: var(--surface-white);
+    border: 1px solid var(--line);
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    transition:
+      transform var(--dur-standard) var(--ease),
+      box-shadow var(--dur-standard) var(--ease),
+      border-color var(--dur-standard) var(--ease);
+  }
+  .svc-card::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3px;
+    background: var(--brand-turquoise);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--dur-slow) var(--ease);
+  }
+  .svc-card:hover,
+  .svc-card:focus-visible {
+    transform: translateY(-4px);
+    border-color: transparent;
+    box-shadow: 0 18px 36px -18px rgba(38, 41, 60, 0.4);
+  }
+  .svc-card:hover::after,
+  .svc-card:focus-visible::after { transform: scaleX(1); }
+  .svc-card:active { transform: translateY(-1px) scale(0.99); }
+
+  .svc-tile {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: var(--space-2);
+    border-radius: var(--radius-l);
+    background: rgba(54, 179, 175, 0.14);
+    color: var(--brand-dark);
+    transition: background-color var(--dur-standard) var(--ease), color var(--dur-standard) var(--ease);
+  }
+  .svc-tile :global(svg) { width: 44px; height: 44px; }
+  .svc-card:hover .svc-tile,
+  .svc-card:focus-visible .svc-tile { background: var(--brand-dark); color: #e9ecf2; }
+
+  .svc-name { font-family: var(--font-display); font-weight: 600; font-size: 1.22rem; line-height: 1.2; text-wrap: balance; }
+  .svc-desc {
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .svc-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: auto;
+    padding-top: var(--space-3);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--brand-turquoise-ink);
+  }
+  .svc-arrow { width: 18px; height: 18px; transition: transform var(--dur-standard) var(--ease); }
+  .svc-card:hover .svc-arrow { transform: translateX(5px); }
+  .svc-progress { display: none; }
+
+  @media (max-width: 1100px) { .svc-track { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  /* Telemóvel: carrossel horizontal com cartões a 78% da largura, o seguinte a espreitar. */
+  @media (max-width: 760px) {
+    .svc { margin-inline: calc(-1 * var(--gutter)) calc(-1 * var(--gutter-r)); }
+    .svc-track {
+      display: flex;
+      gap: var(--space-3);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline: var(--gutter);
+      padding: 6px var(--gutter-r) var(--space-4) var(--gutter);
+      scrollbar-width: none;
+    }
+    .svc-track::-webkit-scrollbar { display: none; }
+    .svc-slide { flex: 0 0 78%; scroll-snap-align: start; }
+    .svc-card { padding: var(--space-4); }
+    .svc-tile { width: 56px; height: 56px; }
+    .svc-tile :global(svg) { width: 38px; height: 38px; }
+    .svc-progress {
+      display: block;
+      height: 3px;
+      margin: 0 var(--gutter-r) 0 var(--gutter);
+      border-radius: 999px;
+      background: var(--line);
+      overflow: hidden;
+    }
+    .svc-progress span { display: block; height: 100%; width: 30%; border-radius: inherit; background: var(--brand-dark); transition: transform 80ms linear; }
+  }
+</style>

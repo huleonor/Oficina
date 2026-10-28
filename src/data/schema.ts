@@ -25,7 +25,7 @@ export const breadcrumbSchema = (site: URL, items: { name: string; path: string 
 export const homeFaqs: Faq[] = [
   {
     q: 'Onde fica a oficina?',
-    a: 'Na R. da Paz, 3800-587 Aveiro, entre Cacia e o centro de Aveiro. A entrada é acessível a cadeira de rodas.',
+    a: 'Na R. da Paz, 3800-587 Aveiro, entre Cacia e o centro de Aveiro.',
   },
   {
     q: 'Qual é o horário?',

@@ -5,7 +5,7 @@ import Base from '../../layouts/Base.astro';
 import PageHero from '../../components/PageHero.astro';
 import FaqList from '../../components/FaqList.astro';
 import Icon from '../../components/Icon.astro';
-import ServiceBoard from '../../components/ServiceBoard.astro';
+import ServiceCards from '../../components/ServiceCards.astro';
 import { business } from '../../data/business';
 import { faqSchema, breadcrumbSchema } from '../../data/schema';
 
@@ -81,7 +81,7 @@ const serviceSchema = {
   <section class="section section-muted" aria-labelledby="svc-outros">
     <div class="container">
       <div class="section-head"><h2 class="t-h2" id="svc-outros">Outros serviços</h2></div>
-      <ServiceBoard items={outros} />
+      <ServiceCards items={outros} />
     </div>
   </section>
 </Base>

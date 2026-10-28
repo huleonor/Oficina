@@ -234,5 +234,76 @@ html { scrollbar-color: #9aa0ad var(--surface-muted); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; }
+  *, *::before, *::after { transition-duration: 1ms !important; animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
 }
+
+/* ---------- Ícones de serviço animados (ServiceIcon.astro) ----------
+   Preenchimento turquesa + traço escuro. A peça animada mexe uma vez quando o cartão
+   entra no ecrã (.is-in) e em contínuo ao passar o rato ou com foco. */
+.si .si-tint { fill: rgba(54, 179, 175, 0.38); }
+.si .si-solid { fill: var(--brand-turquoise); stroke: currentColor; }
+.si .si-accent { stroke: var(--brand-turquoise-ink); }
+.si .si-faint { opacity: 0.35; }
+.si .si-spin, .si .si-spring, .si .si-drip { transform-box: fill-box; transform-origin: center; }
+.si .si-spring { transform-origin: center bottom; }
+.si .si-draw { stroke-dasharray: 1; stroke-dashoffset: 0; }
+.si .si-belt { stroke-dasharray: 3 3; }
+
+@keyframes si-spin { to { transform: rotate(360deg); } }
+@keyframes si-turn { from { transform: rotate(-120deg); } }
+@keyframes si-draw { from { stroke-dashoffset: 1; } }
+@keyframes si-drip { 0% { transform: translateY(-7px); opacity: 0; } 25% { opacity: 1; } 80% { transform: translateY(1px); opacity: 1; } 100% { transform: translateY(3px); opacity: 0; } }
+@keyframes si-bar { 0%, 15% { opacity: 0.2; } 45%, 100% { opacity: 1; } }
+@keyframes si-squash { 0%, 100% { transform: scaleY(1); } 45% { transform: scaleY(0.72); } }
+@keyframes si-belt { to { stroke-dashoffset: -12; } }
+
+.is-in .si .si-spin { animation: si-turn 1100ms var(--ease-out) both; }
+.is-in .si .si-draw { animation: si-draw 900ms var(--ease) 200ms both; }
+.is-in .si .si-drip { animation: si-drip 1200ms var(--ease) 300ms both; }
+.is-in .si .si-bar { animation: si-bar 900ms var(--ease) calc(250ms + var(--b) * 180ms) both; }
+.is-in .si .si-spring { animation: si-squash 700ms cubic-bezier(0.45, 0, 0.55, 1) 250ms both; }
+.is-in .si .si-belt { animation: si-belt 400ms linear 3; }
+
+:is(a, button):is(:hover, :focus-visible) .si .si-spin { animation: si-spin 1.8s linear infinite; }
+:is(a, button):is(:hover, :focus-visible) .si .si-spin-fast { animation-duration: 1.1s; }
+:is(a, button):is(:hover, :focus-visible) .si .si-draw { animation: si-draw 1.1s var(--ease) infinite; }
+:is(a, button):is(:hover, :focus-visible) .si .si-drip { animation: si-drip 1.1s var(--ease) infinite; }
+:is(a, button):is(:hover, :focus-visible) .si .si-bar { animation: si-bar 1.4s var(--ease) calc(var(--b) * 200ms) infinite; }
+:is(a, button):is(:hover, :focus-visible) .si .si-spring { animation: si-squash 800ms cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+:is(a, button):is(:hover, :focus-visible) .si .si-belt { animation: si-belt 450ms linear infinite; }
+
+/* ---------- Aparecimento ao fazer scroll ----------
+   Só esconde quando o JavaScript corre (classe .js no <html>); sem JS fica tudo visível. */
+.js [data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 600ms var(--ease-out), transform 700ms var(--ease-out);
+  transition-delay: var(--d, 0ms);
+}
+.js [data-reveal='clip'] {
+  opacity: 1;
+  transform: none;
+  clip-path: inset(100% 0 0 0 round var(--radius-l));
+  transition: clip-path 900ms var(--ease-out);
+  transition-delay: var(--d, 0ms);
+}
+.js [data-reveal].is-in { opacity: 1; transform: none; clip-path: inset(0 0 0 0 round var(--radius-l)); }
+/* Cartões revelados voltam às transições curtas de interação. */
+.js .svc-card[data-reveal].is-done {
+  transition: transform var(--dur-standard) var(--ease), box-shadow var(--dur-standard) var(--ease), border-color var(--dur-standard) var(--ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal], .js [data-reveal='clip'] { opacity: 1; transform: none; clip-path: none; }
+  .si * { animation: none !important; }
+}
+
+/* Botões de telefone: o ícone "toca" ao passar o rato. */
+@keyframes btn-ring {
+  0%, 100% { transform: rotate(0); }
+  20% { transform: rotate(-14deg); }
+  40% { transform: rotate(12deg); }
+  60% { transform: rotate(-8deg); }
+  80% { transform: rotate(4deg); }
+}
+a[href^='tel:']:hover .btn-icon { animation: btn-ring 600ms var(--ease); }

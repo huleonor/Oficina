@@ -54,6 +54,7 @@ const allSchema = [localBusiness, ...schema];
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script is:inline>document.documentElement.classList.add('js');</script>
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
@@ -78,5 +79,32 @@ const allSchema = [localBusiness, ...schema];
     </main>
     <Footer />
     <MobileCallBar />
+    <script>
+      // Revela elementos [data-reveal] quando entram no ecrã; marca-os como .is-in uma única vez.
+      // Os de recorte (data-reveal="clip") são vigiados pelo contentor: um elemento recortado a 100% nunca "entra" no ecrã.
+      const groups = new Map<Element, HTMLElement[]>();
+      document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
+        const target = el.dataset.reveal === 'clip' && el.parentElement ? el.parentElement : el;
+        groups.set(target, [...(groups.get(target) ?? []), el]);
+      });
+      const done = (el: HTMLElement) => {
+        el.classList.add('is-in');
+        el.addEventListener('transitionend', () => el.classList.add('is-done'), { once: true });
+      };
+      if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        groups.forEach((els) => els.forEach(done));
+      } else {
+        const io = new IntersectionObserver(
+          (entries) =>
+            entries.forEach((e) => {
+              if (!e.isIntersecting) return;
+              groups.get(e.target)?.forEach(done);
+              io.unobserve(e.target);
+            }),
+          { rootMargin: '0px 0px -8% 0px', threshold: 0.12 },
+        );
+        groups.forEach((_, target) => io.observe(target));
+      }
+    </script>
   </body>
 </html>

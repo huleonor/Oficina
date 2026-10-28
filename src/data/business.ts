@@ -33,7 +33,6 @@ export const business = {
   // Mapa sem chave de API, a partir do nome e da morada da ficha Google.
   mapSrc:
     'https://www.google.com/maps?q=INOVACAR%20-%20Oficina%20Autom%C3%B3vel%2C%20R.%20da%20Paz%2C%203800-587%20Aveiro&output=embed',
-  accessibility: 'Entrada acessível a cadeira de rodas',
   googleProfile:
     'https://www.google.com/maps/place/INOVACAR+-+OFICINA+AUTOM%C3%93VEL/@40.6664827,-8.6043977,17z/data=!4m2!3m1!1s0xd23998e8b0029d7:0x2b7dd3cba7177a2',
   // [A FORNECER] Redes sociais oficiais. Deixe vazio se não existirem.

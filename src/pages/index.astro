@@ -4,7 +4,7 @@ import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Hero from '../components/Hero.astro';
 import TrustBand from '../components/TrustBand.astro';
-import ServiceBoard from '../components/ServiceBoard.astro';
+import ServiceCards from '../components/ServiceCards.astro';
 import MapSection from '../components/MapSection.astro';
 import FaqList from '../components/FaqList.astro';
 import Icon from '../components/Icon.astro';
@@ -38,29 +38,25 @@ const gallery = [
   <section class="section" aria-labelledby="servicos-title">
     <div class="container">
       <div class="home-head">
-        <div class="section-head">
+        <div class="section-head" data-reveal>
           <h2 class="t-h2" id="servicos-title">O que fazemos</h2>
           <p class="t-lead">Manutenção e reparação mecânica para o carro do dia a dia. Diga-nos o que o carro está a fazer e indicamos o passo seguinte.</p>
         </div>
         <a class="link-arrow" href={u('/servicos/')}>Todos os serviços <Icon name="arrow" /></a>
       </div>
-      <ServiceBoard items={servicos} />
+      <ServiceCards items={servicos} />
     </div>
   </section>
 
   <section class="section section-muted" aria-labelledby="sobre-title">
     <div class="container about">
-      <figure class="about-photo">
+      <figure class="about-photo" data-reveal="clip">
         <img src={src(photos.interior, 800)} srcset={srcset(photos.interior)} sizes="(max-width: 860px) 100vw, 45vw" width={photos.interior.width} height={photos.interior.height} alt={photos.interior.alt} loading="lazy" decoding="async" />
         </figure>
-      <div class="about-copy">
+      <div class="about-copy" data-reveal style="--d:120ms">
         <h2 class="t-h2" id="sobre-title">Uma oficina na R. da Paz, entre Cacia e Aveiro</h2>
         <p class="t-lead">A INOVACAR é uma oficina automóvel em Aveiro. Tratamos da manutenção e da reparação mecânica de automóveis: revisões, travões, diagnóstico de avarias, baterias, suspensão, embraiagem e distribuição.</p>
-        <p class="t-body t-soft">Pode ligar diretamente para a oficina e falar sobre o seu carro antes de o trazer. A entrada é acessível a cadeira de rodas.</p>
-        <dl class="about-facts">
-          <div><dt class="t-label">Morada</dt><dd>R. da Paz, 3800-587 Aveiro</dd></div>
-          <div><dt class="t-label">Horário</dt><dd class="t-num">Seg a Sex, 09:00 às 18:30</dd></div>
-        </dl>
+        <p class="t-body t-soft">Pode ligar diretamente para a oficina e falar sobre o seu carro antes de o trazer.</p>
         <a class="link-arrow" href={u('/sobre-nos/')}>Conhecer a oficina <Icon name="arrow" /></a>
       </div>
     </div>
@@ -68,17 +64,25 @@ const gallery = [
 
   <section class="section" aria-labelledby="galeria-title">
     <div class="container">
-      <div class="section-head">
+      <div class="section-head" data-reveal>
         <h2 class="t-h2" id="galeria-title">Dentro da oficina</h2>
         <p class="t-lead">A nossa zona de trabalho na R. da Paz, em Aveiro.</p>
       </div>
       <div class="gallery">
-        {gallery.map((g) => (
-          <figure class={`gallery-item ${g.cls}`}>
-            <img src={src(photos[g.key], 800)} srcset={srcset(photos[g.key])} sizes={g.sizes} width={photos[g.key].width} height={photos[g.key].height} alt={photos[g.key].alt} loading="lazy" decoding="async" />
-          </figure>
+        {gallery.map((g, i) => (
+          <button type="button" class={`gallery-item ${g.cls}`} data-reveal="clip" style={`--d:${i * 70}ms`} data-lightbox={src(photos[g.key])} data-alt={photos[g.key].alt} aria-label={`Ampliar: ${photos[g.key].alt}`}>
+            <img src={src(photos[g.key], 800)} srcset={srcset(photos[g.key])} sizes={g.sizes} width={photos[g.key].width} height={photos[g.key].height} alt="" loading="lazy" decoding="async" />
+            <span class="gallery-zoom" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5M11 8v6M8 11h6"/></svg></span>
+          </button>
         ))}
       </div>
+      <dialog class="lightbox" data-lightbox-dialog aria-label="Fotografia ampliada">
+        <img class="lightbox-img" data-lightbox-img alt="" />
+        <button type="button" class="lightbox-btn lightbox-prev" data-lightbox-prev aria-label="Anterior"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <button type="button" class="lightbox-btn lightbox-next" data-lightbox-next aria-label="Seguinte"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>
+        <button type="button" class="lightbox-btn lightbox-close" data-lightbox-close aria-label="Fechar"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        <p class="lightbox-count t-num" data-lightbox-count></p>
+      </dialog>
 
       {projetos.length > 0 && (
         <div class="projects">
@@ -105,7 +109,7 @@ const gallery = [
 
   <section class="section" aria-labelledby="faq-title">
     <div class="container faq-wrap">
-      <div class="section-head">
+      <div class="section-head" data-reveal>
         <h2 class="t-h2" id="faq-title">Perguntas frequentes</h2>
         <p class="t-lead">Se a sua dúvida não estiver aqui, ligue para a oficina.</p>
       </div>
@@ -113,6 +117,42 @@ const gallery = [
     </div>
   </section>
 </Base>
+
+<script>
+  // Galeria: abre a foto em grande; setas, teclado e deslizar para mudar.
+  const dlg = document.querySelector<HTMLDialogElement>('[data-lightbox-dialog]');
+  const items = [...document.querySelectorAll<HTMLElement>('[data-lightbox]')];
+  if (dlg && items.length) {
+    const img = dlg.querySelector<HTMLImageElement>('[data-lightbox-img]')!;
+    const count = dlg.querySelector<HTMLElement>('[data-lightbox-count]')!;
+    let at = 0;
+    const show = (i: number, dir = 0) => {
+      at = (i + items.length) % items.length;
+      img.src = items[at].dataset.lightbox!;
+      img.alt = items[at].dataset.alt || '';
+      count.textContent = `${at + 1} / ${items.length}`;
+      img.style.setProperty('--from', `${dir * 40}px`);
+      img.classList.remove('is-swap');
+      void img.offsetWidth;
+      img.classList.add('is-swap');
+    };
+    items.forEach((el, i) => el.addEventListener('click', () => { show(i); dlg.showModal(); }));
+    dlg.querySelector('[data-lightbox-prev]')!.addEventListener('click', () => show(at - 1, -1));
+    dlg.querySelector('[data-lightbox-next]')!.addEventListener('click', () => show(at + 1, 1));
+    dlg.querySelector('[data-lightbox-close]')!.addEventListener('click', () => dlg.close());
+    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+    dlg.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') show(at + 1, 1);
+      if (e.key === 'ArrowLeft') show(at - 1, -1);
+    });
+    let x0 = 0;
+    dlg.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    dlg.addEventListener('touchend', (e) => {
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 50) show(at + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
+    });
+  }
+</script>
 
 <style>
   .home-head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-5); flex-wrap: wrap; margin-bottom: var(--space-7); }
@@ -122,14 +162,71 @@ const gallery = [
   .about-photo { border-radius: var(--radius-l); overflow: hidden; aspect-ratio: 4 / 5; max-width: 100%; box-shadow: var(--shadow-raised); }
   .about-photo img { width: 100%; height: 100%; object-fit: cover; }
   .about-copy { display: grid; gap: var(--space-5); justify-items: start; }
-  .about-facts { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); width: 100%; border-top: 2px solid var(--line-strong); padding-top: var(--space-4); }
-  .about-facts dt { color: var(--ink-soft); margin-bottom: 4px; }
-  .about-facts dd { margin: 0; font-weight: 600; }
 
   .gallery { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: clamp(150px, 15vw, 220px); gap: var(--space-3); }
-  .gallery-item { border-radius: var(--radius-l); overflow: hidden; background: var(--brand-dark); }
-  .gallery-item img { transition: transform var(--dur-slow) var(--ease-out); }
-  .gallery-item:hover img { transform: scale(1.03); }
+  .gallery-item {
+    position: relative;
+    display: block;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-l);
+    overflow: hidden;
+    background: var(--brand-dark);
+    cursor: zoom-in;
+  }
+  .gallery-item img { transition: transform 900ms var(--ease-out), filter var(--dur-slow) var(--ease); }
+  .gallery-item:hover img, .gallery-item:focus-visible img { transform: scale(1.06); filter: brightness(0.85); }
+  .gallery-zoom {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--surface-white);
+    color: var(--brand-dark);
+    opacity: 0;
+    transform: scale(0.7);
+    transition: opacity var(--dur-standard) var(--ease), transform var(--dur-standard) var(--ease);
+  }
+  .gallery-item:hover .gallery-zoom, .gallery-item:focus-visible .gallery-zoom { opacity: 1; transform: none; }
+
+  .lightbox {
+    width: min(1100px, 100vw);
+    max-width: 100vw;
+    max-height: 100dvh;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    overflow: visible;
+  }
+  .lightbox::backdrop { background: rgba(16, 18, 28, 0.92); }
+  .lightbox[open] { animation: lb-in 260ms var(--ease-out); }
+  @keyframes lb-in { from { opacity: 0; transform: scale(0.96); } }
+  .lightbox-img { display: block; width: 100%; max-height: 82dvh; object-fit: contain; border-radius: var(--radius-l); }
+  .lightbox-img.is-swap { animation: lb-swap 320ms var(--ease-out); }
+  @keyframes lb-swap { from { opacity: 0; transform: translateX(var(--from, 0)); } }
+  .lightbox-btn {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--surface-white);
+    color: var(--brand-dark);
+    cursor: pointer;
+    transition: transform var(--dur-quick) var(--ease), background-color var(--dur-quick) var(--ease);
+  }
+  .lightbox-btn:hover { background: var(--brand-turquoise); }
+  .lightbox-btn:active { transform: scale(0.92); }
+  .lightbox-prev { left: 12px; top: 50%; margin-top: -24px; }
+  .lightbox-next { right: 12px; top: 50%; margin-top: -24px; }
+  .lightbox-close { right: 12px; top: 12px; }
+  .lightbox-count { text-align: center; color: #c9cdd8; margin-top: var(--space-3); font-size: var(--fs-small); }
   .g-wide { grid-column: span 3; grid-row: span 2; }
   .g-tall { grid-column: span 1; grid-row: span 3; }
   .g-wide2 { grid-column: span 3; grid-row: span 1; }
@@ -147,15 +244,25 @@ const gallery = [
   }
   @media (max-width: 860px) {
     .about { grid-template-columns: 1fr; gap: var(--space-6); }
-    .about-photo { aspect-ratio: 4 / 3; }
+    .about-photo { aspect-ratio: 16 / 10; }
   }
   @media (max-width: 760px) {
-    .gallery { grid-template-columns: 1fr 1fr; grid-auto-rows: 160px; }
-    .g-wide, .g-wide2 { grid-column: span 2; }
-    .g-wide { grid-row: span 2; }
-    .g-tall { grid-column: span 1; grid-row: span 2; }
+    /* Telemóvel: galeria em carrossel horizontal. */
+    .gallery {
+      display: flex;
+      gap: var(--space-3);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline: var(--gutter);
+      margin-inline: calc(-1 * var(--gutter)) calc(-1 * var(--gutter-r));
+      padding: 0 var(--gutter-r) var(--space-2) var(--gutter);
+      scrollbar-width: none;
+    }
+    .gallery::-webkit-scrollbar { display: none; }
+    .gallery-item { flex: 0 0 82%; height: 250px; scroll-snap-align: start; }
+    .g-tall { flex-basis: 56%; }
+    .gallery-zoom { opacity: 1; transform: none; width: 32px; height: 32px; }
   }
   @media (max-width: 560px) {
-    .about-facts { grid-template-columns: 1fr; }
   }
 </style>
