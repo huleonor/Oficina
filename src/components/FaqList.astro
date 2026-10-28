@@ -42,4 +42,8 @@ const { faqs } = Astro.props;
   .faq-a { padding: 0 0 var(--space-5); max-width: 68ch; color: var(--ink-soft); }
   .faq-item[open] .faq-a { animation: faq-in var(--dur-standard) var(--ease-out); }
   @keyframes faq-in { from { opacity: 0; transform: translateY(-4px); } }
+  @media (max-width: 760px) {
+    .faq-q { padding: 14px 0; font-size: 1.05rem; }
+    .faq-a { padding-bottom: var(--space-4); font-size: 0.95rem; }
+  }
 </style>

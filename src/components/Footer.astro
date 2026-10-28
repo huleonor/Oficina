@@ -34,7 +34,7 @@ const year = new Date().getFullYear();
       </a>
     </div>
 
-    <nav class="footer-col" aria-label="Serviços">
+    <nav class="footer-col footer-svc" aria-label="Serviços">
       <h2 class="footer-title t-label">Serviços</h2>
       <ul role="list" class="footer-links">
         {servicos.map((s) => <li><a href={u(`/servicos/${s.id}/`)}>{s.data.name}</a></li>)}
@@ -93,6 +93,9 @@ const year = new Date().getFullYear();
   @media (max-width: 960px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
   @media (max-width: 560px) { .footer-grid { grid-template-columns: 1fr; } }
   @media (max-width: 560px) {
+    /* No telemóvel os serviços estão no menu; o rodapé fica com contactos e horário. */
+    .footer-svc { display: none; }
+    .footer-logo img { width: 120px; }
     .footer { padding-top: var(--space-7); }
     .footer-grid { gap: var(--space-6); }
     .footer-links { grid-template-columns: 1fr 1fr; column-gap: var(--space-4); }

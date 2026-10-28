@@ -229,7 +229,8 @@ html { scrollbar-color: #9aa0ad var(--surface-muted); }
   :root { --header-h: 64px; }
   .section { padding-block: var(--space-7); }
   .section-tight { padding-block: var(--space-6); }
-  .section-head { margin-bottom: var(--space-6); }
+  .section-head { margin-bottom: var(--space-4); gap: var(--space-2); }
+  .t-h2 { font-size: 1.7rem; }
   body { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
 }
 

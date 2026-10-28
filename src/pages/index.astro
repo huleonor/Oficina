@@ -40,7 +40,7 @@ const gallery = [
       <div class="home-head">
         <div class="section-head" data-reveal>
           <h2 class="t-h2" id="servicos-title">O que fazemos</h2>
-          <p class="t-lead">Manutenção e reparação mecânica para o carro do dia a dia. Diga-nos o que o carro está a fazer e indicamos o passo seguinte.</p>
+          <p class="t-lead m-hide">Manutenção e reparação mecânica para o carro do dia a dia. Diga-nos o que o carro está a fazer e indicamos o passo seguinte.</p>
         </div>
         <a class="link-arrow" href={u('/servicos/')}>Todos os serviços <Icon name="arrow" /></a>
       </div>
@@ -56,7 +56,7 @@ const gallery = [
       <div class="about-copy" data-reveal style="--d:120ms">
         <h2 class="t-h2" id="sobre-title">Uma oficina na R. da Paz, entre Cacia e Aveiro</h2>
         <p class="t-lead">A INOVACAR é uma oficina automóvel em Aveiro. Tratamos da manutenção e da reparação mecânica de automóveis: revisões, travões, diagnóstico de avarias, baterias, suspensão, embraiagem e distribuição.</p>
-        <p class="t-body t-soft">Pode ligar diretamente para a oficina e falar sobre o seu carro antes de o trazer.</p>
+        <p class="t-body t-soft m-hide">Pode ligar diretamente para a oficina e falar sobre o seu carro antes de o trazer.</p>
         <a class="link-arrow" href={u('/sobre-nos/')}>Conhecer a oficina <Icon name="arrow" /></a>
       </div>
     </div>
@@ -66,7 +66,7 @@ const gallery = [
     <div class="container">
       <div class="section-head" data-reveal>
         <h2 class="t-h2" id="galeria-title">Dentro da oficina</h2>
-        <p class="t-lead">A nossa zona de trabalho na R. da Paz, em Aveiro.</p>
+        <p class="t-lead m-hide">A nossa zona de trabalho na R. da Paz, em Aveiro.</p>
       </div>
       <div class="gallery">
         {gallery.map((g, i) => (
@@ -104,6 +104,16 @@ const gallery = [
     </div>
   </section>
 
+  <section class="section-tight" aria-label="Programa de pontos">
+    <div class="container">
+      <a class="pts-teaser" href={u('/pontos/')} data-reveal>
+        <span class="pts-teaser-num t-num">1 € <small>= 1 ponto</small></span>
+        <span class="pts-teaser-text"><strong>Programa de pontos</strong>Troque os pontos por lavagens, descontos e ofertas. Veja o seu saldo.</span>
+        <span class="pts-teaser-go"><Icon name="arrow" /></span>
+      </a>
+    </div>
+  </section>
+
   <MapSection />
 
 
@@ -111,7 +121,7 @@ const gallery = [
     <div class="container faq-wrap">
       <div class="section-head" data-reveal>
         <h2 class="t-h2" id="faq-title">Perguntas frequentes</h2>
-        <p class="t-lead">Se a sua dúvida não estiver aqui, ligue para a oficina.</p>
+        <p class="t-lead m-hide">Se a sua dúvida não estiver aqui, ligue para a oficina.</p>
       </div>
       <FaqList faqs={homeFaqs} />
     </div>
@@ -264,5 +274,43 @@ const gallery = [
     .gallery-zoom { opacity: 1; transform: none; width: 32px; height: 32px; }
   }
   @media (max-width: 560px) {
+  }
+
+  .pts-teaser {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    padding: var(--space-5) var(--space-6);
+    border-radius: var(--radius-l);
+    background: var(--brand-turquoise);
+    color: var(--brand-dark);
+    text-decoration: none;
+    transition: transform var(--dur-standard) var(--ease), box-shadow var(--dur-standard) var(--ease);
+  }
+  .pts-teaser:hover { transform: translateY(-3px); box-shadow: 0 18px 36px -18px rgba(38, 41, 60, 0.45); }
+  .pts-teaser-num { font-family: var(--font-display); font-weight: 700; font-size: 2.4rem; line-height: 1; white-space: nowrap; }
+  .pts-teaser-num small { font-size: 0.45em; font-weight: 600; }
+  .pts-teaser-text { display: grid; gap: 2px; flex: 1; }
+  .pts-teaser-text strong { font-family: var(--font-display); font-size: 1.25rem; }
+  .pts-teaser-go { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--brand-dark); color: var(--brand-turquoise); transition: transform var(--dur-standard) var(--ease); }
+  .pts-teaser-go :global(svg) { width: 20px; height: 20px; }
+  .pts-teaser:hover .pts-teaser-go { transform: translateX(4px); }
+
+  /* ---------- Telemóvel: página inicial compacta ---------- */
+  @media (max-width: 760px) {
+    .m-hide { display: none; }
+    .home-head { flex-wrap: nowrap; align-items: baseline; margin-bottom: var(--space-4); }
+    .home-head .link-arrow { white-space: nowrap; font-size: 0.92rem; }
+    .about { gap: var(--space-4); }
+    .about-photo { aspect-ratio: 16 / 9; }
+    .about-copy { gap: var(--space-3); }
+    .about-copy .t-h2 { font-size: 1.55rem; }
+    .about-copy .t-lead { font-size: 1rem; }
+    .pts-teaser { gap: var(--space-3); padding: var(--space-4); }
+    .pts-teaser-num { font-size: 1.6rem; }
+    .pts-teaser-num small { display: block; margin-top: 2px; }
+    .pts-teaser-text { font-size: 0.88rem; line-height: 1.35; }
+    .pts-teaser-text strong { font-size: 1.05rem; }
+    .pts-teaser-go { width: 36px; height: 36px; }
   }
 </style>
