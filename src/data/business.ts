@@ -54,5 +54,6 @@ export const pastedReviews: { text: string; author: string }[] = [
   { text: '', author: '' },
 ];
 
-// Vídeo do portão a abrir (exemplo do Coverr, a substituir pelo vídeo real da oficina).
-export const gateVideo = '/video/portao.mp4';
+// Sem vídeo no hero — foto da oficina. Para voltar ao filme: '/video/portao.mp4'.
+export const gateVideo = '';
+
