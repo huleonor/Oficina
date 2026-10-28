@@ -1,7 +1,10 @@
 ---
+import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import PageHero from '../components/PageHero.astro';
 import Icon from '../components/Icon.astro';
+import ServiceIcon from '../components/ServiceIcon.astro';
+import { u } from '../lib/url';
 import { business } from '../data/business';
 import { photos, srcset, src } from '../data/images';
 import { breadcrumbSchema } from '../data/schema';
@@ -10,6 +13,15 @@ const crumbs = [
   { name: 'Início', path: '/' },
   { name: 'Sobre nós', path: '/sobre-nos/' },
 ];
+const servicos = (await getCollection('servicos')).sort((a, b) => a.data.order - b.data.order);
+
+// [A FORNECER] Os três diferenciais reais da oficina. Substitua o texto entre parênteses retos.
+const diferenciais = [
+  '[A FORNECER: primeiro diferencial real da oficina]',
+  '[A FORNECER: segundo diferencial real da oficina]',
+  '[A FORNECER: terceiro diferencial real da oficina]',
+];
+const fotos = ['ferrari', 'maserati', 'oleo', 'roda'] as const;
 ---
 <Base
   title="Sobre a INOVACAR, oficina automóvel na R. da Paz, Aveiro"
@@ -23,69 +35,195 @@ const crumbs = [
     photo="zonaTrabalho"
   />
 
-  <section class="section">
-    <div class="container about-page">
-      <div class="prose">
-        <h2>A oficina</h2>
-        <p>A INOVACAR é uma oficina automóvel em Aveiro. Fazemos manutenção e reparação mecânica de automóveis: mudanças de óleo e filtros, travões, diagnóstico de avarias, baterias e arranque, suspensão e direção, embraiagem, distribuição e pré-inspeção.</p>
-        <p>Pode ligar diretamente para a oficina e falar sobre o seu carro antes de o trazer. Diga-nos a marca, o modelo e o que está a acontecer, e indicamos o passo seguinte.</p>
-        <h2>O que nos distingue</h2>
-        <ul>
-          <li>[A FORNECER: primeiro diferencial real da oficina]</li>
-          <li>[A FORNECER: segundo diferencial real da oficina]</li>
-          <li>[A FORNECER: terceiro diferencial real da oficina]</li>
-        </ul>
+  <section class="section ab-intro">
+    <div class="container ab-intro-grid">
+      <div class="ab-copy" data-reveal>
+        <h2 class="t-h2">A oficina</h2>
+        <p class="t-lead">A INOVACAR faz manutenção e reparação mecânica de automóveis, na R. da Paz, em Aveiro.</p>
+        <p class="t-soft">Pode ligar diretamente para a oficina e falar sobre o seu carro antes de o trazer. Diga-nos a marca, o modelo e o que está a acontecer, e indicamos o passo seguinte.</p>
       </div>
-      <figure class="about-page-photo">
+      <figure class="ab-photo" data-reveal="clip">
         <img src={src(photos.interior, 800)} srcset={srcset(photos.interior)} sizes="(max-width: 960px) 100vw, 40vw" width={photos.interior.width} height={photos.interior.height} alt={photos.interior.alt} loading="lazy" />
       </figure>
     </div>
   </section>
 
-  <section class="section section-muted" aria-labelledby="pratico-title">
+  <section class="section-tight ab-band" aria-labelledby="distingue-title">
     <div class="container">
-      <div class="section-head"><h2 class="t-h2" id="pratico-title">Informação prática</h2></div>
-      <dl class="facts">
-        <div class="fact"><Icon name="pin" class="fact-icon" /><dt class="t-label">Morada</dt><dd>{business.address.full}</dd></div>
-        <div class="fact"><Icon name="clock" class="fact-icon" /><dt class="t-label">Horário</dt><dd class="t-num">{business.hours.display}. {business.hours.closed}.</dd></div>
-        <div class="fact"><Icon name="phone" class="fact-icon" /><dt class="t-label">Telefone</dt><dd><a class="t-num" href={business.phoneHref}>{business.phoneIntl}</a></dd></div>
-      </dl>
+      <h2 class="t-h3 ab-title" id="distingue-title" data-reveal>O que nos distingue</h2>
+    </div>
+    <div class="container ab-scroller-wrap">
+      <ol role="list" class="ab-scroller ab-diffs">
+        {diferenciais.map((d, i) => (
+          <li class="ab-diff" data-reveal style={`--d:${i * 80}ms`}>
+            <span class="ab-diff-n t-num" aria-hidden="true">{i + 1}</span>
+            <p>{d}</p>
+          </li>
+        ))}
+      </ol>
     </div>
   </section>
 
-  <section class="section" aria-labelledby="fotos-title">
+  <section class="section-tight" aria-labelledby="fazemos-title">
     <div class="container">
-      <div class="section-head"><h2 class="t-h2" id="fotos-title">Fotografias da oficina</h2></div>
-      <div class="about-gallery">
-        {(['ferrari', 'maserati'] as const).map((k) => (
-          <figure>
-            <img src={src(photos[k], 800)} srcset={srcset(photos[k])} sizes="(max-width: 760px) 100vw, 50vw" width={photos[k].width} height={photos[k].height} alt={photos[k].alt} loading="lazy" />
-          </figure>
+      <h2 class="t-h3 ab-title" id="fazemos-title" data-reveal>O que fazemos</h2>
+      <ul role="list" class="ab-chips" data-reveal>
+        {servicos.map((s) => (
+          <li>
+            <a class="ab-chip" href={u(`/servicos/${s.id}/`)}>
+              <ServiceIcon name={s.data.icon} class="ab-chip-icon" />{s.data.name}
+            </a>
+          </li>
         ))}
-      </div>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section-tight section-muted" aria-labelledby="pratico-title">
+    <div class="container">
+      <h2 class="t-h3 ab-title" id="pratico-title" data-reveal>Informação prática</h2>
+      <ul role="list" class="ab-info" data-reveal>
+        <li>
+          <a class="ab-row" href={business.directionsHref} target="_blank" rel="noopener">
+            <span class="ab-row-icon"><Icon name="pin" /></span>
+            <span class="ab-row-text"><span class="ab-row-label">Morada</span>{business.address.full}</span>
+            <Icon name="arrow" class="ab-row-go" />
+          </a>
+        </li>
+        <li>
+          <div class="ab-row">
+            <span class="ab-row-icon"><Icon name="clock" /></span>
+            <span class="ab-row-text t-num"><span class="ab-row-label">Horário</span>{business.hours.short} · Sáb e dom fechado</span>
+          </div>
+        </li>
+        <li>
+          <a class="ab-row" href={business.phoneHref}>
+            <span class="ab-row-icon"><Icon name="phone" /></span>
+            <span class="ab-row-text t-num"><span class="ab-row-label">Telefone</span>{business.phoneIntl}</span>
+            <Icon name="arrow" class="ab-row-go" />
+          </a>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section-tight ab-photos" aria-labelledby="fotos-title">
+    <div class="container">
+      <h2 class="t-h3 ab-title" id="fotos-title" data-reveal>Fotografias da oficina</h2>
+    </div>
+    <div class="container ab-scroller-wrap">
+      <ul role="list" class="ab-scroller ab-gallery">
+        {fotos.map((k, i) => (
+          <li class="ab-shot" data-reveal="clip" style={`--d:${i * 80}ms`}>
+            <img src={src(photos[k], 800)} srcset={srcset(photos[k])} sizes="(max-width: 760px) 80vw, 25vw" width={photos[k].width} height={photos[k].height} alt={photos[k].alt} loading="lazy" />
+          </li>
+        ))}
+      </ul>
     </div>
   </section>
 </Base>
 
 <style>
-  .about-page { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: var(--space-8); align-items: start; }
-  .about-page-photo { border-radius: var(--radius-l); overflow: hidden; aspect-ratio: 3 / 4; box-shadow: var(--shadow-raised); }
-  .about-page-photo img { width: 100%; height: 100%; object-fit: cover; }
-  .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
-  .fact { background: var(--surface-white); border-top: 3px solid var(--brand-dark); border-radius: var(--radius-s); padding: var(--space-5); display: grid; gap: var(--space-2); align-content: start; }
-  .fact-icon { width: 26px; height: 26px; color: var(--brand-turquoise-ink); }
-  .fact dt { color: var(--ink-soft); }
-  .fact dd { margin: 0; font-weight: 600; }
-  .fact a { text-decoration: none; }
-  .about-gallery { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
-  .about-gallery figure { border-radius: var(--radius-l); overflow: hidden; aspect-ratio: 4 / 3; }
-  .about-gallery img { width: 100%; height: 100%; object-fit: cover; }
-  @media (max-width: 960px) {
-    .about-page { grid-template-columns: 1fr; }
-    .about-page-photo { aspect-ratio: 4 / 3; }
-    .facts { grid-template-columns: 1fr 1fr; }
+  .ab-title { font-size: 1.5rem; margin-bottom: var(--space-4); }
+
+  .ab-intro-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: var(--space-8); align-items: center; }
+  .ab-copy { display: grid; gap: var(--space-4); max-width: 60ch; }
+  .ab-photo { border-radius: var(--radius-l); overflow: hidden; aspect-ratio: 4 / 3; box-shadow: var(--shadow-raised); }
+  .ab-photo img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* Listas horizontais: grelha no computador, carrossel no telemóvel */
+  .ab-scroller { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+  .ab-diff {
+    display: grid;
+    gap: var(--space-3);
+    align-content: start;
+    padding: var(--space-5);
+    border-radius: var(--radius-l);
+    background: var(--brand-dark);
+    color: var(--ink-on-dark);
   }
-  @media (max-width: 560px) {
-    .facts, .about-gallery { grid-template-columns: 1fr; }
+  .ab-diff-n {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--brand-turquoise);
+    color: var(--brand-dark);
+    font-family: var(--font-display);
+    font-weight: 700;
+  }
+  .ab-diff p { color: var(--ink-on-dark-soft); }
+
+  .ab-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+  .ab-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 8px 14px 8px 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-white);
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: border-color var(--dur-quick) var(--ease), background-color var(--dur-quick) var(--ease), transform var(--dur-quick) var(--ease);
+  }
+  .ab-chip:hover { border-color: var(--brand-dark); transform: translateY(-2px); }
+  .ab-chip:active { transform: scale(0.97); }
+  .ab-chip-icon { width: 28px; height: 28px; padding: 3px; border-radius: 50%; background: rgba(54, 179, 175, 0.14); }
+
+  .ab-info { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+  .ab-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    height: 100%;
+    padding: var(--space-4);
+    border-radius: var(--radius-l);
+    background: var(--surface-white);
+    text-decoration: none;
+    transition: transform var(--dur-quick) var(--ease), box-shadow var(--dur-standard) var(--ease);
+  }
+  a.ab-row:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -16px rgba(38, 41, 60, 0.45); }
+  .ab-row-icon { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 50%; background: var(--brand-dark); color: var(--brand-turquoise); }
+  .ab-row-icon :global(svg) { width: 18px; height: 18px; }
+  .ab-row-text { display: grid; gap: 2px; font-weight: 600; line-height: 1.3; min-width: 0; }
+  .ab-row-label { font-size: var(--fs-label); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); font-weight: 600; }
+  .ab-row-go { width: 18px; height: 18px; margin-left: auto; flex: none; color: var(--ink-soft); transition: transform var(--dur-standard) var(--ease); }
+  a.ab-row:hover .ab-row-go { transform: translateX(4px); }
+
+  .ab-gallery { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .ab-shot { border-radius: var(--radius-l); overflow: hidden; aspect-ratio: 4 / 3; background: var(--brand-dark); }
+  .ab-shot img { width: 100%; height: 100%; object-fit: cover; transition: transform 900ms var(--ease-out); }
+  .ab-shot:hover img { transform: scale(1.05); }
+
+  @media (max-width: 960px) {
+    .ab-intro-grid { grid-template-columns: 1fr; gap: var(--space-5); }
+    .ab-info { grid-template-columns: 1fr; gap: var(--space-2); }
+  }
+
+  @media (max-width: 760px) {
+    .ab-intro { padding-block: var(--space-6) var(--space-4); }
+    .ab-copy .t-h2 { font-size: 1.6rem; }
+    .ab-photo { aspect-ratio: 16 / 10; }
+    .ab-title { font-size: 1.25rem; margin-bottom: var(--space-3); }
+    .ab-scroller-wrap { padding: 0; }
+    .ab-scroller {
+      display: flex;
+      gap: var(--space-3);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-padding-inline: var(--gutter);
+      padding: 2px var(--gutter-r) var(--space-2) var(--gutter);
+      scrollbar-width: none;
+    }
+    .ab-scroller::-webkit-scrollbar { display: none; }
+    .ab-diff { flex: 0 0 72%; scroll-snap-align: start; padding: var(--space-4); }
+    .ab-shot { flex: 0 0 78%; scroll-snap-align: start; }
+    .ab-chip { font-size: 0.88rem; padding: 6px 12px 6px 6px; }
+    .ab-chip-icon { width: 24px; height: 24px; }
+    .ab-row { padding: 12px 14px; }
+    .ab-row-text { font-size: 0.95rem; }
   }
 </style>
