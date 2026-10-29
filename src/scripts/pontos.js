@@ -133,7 +133,21 @@
     input.value = d.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
   };
 
+  // Número colado ou escrito com indicativo (+33 6…, 0033 6…): escolhe o país e fica só o número.
+  const detetarPais = () => {
+    const raw = String(input.value || '').trim();
+    if (!/^(\+|00)/.test(raw)) return;
+    const d = raw.replace(/\D/g, '').replace(/^00/, '');
+    const opt = [...paisOpts]
+      .sort((a, b) => b.dataset.code.length - a.dataset.code.length)
+      .find((o) => d.startsWith(o.dataset.code) && d.length > o.dataset.code.length + 3);
+    if (!opt) return;
+    input.value = d.slice(opt.dataset.code.length);
+    escolherPais(opt);
+  };
+
   input?.addEventListener('input', () => {
+    detetarPais();
     formatar();
     if (!erro.hidden) mostrarErro('');
   });

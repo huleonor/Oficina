@@ -1,6 +1,11 @@
 // Dados da empresa: um único sítio para nome, morada, telefone e horário.
 // Tudo o que está aqui aparece no cabeçalho, rodapé, páginas e schema.
 
+export type Turno = readonly [string, string] | null;
+export type Semana = Record<0 | 1 | 2 | 3 | 4 | 5 | 6, Turno>;
+export type Epoca = { nome: string; de: string; ate: string; dias: Partial<Semana> };
+export type Horario = { semanal: Semana; epocas: Epoca[]; note: string };
+
 export const business = {
   name: 'INOVACAR - Oficina Automóvel',
   shortName: 'INOVACAR',
@@ -19,15 +24,25 @@ export const business = {
     full: 'R. da Paz, 3800-587 Aveiro, Portugal',
   },
   hours: {
+    // Horário semanal normal. Fonte única: estado "aberto agora", tabela dos contactos, rodapé, FAQ e schema saem daqui.
+    // [abre, fecha] ou null quando está fechado. 0 = domingo, 1 = segunda … 6 = sábado.
     // [A CONFIRMAR] Horário regular indicado na ficha Google.
-    display: 'Segunda a sexta, 09:00 às 18:30',
-    short: 'Seg a Sex, 09:00 às 18:30',
-    closed: 'Sábado e domingo: fechado',
+    semanal: {
+      1: ['09:00', '18:30'],
+      2: ['09:00', '18:30'],
+      3: ['09:00', '18:30'],
+      4: ['09:00', '18:30'],
+      5: ['09:00', '18:30'],
+      6: null,
+      0: null,
+    },
+    // Horários de época (verão, férias, Natal…). Entre `de` e `ate` (inclusive) substituem o semanal
+    // em todo o site; os dias que não estiverem em `dias` mantêm o horário semanal.
+    // Exemplo:
+    // { nome: 'Férias de verão', de: '2026-08-10', ate: '2026-08-21', dias: { 1: null, 2: null, 3: null, 4: null, 5: null } },
+    epocas: [],
     note: 'Em feriados o horário pode ser diferente. Confirme com a oficina.',
-    days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-    opens: '09:00',
-    closes: '18:30',
-  },
+  } as Horario,
   directionsHref:
     'https://www.google.com/maps/dir/?api=1&destination=INOVACAR%20-%20Oficina%20Autom%C3%B3vel%2C%20R.%20da%20Paz%2C%203800-587%20Aveiro',
   // Mapa sem chave de API, a partir do nome e da morada da ficha Google.

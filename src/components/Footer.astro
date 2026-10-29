@@ -3,6 +3,7 @@ import { u } from '../lib/url';
 import { getCollection } from 'astro:content';
 import Icon from './Icon.astro';
 import { business } from '../data/business';
+import { resumo } from '../lib/horario';
 
 const servicos = (await getCollection('servicos')).sort((a, b) => a.data.order - b.data.order);
 const year = new Date().getFullYear();
@@ -24,10 +25,10 @@ const year = new Date().getFullYear();
 
     <div class="footer-col">
       <h2 class="footer-title t-label">Horário</h2>
-      <dl class="footer-hours t-num">
-        <div><dt>Segunda a sexta</dt><dd>09:00 às 18:30</dd></div>
-        <div><dt>Sábado e domingo</dt><dd>Fechado</dd></div>
+      <dl class="footer-hours t-num" data-horario-grupos>
+        {resumo().grupos.map((g) => <div><dt>{g.dias}</dt><dd>{g.h}</dd></div>)}
       </dl>
+      <p class="t-small footer-note" data-horario-epoca hidden></p>
       <p class="t-small footer-note">{business.hours.note}</p>
       <a class="link-arrow footer-gbp" href={business.googleProfile} target="_blank" rel="noopener">
         Ver no Google Maps <Icon name="external" />
@@ -69,9 +70,9 @@ const year = new Date().getFullYear();
   .footer-icon { width: 20px; height: 20px; flex: none; margin-top: 3px; color: var(--brand-turquoise); }
   .footer-title { color: var(--brand-turquoise); }
   .footer-hours { display: grid; gap: var(--space-2); }
-  .footer-hours div { display: flex; justify-content: space-between; gap: var(--space-4); border-bottom: 1px solid var(--line-on-dark); padding-bottom: var(--space-2); }
-  .footer-hours dt { color: var(--ink-on-dark-soft); }
-  .footer-hours dd { margin: 0; font-weight: 600; }
+  .footer-hours :global(div) { display: flex; justify-content: space-between; gap: var(--space-4); border-bottom: 1px solid var(--line-on-dark); padding-bottom: var(--space-2); }
+  .footer-hours :global(dt) { color: var(--ink-on-dark-soft); }
+  .footer-hours :global(dd) { margin: 0; font-weight: 600; }
   .footer-note { color: var(--ink-on-dark-soft); }
   .footer-gbp { margin-top: var(--space-2); }
   .footer-links { display: grid; gap: var(--space-1); }

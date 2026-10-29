@@ -5,6 +5,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import MobileCallBar from '../components/MobileCallBar.astro';
 import { business } from '../data/business';
+import { schemaHorario } from '../lib/horario';
 
 interface Props {
   title: string;
@@ -36,14 +37,7 @@ const localBusiness = {
     addressRegion: business.address.region,
     addressCountry: business.address.country,
   },
-  openingHoursSpecification: [
-    {
-      '@type': 'OpeningHoursSpecification',
-      dayOfWeek: business.hours.days,
-      opens: business.hours.opens,
-      closes: business.hours.closes,
-    },
-  ],
+  openingHoursSpecification: schemaHorario(),
   areaServed: ['Aveiro', 'Cacia'],
   sameAs: [business.googleProfile, ...business.social.map((s) => s.href)],
 };
@@ -80,11 +74,22 @@ const allSchema = [localBusiness, ...schema];
     <Footer />
     <MobileCallBar />
     <script>
+      import { aplicarHorario } from '../lib/horario';
+      aplicarHorario();
+    </script>
+    <script>
       // Revela elementos [data-reveal] quando entram no ecrã; marca-os como .is-in uma única vez.
       // Os de recorte (data-reveal="clip") são vigiados pelo contentor: um elemento recortado a 100% nunca "entra" no ecrã.
       const groups = new Map<Element, HTMLElement[]>();
+      // Nos carrosséis horizontais vigia-se o carrossel: os cartões fora do ecrã aparecem todos juntos com ele.
+      const scroller = (el: HTMLElement) => {
+        for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+          if (/(auto|scroll)/.test(getComputedStyle(p).overflowX)) return p;
+        }
+        return null;
+      };
       document.querySelectorAll<HTMLElement>('[data-reveal]').forEach((el) => {
-        const target = el.dataset.reveal === 'clip' && el.parentElement ? el.parentElement : el;
+        const target = scroller(el) ?? (el.dataset.reveal === 'clip' && el.parentElement ? el.parentElement : el);
         groups.set(target, [...(groups.get(target) ?? []), el]);
       });
       const done = (el: HTMLElement) => {

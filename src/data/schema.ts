@@ -1,3 +1,4 @@
+import { resumo } from '../lib/horario';
 export type Faq = { q: string; a: string };
 
 export const faqSchema = (faqs: Faq[]) => ({
@@ -29,7 +30,7 @@ export const homeFaqs: Faq[] = [
   },
   {
     q: 'Qual é o horário?',
-    a: 'De segunda a sexta, das 09:00 às 18:30. Ao sábado e domingo estamos fechados. Em feriados o horário pode ser diferente, por isso ligue antes de vir.',
+    a: `${resumo().frase} Em feriados o horário pode ser diferente, por isso ligue antes de vir.`,
   },
   {
     q: 'Como marco?',

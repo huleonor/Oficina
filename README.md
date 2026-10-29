@@ -18,7 +18,8 @@ npm run images     # gerar as imagens do site a partir de inovacar-assets/
 | O quê | Ficheiro |
 | --- | --- |
 | Cores, tipografia, espaçamentos | `src/styles/global.css` (bloco `:root`) |
-| Nome, telefone, morada, horário, email | `src/data/business.ts` |
+| Nome, telefone, morada, email | `src/data/business.ts` |
+| Horário semanal e horários de época | `src/data/business.ts` (`hours.semanal` e `hours.epocas`) — o resto do site lê daqui |
 | Mapa, links do Google, vídeo do portão | `src/data/business.ts` |
 | Serviços (8) | `src/content/servicos/*.md` |
 | Trabalhos antes/depois | `src/content/projetos/*.md` |

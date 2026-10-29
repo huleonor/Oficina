@@ -102,7 +102,7 @@ const serviceSchema = {
   .order-phone { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; text-decoration: none; }
   .order-btn { margin: 0 var(--space-5) var(--space-5); width: calc(100% - 2 * var(--space-5)); }
   @media (max-width: 960px) {
-    .svc-grid { grid-template-columns: 1fr; gap: var(--space-7); }
+    .svc-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-7); }
     .svc-aside { position: static; }
   }
 

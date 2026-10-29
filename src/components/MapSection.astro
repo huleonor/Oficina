@@ -1,6 +1,7 @@
 ---
 // Mapa da oficina a toda a largura, com morada, horário e os dois atalhos: ligar e como chegar.
 import Icon from './Icon.astro';
+import { resumo } from '../lib/horario';
 import { business, mapEmbed } from '../data/business';
 
 interface Props {
@@ -37,7 +38,7 @@ const { title = 'Onde estamos' } = Astro.props;
         <span class="map-card-go"><Icon name="arrow" /></span>
       </a>
     </div>
-    <p class="map-hours t-small t-soft t-num"><Icon name="clock" class="map-hours-icon" />{business.hours.display}. {business.hours.closed}.</p>
+    <p class="map-hours t-small t-soft t-num"><Icon name="clock" class="map-hours-icon" /><span data-horario="frase">{resumo().frase}</span></p>
   </div>
 </section>
 

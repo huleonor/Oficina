@@ -6,6 +6,7 @@ import Icon from '../components/Icon.astro';
 import ServiceIcon from '../components/ServiceIcon.astro';
 import { u } from '../lib/url';
 import { business } from '../data/business';
+import { resumo } from '../lib/horario';
 import { photos, srcset, src } from '../data/images';
 import { breadcrumbSchema } from '../data/schema';
 
@@ -94,7 +95,7 @@ const fotos = ['ferrari', 'maserati', 'oleo', 'roda'] as const;
         <li>
           <div class="ab-row">
             <span class="ab-row-icon"><Icon name="clock" /></span>
-            <span class="ab-row-text t-num"><span class="ab-row-label">Horário</span>{business.hours.short} · Sáb e dom fechado</span>
+            <span class="ab-row-text t-num"><span class="ab-row-label">Horário</span><span><span data-horario="curto">{resumo().curto}</span> · <span data-horario="fechado">{resumo().fechadoCurto} fechado</span></span></span>
           </div>
         </li>
         <li>

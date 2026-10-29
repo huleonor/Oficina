@@ -3,6 +3,7 @@
 // Cartões claros (mesmo estilo das linhas de contactos / sobre-nós).
 import Icon from './Icon.astro';
 import { business } from '../data/business';
+import { resumo } from '../lib/horario';
 ---
 <section class="info" id="factos" aria-label="Informação prática">
   <div class="container">
@@ -22,7 +23,7 @@ import { business } from '../data/business';
           <span class="info-icon info-icon-status"><span class="info-dot" aria-hidden="true"></span><Icon name="clock" /></span>
           <span class="info-text">
             <span class="info-label" data-open-label>Horário</span>
-            <span class="info-value t-num" data-open-value>{business.hours.short}</span>
+            <span class="info-value t-num" data-open-value>{resumo().curto}</span>
           </span>
         </div>
       </li>
@@ -39,17 +40,6 @@ import { business } from '../data/business';
     </ul>
   </div>
 </section>
-
-<script>
-  import { estadoAgora } from '../lib/horario';
-  const el = document.querySelector<HTMLElement>('[data-open-status]');
-  if (el) {
-    const e = estadoAgora();
-    el.classList.add(e.aberto ? 'is-open' : 'is-closed');
-    el.querySelector('[data-open-label]')!.textContent = e.titulo;
-    el.querySelector('[data-open-value]')!.textContent = e.detalhe;
-  }
-</script>
 
 <style>
   .info {
