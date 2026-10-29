@@ -20,7 +20,7 @@ const pontosApi = (import.meta.env.PUBLIC_PONTOS_API || 'mock').trim();
 const premios = [...premiosDefault].sort((a, b) => a.pontos - b.pontos);
 const mockJson = pontosApi === 'mock' ? JSON.stringify(pontosMock) : '';
 
-// Indicativos mais prováveis para clientes da oficina (emigração e turismo). Portugal primeiro.
+// Indicativos: frequentes da oficina primeiro; depois o resto por nome.
 const paises = [
   { code: '351', flag: '🇵🇹', nome: 'Portugal' },
   { code: '33', flag: '🇫🇷', nome: 'França' },
@@ -36,7 +36,51 @@ const paises = [
   { code: '244', flag: '🇦🇴', nome: 'Angola' },
   { code: '238', flag: '🇨🇻', nome: 'Cabo Verde' },
   { code: '258', flag: '🇲🇿', nome: 'Moçambique' },
+  { code: '245', flag: '🇬🇼', nome: 'Guiné-Bissau' },
+  { code: '239', flag: '🇸🇹', nome: 'São Tomé e Príncipe' },
+  { code: '670', flag: '🇹🇱', nome: 'Timor-Leste' },
   { code: '1', flag: '🇺🇸', nome: 'EUA / Canadá' },
+  { code: '213', flag: '🇩🇿', nome: 'Argélia' },
+  { code: '54', flag: '🇦🇷', nome: 'Argentina' },
+  { code: '61', flag: '🇦🇺', nome: 'Austrália' },
+  { code: '43', flag: '🇦🇹', nome: 'Áustria' },
+  { code: '359', flag: '🇧🇬', nome: 'Bulgária' },
+  { code: '56', flag: '🇨🇱', nome: 'Chile' },
+  { code: '86', flag: '🇨🇳', nome: 'China' },
+  { code: '57', flag: '🇨🇴', nome: 'Colômbia' },
+  { code: '385', flag: '🇭🇷', nome: 'Croácia' },
+  { code: '45', flag: '🇩🇰', nome: 'Dinamarca' },
+  { code: '971', flag: '🇦🇪', nome: 'Emirados Árabes' },
+  { code: '372', flag: '🇪🇪', nome: 'Estónia' },
+  { code: '358', flag: '🇫🇮', nome: 'Finlândia' },
+  { code: '30', flag: '🇬🇷', nome: 'Grécia' },
+  { code: '36', flag: '🇭🇺', nome: 'Hungria' },
+  { code: '91', flag: '🇮🇳', nome: 'Índia' },
+  { code: '353', flag: '🇮🇪', nome: 'Irlanda' },
+  { code: '354', flag: '🇮🇸', nome: 'Islândia' },
+  { code: '972', flag: '🇮🇱', nome: 'Israel' },
+  { code: '81', flag: '🇯🇵', nome: 'Japão' },
+  { code: '371', flag: '🇱🇻', nome: 'Letónia' },
+  { code: '370', flag: '🇱🇹', nome: 'Lituânia' },
+  { code: '356', flag: '🇲🇹', nome: 'Malta' },
+  { code: '212', flag: '🇲🇦', nome: 'Marrocos' },
+  { code: '52', flag: '🇲🇽', nome: 'México' },
+  { code: '47', flag: '🇳🇴', nome: 'Noruega' },
+  { code: '64', flag: '🇳🇿', nome: 'Nova Zelândia' },
+  { code: '51', flag: '🇵🇪', nome: 'Peru' },
+  { code: '48', flag: '🇵🇱', nome: 'Polónia' },
+  { code: '420', flag: '🇨🇿', nome: 'República Checa' },
+  { code: '40', flag: '🇷🇴', nome: 'Roménia' },
+  { code: '221', flag: '🇸🇳', nome: 'Senegal' },
+  { code: '421', flag: '🇸🇰', nome: 'Eslováquia' },
+  { code: '386', flag: '🇸🇮', nome: 'Eslovénia' },
+  { code: '27', flag: '🇿🇦', nome: 'África do Sul' },
+  { code: '46', flag: '🇸🇪', nome: 'Suécia' },
+  { code: '216', flag: '🇹🇳', nome: 'Tunísia' },
+  { code: '90', flag: '🇹🇷', nome: 'Turquia' },
+  { code: '380', flag: '🇺🇦', nome: 'Ucrânia' },
+  { code: '598', flag: '🇺🇾', nome: 'Uruguai' },
+  { code: '58', flag: '🇻🇪', nome: 'Venezuela' },
 ];
 
 const ganhar = [
@@ -68,14 +112,45 @@ const faqs = [
         <form class="pts-ask" data-pontos-form novalidate>
           <label class="pts-label" for="pontos-tel">O seu telemóvel</label>
           <div class="pts-field" data-pontos-field>
-            <label class="pts-country" title="País do número">
-              <span class="visually-hidden">País do número</span>
-              <select class="pts-country-select" data-pontos-pais aria-label="País do número">
-                {paises.map((c) => <option value={c.code} data-flag={c.flag}>{c.flag} {c.nome} (+{c.code})</option>)}
-              </select>
-              <span class="pts-country-face t-num" aria-hidden="true"><span data-pontos-flag>🇵🇹</span> <span data-pontos-code>+351</span></span>
-              <svg class="pts-country-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
-            </label>
+            <div class="pts-country" data-country>
+              <input type="hidden" data-pontos-pais value="351" />
+              <button
+                type="button"
+                class="pts-country-btn"
+                data-country-btn
+                aria-label="País do número"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-controls="pts-country-list"
+              >
+                <span class="pts-country-face t-num" aria-hidden="true">
+                  <span data-pontos-flag>🇵🇹</span>
+                  <span data-pontos-code>+351</span>
+                </span>
+                <svg class="pts-country-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+              </button>
+              <div class="pts-country-panel" data-country-panel hidden>
+                <label class="pts-country-search-wrap">
+                  <span class="visually-hidden">Procurar país</span>
+                  <input
+                    type="search"
+                    class="pts-country-search"
+                    data-country-search
+                    placeholder="Procurar país ou indicativo…"
+                    autocomplete="off"
+                  />
+                </label>
+                <ul class="pts-country-list" id="pts-country-list" role="listbox" aria-label="Países" data-country-list>
+                  {paises.map((c) => (
+                    <li role="option" tabindex="-1" data-code={c.code} data-flag={c.flag} data-nome={c.nome} aria-selected={c.code === '351' ? 'true' : 'false'}>
+                      <span class="pts-country-opt-flag" aria-hidden="true">{c.flag}</span>
+                      <span class="pts-country-opt-name">{c.nome}</span>
+                      <span class="pts-country-opt-code t-num">+{c.code}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
             <input
               id="pontos-tel"
               class="pts-input t-num"
@@ -241,28 +316,109 @@ const faqs = [
     70% { transform: translateX(-3px); }
     100% { transform: none; }
   }
-  /* Seletor de país: <select> nativo invisível por cima de uma face compacta (bandeira + indicativo). */
+  /* Seletor de país custom (lista + pesquisa — sem <select> nativo). */
   .pts-country {
     position: relative;
     display: flex;
-    align-items: center;
-    gap: 4px;
+    align-items: stretch;
     flex: none;
-    padding: 8px 8px 8px 6px;
+    align-self: stretch;
     margin-left: -6px;
-    border-radius: var(--radius-m);
     color: var(--ink-soft);
     font-weight: 600;
-    cursor: pointer;
-    transition: background-color var(--dur-quick) var(--ease);
   }
-  .pts-country:hover { background: var(--surface-muted); }
-  .pts-country-face { white-space: nowrap; font-size: 1.05rem; }
-  .pts-country-chev { transition: transform var(--dur-standard) var(--ease); }
-  .pts-country:focus-within { background: var(--surface-muted); box-shadow: 0 0 0 2px var(--brand-turquoise); }
-  .pts-country-select { position: absolute; inset: 0; width: 100%; opacity: 0; cursor: pointer; font-size: 16px; }
+  .pts-country-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    padding: 8px 8px 8px 6px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: var(--radius-m);
+  }
+  .pts-country-btn:hover,
+  .pts-country.is-open .pts-country-btn { background: var(--surface-muted); color: var(--ink); }
+  .pts-country-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--brand-turquoise); }
+  .pts-country-face { white-space: nowrap; font-size: 1.05rem; display: inline-flex; align-items: center; gap: 4px; }
+  .pts-country-chev { transition: transform var(--dur-standard) var(--ease); flex: none; }
+  .pts-country.is-open .pts-country-chev { transform: rotate(180deg); }
   .pts-country.bump .pts-country-face { animation: pts-bump 260ms var(--ease-out); }
   @keyframes pts-bump { 40% { transform: scale(1.12); } }
+
+  .pts-country-panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 30;
+    width: min(320px, calc(100vw - 2 * var(--gutter)));
+    padding: 8px;
+    border-radius: var(--radius-l);
+    background: var(--surface-white);
+    border: 1px solid var(--line);
+    box-shadow: 0 18px 40px -16px rgba(38, 41, 60, 0.45);
+  }
+  .pts-country-search-wrap { display: block; margin-bottom: 6px; }
+  .pts-country-search {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-m);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--surface-muted);
+  }
+  .pts-country-search:focus {
+    outline: none;
+    border-color: var(--brand-turquoise);
+    box-shadow: 0 0 0 3px rgba(54, 179, 175, 0.2);
+    background: var(--surface-white);
+  }
+  .pts-country-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 260px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .pts-country-list [role='option'] {
+    display: grid;
+    grid-template-columns: 1.6rem 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: var(--radius-m);
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .pts-country-list [role='option']:hover,
+  .pts-country-list [role='option'].is-active {
+    background: rgba(54, 179, 175, 0.14);
+  }
+  .pts-country-list [role='option'][aria-selected='true'] {
+    background: rgba(54, 179, 175, 0.22);
+    font-weight: 600;
+  }
+  .pts-country-opt-flag { font-size: 1.15rem; line-height: 1; }
+  .pts-country-opt-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pts-country-opt-code { color: var(--ink-soft); font-weight: 600; font-size: 0.88rem; }
+  .pts-country-list [hidden] { display: none !important; }
+  .pts-country-empty {
+    padding: 14px 10px;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    text-align: center;
+    font-weight: 500;
+  }
   .pts-input {
     flex: 1;
     min-width: 0;

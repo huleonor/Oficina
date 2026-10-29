@@ -28,7 +28,12 @@
   const prizes = [...root.querySelectorAll('[data-pontos-prize]')];
   const scroller = $('[data-pontos-scroll]');
   const pais = $('[data-pontos-pais]');
-  const paisBox = pais?.closest('.pts-country');
+  const paisBox = $('[data-country]');
+  const paisBtn = $('[data-country-btn]');
+  const paisPanel = $('[data-country-panel]');
+  const paisSearch = $('[data-country-search]');
+  const paisList = $('[data-country-list]');
+  const paisOpts = paisList ? [...paisList.querySelectorAll('[role="option"]')] : [];
 
   let saldo = null; // null = ainda não consultou
   const tipoLabel = { gasto: 'Serviço na oficina', indicacao: 'Indicação de um amigo', resgate: 'Troca', ajuste: 'Ajuste' };
@@ -133,18 +138,118 @@
     if (!erro.hidden) mostrarErro('');
   });
 
-  pais?.addEventListener('change', () => {
-    const opt = pais.selectedOptions[0];
-    $('[data-pontos-flag]').textContent = opt?.dataset.flag || '';
-    $('[data-pontos-code]').textContent = `+${indicativo()}`;
+  function fecharPais() {
+    if (!paisPanel || paisPanel.hidden) return;
+    paisPanel.hidden = true;
+    paisBox?.classList.remove('is-open');
+    paisBtn?.setAttribute('aria-expanded', 'false');
+    if (paisSearch) paisSearch.value = '';
+    filtrarPaises('');
+  }
+
+  function abrirPais() {
+    if (!paisPanel) return;
+    paisPanel.hidden = false;
+    paisBox?.classList.add('is-open');
+    paisBtn?.setAttribute('aria-expanded', 'true');
+    const sel = paisOpts.find((o) => o.getAttribute('aria-selected') === 'true') || paisOpts[0];
+    paisOpts.forEach((o) => o.classList.toggle('is-active', o === sel));
+    requestAnimationFrame(() => {
+      paisSearch?.focus();
+      sel?.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  const semAcentos = (s) =>
+    String(s || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+  function filtrarPaises(q) {
+    const needle = semAcentos(String(q || '').trim());
+    let visiveis = 0;
+    paisOpts.forEach((o) => {
+      const nome = semAcentos(o.dataset.nome || '');
+      const code = o.dataset.code || '';
+      const ok =
+        !needle ||
+        nome.includes(needle) ||
+        code.includes(needle.replace(/^\+/, '')) ||
+        (`+${code}`).includes(needle);
+      o.hidden = !ok;
+      if (ok) visiveis += 1;
+    });
+    let empty = paisList?.querySelector('.pts-country-empty');
+    if (!empty && paisList) {
+      empty = document.createElement('li');
+      empty.className = 'pts-country-empty';
+      empty.textContent = 'Nenhum país encontrado.';
+      empty.setAttribute('aria-hidden', 'true');
+      paisList.appendChild(empty);
+    }
+    if (empty) empty.hidden = visiveis > 0;
+  }
+
+  function escolherPais(opt, { focusTel = true } = {}) {
+    if (!opt || !pais) return;
+    const code = opt.dataset.code || '351';
+    const flag = opt.dataset.flag || '';
+    pais.value = code;
+    paisOpts.forEach((o) => o.setAttribute('aria-selected', String(o === opt)));
+    $('[data-pontos-flag]').textContent = flag;
+    $('[data-pontos-code]').textContent = `+${code}`;
     input.placeholder = ePT() ? '912 345 678' : 'Número sem o indicativo';
     formatar();
+    fecharPais();
     if (!reduce && paisBox) {
       paisBox.classList.remove('bump');
       void paisBox.offsetWidth;
       paisBox.classList.add('bump');
     }
-    input.focus();
+    if (focusTel) input?.focus();
+  }
+
+  paisBtn?.addEventListener('click', () => {
+    if (paisPanel?.hidden) abrirPais();
+    else fecharPais();
+  });
+
+  paisSearch?.addEventListener('input', () => filtrarPaises(paisSearch.value));
+
+  paisOpts.forEach((o) => {
+    o.addEventListener('click', () => escolherPais(o));
+  });
+
+  document.addEventListener('pointerdown', (ev) => {
+    if (!paisBox || paisPanel?.hidden) return;
+    if (!paisBox.contains(ev.target)) fecharPais();
+  });
+
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape' && paisBox?.classList.contains('is-open')) {
+      ev.preventDefault();
+      fecharPais();
+      paisBtn?.focus();
+    }
+  });
+
+  paisSearch?.addEventListener('keydown', (ev) => {
+    const vis = paisOpts.filter((o) => !o.hidden);
+    const cur = vis.findIndex((o) => o.classList.contains('is-active'));
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+      ev.preventDefault();
+      if (!vis.length) return;
+      const next = ev.key === 'ArrowDown'
+        ? vis[(cur + 1 + vis.length) % vis.length]
+        : vis[(cur - 1 + vis.length) % vis.length];
+      paisOpts.forEach((o) => o.classList.toggle('is-active', o === next));
+      next.scrollIntoView({ block: 'nearest' });
+    } else if (ev.key === 'Enter') {
+      ev.preventDefault();
+      const pick = vis.find((o) => o.classList.contains('is-active')) || vis[0];
+      if (pick) escolherPais(pick);
+    }
   });
 
   // Aceita colar "+33 6 12 34 56 78": escolhe o país pelo indicativo, se estiver na lista.
@@ -152,13 +257,15 @@
     const txt = (ev.clipboardData || window.clipboardData)?.getData('text') || '';
     if (!pais || !/^\s*(\+|00)/.test(txt)) return;
     const d = txt.replace(/\D/g, '').replace(/^00/, '');
-    const match = [...pais.options].map((o) => o.value).sort((a, b) => b.length - a.length).find((c) => d.startsWith(c));
+    const codes = paisOpts.map((o) => o.dataset.code).filter(Boolean).sort((a, b) => b.length - a.length);
+    const match = codes.find((c) => d.startsWith(c));
     if (!match) return;
     ev.preventDefault();
-    pais.value = match;
-    pais.dispatchEvent(new Event('change'));
+    const opt = paisOpts.find((o) => o.dataset.code === match);
+    escolherPais(opt, { focusTel: false });
     input.value = d.slice(match.length);
     formatar();
+    input.focus();
   });
 
   function mostrarErro(msg) {
