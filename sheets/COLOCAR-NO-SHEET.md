@@ -1,14 +1,13 @@
-# Protótipo — uma folha, fácil de testar
+# Protótipo — uma tabela, fácil de testar
 
 Folha:
 https://docs.google.com/spreadsheets/d/1Y4kAFBR1wPxucrGMxHn6jyOFDQi50SGtrAhb7XHWlFs/edit
 
-## Como testar (30 segundos)
+## Como testar
 
-1. Abre a folha **Pontos**.
-2. À esquerda: Ana `934000001` — muda os **pontos** à mão.
-3. À direita: em **GASTOS** acrescenta uma linha (`telemovel` + `valor_eur`).
-4. No site, consulta com `934000001`.
+1. Abre **Pontos** — `telemovel`, `nome`, `pontos`.
+2. Muda os pontos à mão (ou acrescenta uma linha).
+3. No site, consulta com `934000001`.
 
 ## Instalar / actualizar o script
 
