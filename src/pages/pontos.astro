@@ -430,7 +430,17 @@ const faqs = [
   .pts-block { display: grid; gap: var(--space-4); }
   .pts-block-title { font-size: 1.5rem; }
   .pts-how { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
-  .pts-how-card { display: grid; gap: var(--space-2); align-content: start; padding: var(--space-5); background: var(--surface-white); border-radius: var(--radius-l); border: 1px solid var(--line); }
+  .pts-how-card {
+    display: grid;
+    gap: var(--space-2);
+    align-content: start;
+    padding: var(--space-5);
+    background: var(--surface-white);
+    border-radius: var(--radius-l);
+    border: 1px solid var(--line);
+    transition: transform var(--dur-standard) var(--ease), box-shadow var(--dur-standard) var(--ease);
+  }
+  .pts-how-card:hover { transform: translateY(-3px); box-shadow: 0 14px 28px -16px rgba(38, 41, 60, 0.4); }
   .pts-how-icon { display: grid; place-items: center; width: 52px; height: 52px; border-radius: var(--radius-m); background: rgba(54, 179, 175, 0.14); color: var(--brand-dark); }
   .pts-how-icon .si { width: 36px; height: 36px; }
   .pts-how-num { display: flex; align-items: baseline; gap: 6px; margin-top: var(--space-2); }
