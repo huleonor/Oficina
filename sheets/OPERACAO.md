@@ -1,18 +1,17 @@
 # O que a oficina preenche (cliente + carros + pontos)
 
-## Forma fácil: menu «Pontos INOVACAR»
+## Forma fácil: separador «Entrada»
 
-Não escreva nas linhas à mão.
+Não escrevas nas folhas Clientes / Carros / Movimentos.
 
-1. Apps Script ligado a esta folha (`Extensões` → `Apps Script` a partir do Sheet).
-2. Recarregue a folha → **Pontos INOVACAR** → **Preparar folha** (uma vez).
-3. No dia a dia:
-   - **Novo cliente…** — janela grande: nome + telemóvel + carro → `Clientes` e `Carros`
-   - **Novo carro…** — janela grande: dono + matrícula/marca/modelo → `Carros`
-   - **Outras entradas…** — chegou / pronto / gasto / indicação / resgate
+1. Abre **Entrada**
+2. Escolhe o que fazer (Novo cliente / Novo carro / Gasto)
+3. Preenche as células amarelas
+4. Em **GUARDAR** escreve **SIM**
 
-HTML no projecto: `NovoCliente`, `NovoCarro`, `Formularios` + `Codigo.gs`.
-Ver [COLOCAR-NO-SHEET.md](COLOCAR-NO-SHEET.md).
+O script distribui para as folhas certas. Ver [COLOCAR-NO-SHEET.md](COLOCAR-NO-SHEET.md).
+
+Menu opcional **Pontos INOVACAR**: janelas Novo cliente / Novo carro, e Preparar folha.
 
 ## Ideia-chave
 

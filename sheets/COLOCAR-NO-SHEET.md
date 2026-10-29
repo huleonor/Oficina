@@ -1,42 +1,36 @@
-# Colar no Google Sheet (versão simples)
+# Como usar (simples) + colar o script
 
 Folha:
 https://docs.google.com/spreadsheets/d/1Y4kAFBR1wPxucrGMxHn6jyOFDQi50SGtrAhb7XHWlFs/edit
 
-## Como usar no dia a dia (depois de colar)
+## No dia a dia — só a folha «Entrada»
 
-Menu **Pontos INOVACAR** (barra do Sheet):
+Não abras Clientes / Carros / Movimentos para registar.
 
-1. **Novo cliente…** — janela grande: nome + telemóvel + carro → grava em `Clientes` e `Carros`
-2. **Novo carro…** — janela grande: escolhe o dono + matrícula/marca/modelo
-3. **Outras entradas…** — painel: chegou / pronto / gasto / indicação / resgate
+1. Abre o separador **Entrada** (à esquerda).
+2. Em **O que fazer?** escolhe: `Novo cliente` · `Novo carro` · `Gasto`
+3. Preenche as células **amarelas** (nome, telemóvel, matrícula…).
+4. Em **GUARDAR** escreve **SIM** e prima Enter.
+5. Aparece o resultado em baixo; os dados vão sozinhos para as outras folhas.
 
-Não precisas de escrever nas linhas das folhas à mão.
+| O que fazer | Campos |
+| --- | --- |
+| Novo cliente | Nome + Telemóvel + Matrícula + Marca + Modelo |
+| Novo carro | Telemóvel (dono) + Matrícula + Marca + Modelo |
+| Gasto | Telemóvel + Valor € (+ matrícula se quiseres) |
 
-## 1. Actualizar o Apps Script
+As outras folhas (`Clientes`, `Carros`…) são o arquivo — podes olhar, mas não precisas de escrever lá.
 
-1. Folha → `Extensões` → `Apps Script`.
-2. Ficheiro principal: apaga tudo e cola [`Codigo.gs`](Codigo.gs).
-3. Apaga `PontosUI.gs` se ainda existir.
-4. Ficheiros HTML (criar se faltarem — nome **exacto**, sem `.html`):
-   - `Formularios` ← [`Formularios.html`](Formularios.html)
-   - `NovoCliente` ← [`NovoCliente.html`](NovoCliente.html)
-   - `NovoCarro` ← [`NovoCarro.html`](NovoCarro.html)
-5. Guarda (Ctrl/Cmd+S).
+---
 
-## 2. Preparar a folha
+## Instalar / actualizar o script (uma vez)
 
-1. Recarrega o Sheet.
-2. **Pontos INOVACAR → Preparar folha**
-3. Opcional: apaga o separador **Regras** (já não é usado).
+1. Nesta folha: `Extensões` → `Apps Script`
+2. Apaga o código antigo e cola [`Codigo.gs`](Codigo.gs)
+3. (Opcional) HTML `NovoCliente`, `NovoCarro`, `Formularios` se quiseres também as janelas do menu
+4. Guarda → volta ao Sheet e **recarrega**
+5. Menu **Pontos INOVACAR → Preparar folha**  
+   (cria/actualiza o separador **Entrada**)
+6. A primeira vez o Google pede autorização — aceita
 
-## 3. Testar
-
-1. **Pontos INOVACAR → Novo cliente…**
-2. Preenche Ana + matrícula → Guardar
-3. Confirma linha em `Clientes` e em `Carros`
-
-## 4. Web App (site)
-
-`Implantar` → `Gerir implantações` → **Nova versão** (só se mudaste a API).
-O URL do site mantém-se.
+Se o menu não aparecer: recarrega outra vez; ou em Apps Script corre à mão a função `prepararFolha`.

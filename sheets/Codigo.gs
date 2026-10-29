@@ -1,20 +1,34 @@
 /**
  * INOVACAR — pontos + carros (Apps Script ligado à folha).
  *
- * Folhas: Clientes · Carros · Movimentos · Premios
- * Menu: Pontos INOVACAR → Entrada rápida… / Preparar folha
- * Site: Implantar → Aplicação Web (POST com { telemovel })
+ * Dia a dia: folha «Entrada» (células amarelas + escrever SIM em Guardar).
+ * Folhas de dados: Clientes · Carros · Movimentos · Premios
+ * Site: Web App POST { telemovel }
  *
- * Regras fixas no código: 1 € = 1 pt · indicação = 300 pts
+ * Regras: 1 € = 1 pt · indicação = 300 pts
  */
 
 var SPREADSHEET_ID = '1Y4kAFBR1wPxucrGMxHn6jyOFDQi50SGtrAhb7XHWlFs';
 
 var FOLHAS = {
+  entrada: 'Entrada',
   clientes: 'Clientes',
   carros: 'Carros',
   movimentos: 'Movimentos',
   premios: 'Premios',
+};
+
+/* Células da folha Entrada (coluna B = valores). */
+var ENT = {
+  accao: 'B4',
+  nome: 'B6',
+  tel: 'B7',
+  mat: 'B8',
+  marca: 'B9',
+  modelo: 'B10',
+  valor: 'B11',
+  guardar: 'B13',
+  resultado: 'B15',
 };
 
 var REGRAS = {
@@ -84,14 +98,21 @@ function json_(obj) {
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Pontos INOVACAR')
+    .addItem('Ir à folha Entrada', 'irEntrada')
+    .addSeparator()
     .addItem('Novo cliente…', 'abrirNovoCliente')
     .addItem('Novo carro…', 'abrirNovoCarro')
-    .addSeparator()
     .addItem('Outras entradas…', 'abrirEntradaRapida')
     .addSeparator()
     .addItem('Preparar folha', 'prepararFolha')
     .addItem('Recalcular pontos', 'recalcularPontos')
     .addToUi();
+}
+
+function irEntrada() {
+  var sh = montarEntrada_(ss_());
+  ss_().setActiveSheet(sh);
+  sh.getRange(ENT.nome).activate();
 }
 
 /** Janela grande: só cliente (+ carro). O fluxo do dia a dia. */
@@ -119,6 +140,7 @@ function abrirEntradaRapida() {
 
 function prepararFolha() {
   var ss = ss_();
+  montarEntrada_(ss);
   garantir_(ss, FOLHAS.clientes, ['telemovel', 'nome', 'ativo', 'nota']);
   garantir_(ss, FOLHAS.carros, [
     'matricula',
@@ -166,9 +188,132 @@ function prepararFolha() {
   if (iFeito >= 0) car.getRange(2, iFeito + 1, Math.max(car.getMaxRows() - 1, 1), 1).setDataValidation(dv);
 
   try {
-    SpreadsheetApp.getUi().alert('Folha pronta. Use Pontos INOVACAR → Entrada rápida…');
+    SpreadsheetApp.getUi().alert(
+      'Folha pronta.\n\nUsa o separador «Entrada» (o primeiro):\n1) Escolhe o que fazer\n2) Preenche as células amarelas\n3) Em Guardar escreve SIM',
+    );
   } catch (err) {
     Logger.log('Folha preparada.');
+  }
+}
+
+/**
+ * Folha «Entrada»: formulário dentro do Excel.
+ * Preenche B6–B11 e escreve SIM em B13 → grava nas outras folhas.
+ */
+function montarEntrada_(ss) {
+  var sh = ss.getSheetByName(FOLHAS.entrada);
+  if (!sh) sh = ss.insertSheet(FOLHAS.entrada, 0);
+  else ss.setActiveSheet(sh);
+
+  try {
+    ss.moveActiveSheet(1);
+  } catch (err) {}
+
+  sh.clear();
+  sh.setHiddenGridlines(true);
+  sh.setColumnWidth(1, 160);
+  sh.setColumnWidth(2, 280);
+  sh.setColumnWidth(3, 320);
+
+  sh.getRange('A1').setValue('ENTRADA').setFontWeight('bold').setFontSize(18);
+  sh.getRange('A2').setValue('Preenche as células amarelas. No fim, em Guardar escreve SIM.').setFontColor('#4a4f63');
+
+  sh.getRange('A4').setValue('O que fazer?').setFontWeight('bold');
+  sh.getRange(ENT.accao)
+    .setValue('Novo cliente')
+    .setDataValidation(
+      SpreadsheetApp.newDataValidation()
+        .requireValueInList(['Novo cliente', 'Novo carro', 'Gasto'], true)
+        .setAllowInvalid(false)
+        .build(),
+    );
+
+  var labels = [
+    [6, 'Nome'],
+    [7, 'Telemóvel'],
+    [8, 'Matrícula'],
+    [9, 'Marca'],
+    [10, 'Modelo'],
+    [11, 'Valor € (só gasto)'],
+  ];
+  labels.forEach(function (L) {
+    sh.getRange(L[0], 1).setValue(L[1]).setFontWeight('bold');
+  });
+
+  var inputs = ['B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'B13'];
+  inputs.forEach(function (a1) {
+    sh.getRange(a1)
+      .setBackground('#fff3b0')
+      .setBorder(true, true, true, true, false, false, '#d5dadb', SpreadsheetApp.BorderStyle.SOLID);
+  });
+
+  sh.getRange('A13').setValue('GUARDAR').setFontWeight('bold').setFontSize(12);
+  sh.getRange(ENT.guardar).setValue('');
+  sh.getRange('C13').setValue('← escreve SIM aqui').setFontColor('#1b7471').setFontWeight('bold');
+
+  sh.getRange('A15').setValue('Resultado').setFontWeight('bold');
+  sh.getRange(ENT.resultado).setValue('').setWrap(true);
+  sh.getRange('C4').setValue('Novo cliente = pessoa + carro\nNovo carro = carro de alguém que já existe\nGasto = pontos (1 € = 1 pt)').setFontColor('#4a4f63').setWrap(true);
+  sh.setRowHeight(4, 48);
+
+  sh.getRange(ENT.nome).activate();
+  return sh;
+}
+
+function limparEntrada_(sh) {
+  ['B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'B13'].forEach(function (a1) {
+    sh.getRange(a1).setValue('');
+  });
+}
+
+function processarEntrada_(sh) {
+  var accao = String(sh.getRange(ENT.accao).getValue() || '').trim();
+  var nome = String(sh.getRange(ENT.nome).getValue() || '').trim();
+  var tel = String(sh.getRange(ENT.tel).getValue() || '').trim();
+  var mat = String(sh.getRange(ENT.mat).getValue() || '').trim();
+  var marca = String(sh.getRange(ENT.marca).getValue() || '').trim();
+  var modelo = String(sh.getRange(ENT.modelo).getValue() || '').trim();
+  var valor = sh.getRange(ENT.valor).getValue();
+  var res;
+
+  if (accao === 'Novo cliente') {
+    res = formNovoCliente({
+      nome: nome,
+      telemovel: tel,
+      matricula: mat,
+      marca: marca,
+      modelo: modelo,
+      ano: '',
+      nota: '',
+    });
+  } else if (accao === 'Novo carro') {
+    res = formNovoCarro({
+      telemovel: tel,
+      matricula: mat,
+      marca: marca,
+      modelo: modelo,
+      ano: '',
+    });
+  } else if (accao === 'Gasto') {
+    res = formGasto({
+      telemovel: tel,
+      matricula: mat,
+      valorEur: valor,
+      nota: '',
+    });
+  } else {
+    res = { ok: false, erro: 'Escolhe «Novo cliente», «Novo carro» ou «Gasto».' };
+  }
+
+  if (res && res.ok) {
+    limparEntrada_(sh);
+    sh.getRange(ENT.resultado).setValue('✓ ' + res.msg).setFontColor('#1b7471');
+    sh.getRange(ENT.nome).activate();
+  } else {
+    sh.getRange(ENT.guardar).setValue('');
+    sh.getRange(ENT.resultado)
+      .setValue('✗ ' + ((res && res.erro) || 'Erro'))
+      .setFontColor('#a12828');
   }
 }
 
@@ -404,7 +549,20 @@ function recalcularPontos() {
 function onEdit(e) {
   if (!e || !e.range) return;
   var sh = e.range.getSheet();
-  if (sh.getName() !== FOLHAS.movimentos) return;
+  var nome = sh.getName();
+
+  // Folha Entrada: escrever SIM em B13 guarda o formulário.
+  if (nome === FOLHAS.entrada) {
+    if (e.range.getA1Notation() !== 'B13') return;
+    var v = String(e.value || e.range.getValue() || '')
+      .trim()
+      .toLowerCase();
+    if (v !== 'sim' && v !== 's' && v !== 'yes') return;
+    processarEntrada_(sh);
+    return;
+  }
+
+  if (nome !== FOLHAS.movimentos) return;
   var row = e.range.getRow();
   if (row < 2) return;
   var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (x) {
