@@ -18,18 +18,20 @@ var FOLHAS = {
   premios: 'Premios',
 };
 
-/* Células da folha Entrada (coluna B = valores). */
+/* Células da folha Entrada (coluna B = valores). Os rótulos mudam com a acção.
+ * B8 fica livre para o título de secção «② …». */
 var ENT = {
   accao: 'B4',
-  nome: 'B6',
-  tel: 'B7',
-  mat: 'B8',
-  marca: 'B9',
-  modelo: 'B10',
-  valor: 'B11',
+  f1: 'B6', // Nome | Pesquisar
+  f2: 'B7', // Telemóvel | Cliente (lista)
+  f3: 'B9', // Matrícula | Tipo de gasto
+  f4: 'B10', // Marca | Valor €
+  f5: 'B11', // Modelo | Matrícula opcional
   guardar: 'B13',
   resultado: 'B15',
 };
+
+var TIPOS_GASTO = ['Serviço', 'Peças', 'Diagnóstico', 'Outro'];
 
 var REGRAS = {
   pontosPorEuro: 1,
@@ -112,7 +114,7 @@ function onOpen() {
 function irEntrada() {
   var sh = montarEntrada_(ss_());
   ss_().setActiveSheet(sh);
-  sh.getRange(ENT.nome).activate();
+  sh.getRange(ENT.f1).activate();
 }
 
 /** Janela grande: só cliente (+ carro). O fluxo do dia a dia. */
@@ -123,10 +125,10 @@ function abrirNovoCliente() {
   );
 }
 
-/** Janela grande: carro para um cliente que já existe. */
+/** Janela grande: carro para um cliente que já existe (com pesquisa). */
 function abrirNovoCarro() {
   SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutputFromFile('NovoCarro').setWidth(440).setHeight(520),
+    HtmlService.createHtmlOutputFromFile('NovoCarro').setWidth(460).setHeight(640),
     'Novo carro',
   );
 }
@@ -197,8 +199,8 @@ function prepararFolha() {
 }
 
 /**
- * Folha «Entrada»: formulário dentro do Excel.
- * Preenche B6–B11 e escreve SIM em B13 → grava nas outras folhas.
+ * Folha «Entrada»: formulário que muda conforme «O que fazer?».
+ * Células amarelas + SIM em Guardar → grava nas outras folhas.
  */
 function montarEntrada_(ss) {
   var sh = ss.getSheetByName(FOLHAS.entrada);
@@ -210,17 +212,40 @@ function montarEntrada_(ss) {
   } catch (err) {}
 
   sh.clear();
+  sh.clearConditionalFormatRules();
   sh.setHiddenGridlines(true);
-  sh.setColumnWidth(1, 160);
-  sh.setColumnWidth(2, 280);
-  sh.setColumnWidth(3, 320);
+  sh.setColumnWidth(1, 180);
+  sh.setColumnWidth(2, 300);
+  sh.setColumnWidth(3, 340);
+  sh.setRowHeight(1, 44);
+  sh.setRowHeight(2, 28);
 
-  sh.getRange('A1').setValue('ENTRADA').setFontWeight('bold').setFontSize(18);
-  sh.getRange('A2').setValue('Preenche as células amarelas. No fim, em Guardar escreve SIM.').setFontColor('#4a4f63');
+  sh.getRange('A1:C1')
+    .merge()
+    .setValue('  ENTRADA')
+    .setFontWeight('bold')
+    .setFontSize(20)
+    .setFontColor('#ffffff')
+    .setBackground('#1b7471')
+    .setVerticalAlignment('middle');
 
-  sh.getRange('A4').setValue('O que fazer?').setFontWeight('bold');
+  sh.getRange('A2:C2')
+    .merge()
+    .setValue('  Escolhe o que fazer → preenche só o que aparece a amarelo → em Guardar escreve SIM')
+    .setFontColor('#4a4f63')
+    .setBackground('#e7f6f5')
+    .setVerticalAlignment('middle');
+
+  sh.getRange('A4')
+    .setValue('O que fazer?')
+    .setFontWeight('bold')
+    .setFontSize(12);
   sh.getRange(ENT.accao)
     .setValue('Novo cliente')
+    .setFontWeight('bold')
+    .setFontSize(12)
+    .setBackground('#fff3b0')
+    .setBorder(true, true, true, true, false, false, '#1b7471', SpreadsheetApp.BorderStyle.SOLID_MEDIUM)
     .setDataValidation(
       SpreadsheetApp.newDataValidation()
         .requireValueInList(['Novo cliente', 'Novo carro', 'Gasto'], true)
@@ -228,78 +253,237 @@ function montarEntrada_(ss) {
         .build(),
     );
 
-  var labels = [
-    [6, 'Nome'],
-    [7, 'Telemóvel'],
-    [8, 'Matrícula'],
-    [9, 'Marca'],
-    [10, 'Modelo'],
-    [11, 'Valor € (só gasto)'],
-  ];
-  labels.forEach(function (L) {
-    sh.getRange(L[0], 1).setValue(L[1]).setFontWeight('bold');
-  });
+  sh.getRange('A13')
+    .setValue('GUARDAR')
+    .setFontWeight('bold')
+    .setFontSize(13)
+    .setFontColor('#1b7471');
+  sh.getRange(ENT.guardar)
+    .setValue('')
+    .setBackground('#fff3b0')
+    .setBorder(true, true, true, true, false, false, '#1b7471', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  sh.getRange('C13').setValue('← escreve SIM e Enter').setFontColor('#1b7471').setFontWeight('bold');
 
-  var inputs = ['B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'B13'];
-  inputs.forEach(function (a1) {
-    sh.getRange(a1)
-      .setBackground('#fff3b0')
-      .setBorder(true, true, true, true, false, false, '#d5dadb', SpreadsheetApp.BorderStyle.SOLID);
-  });
+  sh.getRange('A15').setValue('Resultado').setFontWeight('bold').setFontColor('#4a4f63');
+  sh.getRange('B15:C15').merge().setValue('').setWrap(true);
 
-  sh.getRange('A13').setValue('GUARDAR').setFontWeight('bold').setFontSize(12);
-  sh.getRange(ENT.guardar).setValue('');
-  sh.getRange('C13').setValue('← escreve SIM aqui').setFontColor('#1b7471').setFontWeight('bold');
-
-  sh.getRange('A15').setValue('Resultado').setFontWeight('bold');
-  sh.getRange(ENT.resultado).setValue('').setWrap(true);
-  sh.getRange('C4').setValue('Novo cliente = pessoa + carro\nNovo carro = carro de alguém que já existe\nGasto = pontos (1 € = 1 pt)').setFontColor('#4a4f63').setWrap(true);
-  sh.setRowHeight(4, 48);
-
-  sh.getRange(ENT.nome).activate();
+  actualizarFormularioEntrada_(sh);
   return sh;
 }
 
+/**
+ * Mostra só os campos da acção escolhida.
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sh
+ * @param {{soLista?: boolean}=} opt  soLista=true: só refresca dropdown de clientes (pesquisa).
+ */
+function actualizarFormularioEntrada_(sh, opt) {
+  opt = opt || {};
+  var accao = String(sh.getRange(ENT.accao).getValue() || '').trim();
+  var pesquisa = String(sh.getRange(ENT.f1).getValue() || '').trim();
+
+  if (opt.soLista && (accao === 'Novo carro' || accao === 'Gasto')) {
+    aplicarListaClientes_(sh, ENT.f2, pesquisa);
+    return;
+  }
+
+  var valoresGuardados = {
+    f1: sh.getRange(ENT.f1).getValue(),
+    f2: sh.getRange(ENT.f2).getValue(),
+    f3: sh.getRange(ENT.f3).getValue(),
+    f4: sh.getRange(ENT.f4).getValue(),
+    f5: sh.getRange(ENT.f5).getValue(),
+  };
+
+  sh.getRange('A5:C11').clearContent().clearDataValidations().clearFormat();
+  sh.getRange('A5:C11').setBackground(null);
+
+  var amarelo = function (a1) {
+    sh.getRange(a1)
+      .setBackground('#fff3b0')
+      .setBorder(true, true, true, true, false, false, '#d5dadb', SpreadsheetApp.BorderStyle.SOLID);
+  };
+  var label = function (row, texto, cor) {
+    sh.getRange(row, 1)
+      .setValue(texto)
+      .setFontWeight('bold')
+      .setFontColor(cor || '#26293c');
+  };
+  var hint = function (texto) {
+    sh.getRange('C4').setValue(texto).setFontColor('#4a4f63').setWrap(true);
+    sh.setRowHeight(4, 52);
+  };
+
+  if (accao === 'Novo carro') {
+    hint('Novo carro — pesquisa o dono, escolhe na lista, depois matrícula / marca / modelo.');
+    label(5, '① Dono', '#1b7471');
+    label(6, 'Pesquisar');
+    amarelo(ENT.f1);
+    sh.getRange(ENT.f1).setValue(valoresGuardados.f1);
+    sh.getRange('C6').setValue('escreve nome ou telemóvel → a lista em baixo filtra').setFontColor('#4a4f63');
+    label(7, 'Cliente');
+    amarelo(ENT.f2);
+    aplicarListaClientes_(sh, ENT.f2, String(valoresGuardados.f1 || '').trim());
+    label(8, '② Carro', '#1b7471');
+    label(9, 'Matrícula');
+    amarelo(ENT.f3);
+    sh.getRange(ENT.f3).setValue(valoresGuardados.f3);
+    label(10, 'Marca');
+    amarelo(ENT.f4);
+    sh.getRange(ENT.f4).setValue(valoresGuardados.f4);
+    label(11, 'Modelo');
+    amarelo(ENT.f5);
+    sh.getRange(ENT.f5).setValue(valoresGuardados.f5);
+    sh.getRange(ENT.f1).activate();
+    return;
+  }
+
+  if (accao === 'Gasto') {
+    hint('Gasto — pesquisa o cliente, escolhe o tipo e o valor (1 € = 1 ponto).');
+    label(5, '① Cliente', '#1b7471');
+    label(6, 'Pesquisar');
+    amarelo(ENT.f1);
+    sh.getRange(ENT.f1).setValue(valoresGuardados.f1);
+    sh.getRange('C6').setValue('escreve nome ou telemóvel → a lista em baixo filtra').setFontColor('#4a4f63');
+    label(7, 'Cliente');
+    amarelo(ENT.f2);
+    aplicarListaClientes_(sh, ENT.f2, String(valoresGuardados.f1 || '').trim());
+    label(8, '② Gasto', '#1b7471');
+    label(9, 'Tipo de gasto');
+    amarelo(ENT.f3);
+    sh.getRange(ENT.f3).setDataValidation(
+      SpreadsheetApp.newDataValidation()
+        .requireValueInList(TIPOS_GASTO, true)
+        .setAllowInvalid(false)
+        .build(),
+    );
+    sh.getRange(ENT.f3).setValue(valoresGuardados.f3 || TIPOS_GASTO[0]);
+    label(10, 'Valor €');
+    amarelo(ENT.f4);
+    sh.getRange(ENT.f4).setValue(valoresGuardados.f4);
+    label(11, 'Matrícula (opcional)');
+    amarelo(ENT.f5);
+    sh.getRange(ENT.f5).setValue(valoresGuardados.f5);
+    sh.getRange(ENT.f1).activate();
+    return;
+  }
+
+  // Novo cliente
+  hint('Novo cliente — preenche a pessoa e o carro. No fim, Guardar → SIM.');
+  label(5, '① Pessoa', '#1b7471');
+  label(6, 'Nome');
+  amarelo(ENT.f1);
+  sh.getRange(ENT.f1).setValue(valoresGuardados.f1);
+  label(7, 'Telemóvel');
+  amarelo(ENT.f2);
+  sh.getRange(ENT.f2).setValue(valoresGuardados.f2);
+  label(8, '② Carro', '#1b7471');
+  label(9, 'Matrícula');
+  amarelo(ENT.f3);
+  sh.getRange(ENT.f3).setValue(valoresGuardados.f3);
+  label(10, 'Marca');
+  amarelo(ENT.f4);
+  sh.getRange(ENT.f4).setValue(valoresGuardados.f4);
+  label(11, 'Modelo');
+  amarelo(ENT.f5);
+  sh.getRange(ENT.f5).setValue(valoresGuardados.f5);
+  sh.getRange(ENT.f1).activate();
+}
+
+function aplicarListaClientes_(sh, a1, filtro) {
+  var lista = listaClientesRotulos_(filtro);
+  var cell = sh.getRange(a1);
+  cell.clearDataValidations();
+  if (!lista.length) {
+    sh.getRange('C7').setValue('nenhum cliente — cria primeiro um «Novo cliente»').setFontColor('#a12828');
+    return;
+  }
+  cell.setDataValidation(
+    SpreadsheetApp.newDataValidation().requireValueInList(lista, true).setAllowInvalid(false).build(),
+  );
+  var actual = String(cell.getValue() || '').trim();
+  if (!actual || lista.indexOf(actual) < 0) cell.setValue(lista[0]);
+  sh.getRange('C7').setValue(lista.length + ' cliente(s) — abre a seta ou muda a pesquisa').setFontColor('#4a4f63');
+}
+
+function semAcentos_(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[áàâãä]/g, 'a')
+    .replace(/[éèêë]/g, 'e')
+    .replace(/[íìîï]/g, 'i')
+    .replace(/[óòôõö]/g, 'o')
+    .replace(/[úùûü]/g, 'u')
+    .replace(/ç/g, 'c');
+}
+
+function listaClientesRotulos_(filtro) {
+  var q = semAcentos_(String(filtro || '').trim());
+  var out = [];
+  valores_(ss_(), FOLHAS.clientes).forEach(function (r) {
+    if (!sim_(r.ativo == null ? 'sim' : r.ativo)) return;
+    var t = normalizarTel_(r.telemovel);
+    if (!t) return;
+    var nomeCli = String(r.nome || t).trim();
+    var rotulo = nomeCli + ' · ' + t;
+    if (q && semAcentos_(nomeCli + ' ' + t).indexOf(q) < 0) return;
+    out.push(rotulo);
+  });
+  out.sort(function (a, b) {
+    return a.localeCompare(b, 'pt');
+  });
+  return out;
+}
+
+function telDoRotuloCliente_(rotulo) {
+  var s = String(rotulo || '').trim();
+  var m = s.match(/(\d{9,})$/);
+  if (m) return normalizarTel_(m[1]);
+  // "Nome · 912345678"
+  var parts = s.split('·');
+  if (parts.length >= 2) return normalizarTel_(parts[parts.length - 1]);
+  return normalizarTel_(s);
+}
+
 function limparEntrada_(sh) {
-  ['B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'B13'].forEach(function (a1) {
+  [ENT.f1, ENT.f2, ENT.f3, ENT.f4, ENT.f5, ENT.guardar].forEach(function (a1) {
     sh.getRange(a1).setValue('');
   });
+  actualizarFormularioEntrada_(sh);
 }
 
 function processarEntrada_(sh) {
   var accao = String(sh.getRange(ENT.accao).getValue() || '').trim();
-  var nome = String(sh.getRange(ENT.nome).getValue() || '').trim();
-  var tel = String(sh.getRange(ENT.tel).getValue() || '').trim();
-  var mat = String(sh.getRange(ENT.mat).getValue() || '').trim();
-  var marca = String(sh.getRange(ENT.marca).getValue() || '').trim();
-  var modelo = String(sh.getRange(ENT.modelo).getValue() || '').trim();
-  var valor = sh.getRange(ENT.valor).getValue();
+  var f1 = String(sh.getRange(ENT.f1).getValue() || '').trim();
+  var f2 = String(sh.getRange(ENT.f2).getValue() || '').trim();
+  var f3 = String(sh.getRange(ENT.f3).getValue() || '').trim();
+  var f4 = String(sh.getRange(ENT.f4).getValue() || '').trim();
+  var f5 = String(sh.getRange(ENT.f5).getValue() || '').trim();
   var res;
 
   if (accao === 'Novo cliente') {
     res = formNovoCliente({
-      nome: nome,
-      telemovel: tel,
-      matricula: mat,
-      marca: marca,
-      modelo: modelo,
+      nome: f1,
+      telemovel: f2,
+      matricula: f3,
+      marca: f4,
+      modelo: f5,
       ano: '',
       nota: '',
     });
   } else if (accao === 'Novo carro') {
     res = formNovoCarro({
-      telemovel: tel,
-      matricula: mat,
-      marca: marca,
-      modelo: modelo,
+      telemovel: telDoRotuloCliente_(f2),
+      matricula: f3,
+      marca: f4,
+      modelo: f5,
       ano: '',
     });
   } else if (accao === 'Gasto') {
     res = formGasto({
-      telemovel: tel,
-      matricula: mat,
-      valorEur: valor,
-      nota: '',
+      telemovel: telDoRotuloCliente_(f2),
+      matricula: f5,
+      valorEur: f4,
+      nota: f3,
     });
   } else {
     res = { ok: false, erro: 'Escolhe «Novo cliente», «Novo carro» ou «Gasto».' };
@@ -308,7 +492,7 @@ function processarEntrada_(sh) {
   if (res && res.ok) {
     limparEntrada_(sh);
     sh.getRange(ENT.resultado).setValue('✓ ' + res.msg).setFontColor('#1b7471');
-    sh.getRange(ENT.nome).activate();
+    sh.getRange(ENT.f1).activate();
   } else {
     sh.getRange(ENT.guardar).setValue('');
     sh.getRange(ENT.resultado)
@@ -551,9 +735,26 @@ function onEdit(e) {
   var sh = e.range.getSheet();
   var nome = sh.getName();
 
-  // Folha Entrada: escrever SIM em B13 guarda o formulário.
   if (nome === FOLHAS.entrada) {
-    if (e.range.getA1Notation() !== 'B13') return;
+    var cel = e.range.getA1Notation();
+    if (cel === ENT.accao) {
+      // Mudou «O que fazer?» → limpa campos e redesenha.
+      [ENT.f1, ENT.f2, ENT.f3, ENT.f4, ENT.f5, ENT.guardar].forEach(function (a1) {
+        sh.getRange(a1).setValue('');
+      });
+      sh.getRange(ENT.resultado).setValue('');
+      actualizarFormularioEntrada_(sh);
+      return;
+    }
+    if (cel === ENT.f1) {
+      // Pesquisa: filtra a lista de clientes.
+      var accao = String(sh.getRange(ENT.accao).getValue() || '').trim();
+      if (accao === 'Novo carro' || accao === 'Gasto') {
+        actualizarFormularioEntrada_(sh, { soLista: true });
+      }
+      return;
+    }
+    if (cel !== ENT.guardar) return;
     var v = String(e.value || e.range.getValue() || '')
       .trim()
       .toLowerCase();

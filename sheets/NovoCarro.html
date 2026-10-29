@@ -9,9 +9,11 @@
         --soft: #4a4f63;
         --line: #d5dadb;
         --turq: #36b3af;
+        --turq-deep: #1b7471;
         --bg: #f4f6f6;
         --err: #a12828;
         --ok: #1b7471;
+        --yellow: #fff3b0;
       }
       * { box-sizing: border-box; }
       body {
@@ -21,13 +23,20 @@
         padding: 18px 20px 20px;
         background: #fff;
       }
-      h1 { font-size: 1.25rem; margin: 0 0 4px; }
+      h1 { font-size: 1.25rem; margin: 0 0 4px; color: var(--turq-deep); }
       .sub { color: var(--soft); margin: 0 0 16px; font-size: 0.92rem; }
       .bloco {
         background: var(--bg);
-        border-radius: 10px;
-        padding: 14px 14px 6px;
+        border-radius: 12px;
+        padding: 14px 14px 10px;
         margin-bottom: 12px;
+      }
+      .bloco h2 {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--turq-deep);
+        margin: 0 0 10px;
       }
       label {
         display: grid;
@@ -37,7 +46,7 @@
         font-weight: 600;
         color: var(--soft);
       }
-      input, select {
+      input {
         font: inherit;
         color: var(--ink);
         font-weight: 500;
@@ -47,13 +56,59 @@
         border-radius: 8px;
         background: #fff;
       }
-      input:focus, select:focus {
+      input:focus {
         outline: 2px solid var(--turq);
         border-color: var(--turq);
       }
+      #pesquisa {
+        background: var(--yellow);
+        border-color: #e6d78a;
+      }
       .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-      .hint { font-size: 0.85rem; color: var(--soft); margin: -2px 0 10px; font-weight: 400; }
-      button {
+      .hint { font-size: 0.85rem; color: var(--soft); margin: -2px 0 8px; font-weight: 400; }
+      .lista {
+        max-height: 160px;
+        overflow: auto;
+        border: 1.5px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        margin-bottom: 10px;
+      }
+      .lista button {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        border-radius: 0;
+        background: #fff;
+        padding: 10px 12px;
+        font: inherit;
+        font-weight: 500;
+        cursor: pointer;
+        color: var(--ink);
+      }
+      .lista button:last-child { border-bottom: 0; }
+      .lista button:hover { background: #e7f6f5; }
+      .lista button.on {
+        background: #e7f6f5;
+        color: var(--turq-deep);
+        font-weight: 700;
+        box-shadow: inset 3px 0 0 var(--turq);
+      }
+      .lista .vazio {
+        padding: 12px;
+        color: var(--soft);
+        font-size: 0.9rem;
+      }
+      .escolhido {
+        font-size: 0.9rem;
+        margin: 0 0 8px;
+        color: var(--turq-deep);
+        font-weight: 600;
+        min-height: 1.3em;
+      }
+      button.guardar {
         font: inherit;
         font-weight: 700;
         border: 0;
@@ -65,7 +120,7 @@
         color: var(--ink);
         font-size: 1.05rem;
       }
-      button:disabled { opacity: 0.55; cursor: wait; }
+      button.guardar:disabled { opacity: 0.55; cursor: wait; }
       .msg {
         margin-top: 12px;
         padding: 10px 12px;
@@ -79,14 +134,22 @@
   </head>
   <body>
     <h1>Novo carro</h1>
-    <p class="sub">Escolhe o dono e o carro — grava na folha Carros e inicia o tempo.</p>
+    <p class="sub">Procura o dono, escolhe na lista, preenche o carro.</p>
 
     <form id="form" novalidate>
       <div class="bloco">
-        <label>Dono do carro *
-          <select id="tel" required></select>
+        <h2>① Dono</h2>
+        <label>Pesquisar
+          <input id="pesquisa" type="search" placeholder="Nome ou telemóvel…" autocomplete="off" />
         </label>
-        <p class="hint" id="vazio" hidden>Ainda não há clientes. Use primeiro «Novo cliente».</p>
+        <p class="hint">A lista filtra à medida que escreves.</p>
+        <div id="lista" class="lista" role="listbox"></div>
+        <p class="escolhido" id="escolhido">Nenhum cliente escolhido</p>
+        <input type="hidden" id="tel" />
+      </div>
+
+      <div class="bloco">
+        <h2>② Carro</h2>
         <label>Matrícula *<input id="mat" type="text" placeholder="AA-00-BB" required /></label>
         <div class="row">
           <label>Marca *<input id="marca" type="text" placeholder="VW" required /></label>
@@ -94,7 +157,7 @@
         </div>
         <label>Ano<input id="ano" type="number" min="1980" max="2100" placeholder="2018" /></label>
       </div>
-      <button type="submit" id="btn">Guardar carro</button>
+      <button type="submit" class="guardar" id="btn">Guardar carro</button>
     </form>
     <div id="msg" class="msg"></div>
 
@@ -102,34 +165,62 @@
       var $ = function (id) { return document.getElementById(id); };
       var msg = $('msg');
       var btn = $('btn');
-      var sel = $('tel');
+      var clientes = [];
+      var escolhido = null;
 
       function showMsg(text, ok) {
         msg.textContent = text;
         msg.className = 'msg ' + (ok ? 'ok' : 'err');
       }
 
+      function renderLista() {
+        var q = ($('pesquisa').value || '').trim().toLowerCase()
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        var box = $('lista');
+        box.innerHTML = '';
+        var filtrados = clientes.filter(function (c) {
+          if (!q) return true;
+          var hay = (c.nome + ' ' + c.telemovel).toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          return hay.indexOf(q) >= 0;
+        });
+        if (!filtrados.length) {
+          box.innerHTML = '<div class="vazio">Nenhum cliente. Cria primeiro um «Novo cliente».</div>';
+          return;
+        }
+        filtrados.forEach(function (c) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.setAttribute('role', 'option');
+          b.textContent = c.nome + ' · ' + c.telemovel;
+          if (escolhido && escolhido.telemovel === c.telemovel) b.className = 'on';
+          b.addEventListener('click', function () {
+            escolhido = c;
+            $('tel').value = c.telemovel;
+            $('escolhido').textContent = '✓ ' + c.nome + ' · ' + c.telemovel;
+            renderLista();
+          });
+          box.appendChild(b);
+        });
+      }
+
       google.script.run
         .withSuccessHandler(function (data) {
-          var clientes = (data && data.clientes) || [];
-          sel.innerHTML = '';
-          if (!clientes.length) {
-            $('vazio').hidden = false;
-            btn.disabled = true;
-            return;
-          }
-          clientes.forEach(function (c) {
-            var o = document.createElement('option');
-            o.value = c.telemovel;
-            o.textContent = c.nome + ' · ' + c.telemovel;
-            sel.appendChild(o);
-          });
+          clientes = (data && data.clientes) || [];
+          if (!clientes.length) btn.disabled = true;
+          renderLista();
         })
         .withFailureHandler(function (e) { showMsg(e.message || String(e), false); })
         .listarParaFormulario();
 
+      $('pesquisa').addEventListener('input', renderLista);
+
       $('form').addEventListener('submit', function (ev) {
         ev.preventDefault();
+        if (!$('tel').value) {
+          showMsg('Escolhe um cliente na lista.', false);
+          return;
+        }
         btn.disabled = true;
         showMsg('A guardar…', true);
         google.script.run
@@ -147,7 +238,7 @@
             showMsg(e.message || String(e), false);
           })
           .formNovoCarro({
-            telemovel: sel.value,
+            telemovel: $('tel').value,
             matricula: $('mat').value,
             marca: $('marca').value,
             modelo: $('modelo').value,

@@ -8,18 +8,19 @@ https://docs.google.com/spreadsheets/d/1Y4kAFBR1wPxucrGMxHn6jyOFDQi50SGtrAhb7XHW
 Não abras Clientes / Carros / Movimentos para registar.
 
 1. Abre o separador **Entrada** (à esquerda).
-2. Em **O que fazer?** escolhe: `Novo cliente` · `Novo carro` · `Gasto`
-3. Preenche as células **amarelas** (nome, telemóvel, matrícula…).
+2. Em **O que fazer?** escolhe: `Novo cliente` · `Novo carro` · `Gasto`  
+   → os campos amarelos mudam sozinhos.
+3. Preenche só o que aparece.
 4. Em **GUARDAR** escreve **SIM** e prima Enter.
 5. Aparece o resultado em baixo; os dados vão sozinhos para as outras folhas.
 
-| O que fazer | Campos |
+| O que fazer | O que aparece |
 | --- | --- |
 | Novo cliente | Nome + Telemóvel + Matrícula + Marca + Modelo |
-| Novo carro | Telemóvel (dono) + Matrícula + Marca + Modelo |
-| Gasto | Telemóvel + Valor € (+ matrícula se quiseres) |
+| Novo carro | **Pesquisar** (filtra a lista) + **Cliente** + Matrícula + Marca + Modelo |
+| Gasto | **Pesquisar** + **Cliente** + **Tipo de gasto** + Valor € + Matrícula (opcional) |
 
-As outras folhas (`Clientes`, `Carros`…) são o arquivo — podes olhar, mas não precisas de escrever lá.
+Também podes usar o menu **Pontos INOVACAR** (janelas com pesquisa no «Novo carro…»).
 
 ---
 
