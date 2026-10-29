@@ -114,11 +114,15 @@ function prepararFolha() {
   }
 
   montarDemo_(ss);
+  reiniciarFolha_(ss, FOLHAS.clientes, ['telemovel', 'nome', 'pontos', 'indicado_por', 'ativo', 'nota']);
+  reiniciarFolha_(ss, FOLHAS.carros, ['matricula', 'telemovel', 'marca', 'modelo', 'ano']);
+  reiniciarFolha_(ss, FOLHAS.movimentos, ['data', 'telemovel', 'tipo', 'valor_eur', 'pontos', 'matricula', 'nota']);
+  reiniciarFolha_(ss, FOLHAS.premios, ['id', 'nome', 'pontos', 'activo', 'descricao']);
   montarClientes_(ss);
   montarCarros_(ss);
   montarMovimentos_(ss);
   montarPremios_(ss);
-  semearDemoSeVazio_(ss);
+  semearDemo_(ss);
   actualizarSaldos_(ss);
 
   try {
@@ -228,93 +232,90 @@ function montarPremios_(ss) {
   return sh;
 }
 
-function semearDemoSeVazio_(ss) {
-  var cli = ss.getSheetByName(FOLHAS.clientes);
-  if (cli.getLastRow() < 2) {
-    append_(ss, FOLHAS.clientes, {
-      telemovel: '934000001',
-      nome: 'Ana Sousa',
-      pontos: 0,
-      indicado_por: '',
-      ativo: 'sim',
-      nota: 'exemplo',
-    });
-    append_(ss, FOLHAS.clientes, {
-      telemovel: '934000002',
-      nome: 'Bruno Martins',
-      pontos: 0,
-      indicado_por: '934000001',
-      ativo: 'sim',
-      nota: 'exemplo — indicado pela Ana',
-    });
-  }
+/** Apaga a folha e põe só o cabeçalho — «Preparar protótipo» fica limpo para mostrar. */
+function reiniciarFolha_(ss, nome, headers) {
+  var sh = ss.getSheetByName(nome);
+  if (!sh) sh = ss.insertSheet(nome);
+  sh.clear();
+  sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+}
 
-  var car = ss.getSheetByName(FOLHAS.carros);
-  if (car.getLastRow() < 2) {
-    append_(ss, FOLHAS.carros, {
-      matricula: 'AA-00-BB',
-      telemovel: '934000001',
-      marca: 'VW',
-      modelo: 'Golf',
-      ano: 2018,
-    });
-    append_(ss, FOLHAS.carros, {
-      matricula: 'EE-22-FF',
-      telemovel: '934000002',
-      marca: 'Renault',
-      modelo: 'Clio',
-      ano: 2020,
-    });
-  }
+/** Dados de exemplo (sempre, depois de reiniciar). */
+function semearDemo_(ss) {
+  append_(ss, FOLHAS.clientes, {
+    telemovel: '934000001',
+    nome: 'Ana Sousa',
+    pontos: 0,
+    indicado_por: '',
+    ativo: 'sim',
+    nota: 'exemplo',
+  });
+  append_(ss, FOLHAS.clientes, {
+    telemovel: '934000002',
+    nome: 'Bruno Martins',
+    pontos: 0,
+    indicado_por: '934000001',
+    ativo: 'sim',
+    nota: 'exemplo — indicado pela Ana',
+  });
 
-  var mov = ss.getSheetByName(FOLHAS.movimentos);
-  if (mov.getLastRow() < 2) {
-    append_(ss, FOLHAS.movimentos, {
-      data: hoje_(),
-      telemovel: '934000001',
-      tipo: 'gasto',
-      valor_eur: 120,
-      pontos: 120,
-      matricula: 'AA-00-BB',
-      nota: 'revisão (exemplo)',
-    });
-    append_(ss, FOLHAS.movimentos, {
-      data: hoje_(),
-      telemovel: '934000001',
-      tipo: 'indicacao',
-      valor_eur: '',
-      pontos: REGRAS.pontosPorIndicacao,
-      matricula: '',
-      nota: 'trouxe 934000002 Bruno Martins',
-    });
-    append_(ss, FOLHAS.movimentos, {
-      data: hoje_(),
-      telemovel: '934000002',
-      tipo: 'gasto',
-      valor_eur: 50,
-      pontos: 50,
-      matricula: 'EE-22-FF',
-      nota: 'óleo (exemplo)',
-    });
-  }
+  append_(ss, FOLHAS.carros, {
+    matricula: 'AA-00-BB',
+    telemovel: '934000001',
+    marca: 'VW',
+    modelo: 'Golf',
+    ano: 2018,
+  });
+  append_(ss, FOLHAS.carros, {
+    matricula: 'EE-22-FF',
+    telemovel: '934000002',
+    marca: 'Renault',
+    modelo: 'Clio',
+    ano: 2020,
+  });
 
-  var prem = ss.getSheetByName(FOLHAS.premios);
-  if (prem.getLastRow() < 2) {
-    append_(ss, FOLHAS.premios, {
-      id: 'lavagem',
-      nome: 'Lavagem exterior',
-      pontos: 100,
-      activo: 'sim',
-      descricao: 'Lavagem exterior do veículo',
-    });
-    append_(ss, FOLHAS.premios, {
-      id: 'desconto10',
-      nome: 'Desconto 10 €',
-      pontos: 200,
-      activo: 'sim',
-      descricao: 'Desconto de 10 euros na próxima fatura',
-    });
-  }
+  append_(ss, FOLHAS.movimentos, {
+    data: hoje_(),
+    telemovel: '934000001',
+    tipo: 'gasto',
+    valor_eur: 120,
+    pontos: 120,
+    matricula: 'AA-00-BB',
+    nota: 'revisão (exemplo)',
+  });
+  append_(ss, FOLHAS.movimentos, {
+    data: hoje_(),
+    telemovel: '934000001',
+    tipo: 'indicacao',
+    valor_eur: '',
+    pontos: REGRAS.pontosPorIndicacao,
+    matricula: '',
+    nota: 'trouxe 934000002 Bruno Martins',
+  });
+  append_(ss, FOLHAS.movimentos, {
+    data: hoje_(),
+    telemovel: '934000002',
+    tipo: 'gasto',
+    valor_eur: 50,
+    pontos: 50,
+    matricula: 'EE-22-FF',
+    nota: 'óleo (exemplo)',
+  });
+
+  append_(ss, FOLHAS.premios, {
+    id: 'lavagem',
+    nome: 'Lavagem exterior',
+    pontos: 100,
+    activo: 'sim',
+    descricao: 'Lavagem exterior do veículo',
+  });
+  append_(ss, FOLHAS.premios, {
+    id: 'desconto10',
+    nome: 'Desconto 10 €',
+    pontos: 200,
+    activo: 'sim',
+    descricao: 'Desconto de 10 euros na próxima fatura',
+  });
 }
 
 /* ========== Pontos ========== */
