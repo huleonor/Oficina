@@ -1,5 +1,5 @@
-matricula,telemovel,marca,modelo,ano,ativo,nota,feito,entrada_em,pronto_em,duracao_min
-AA-00-BB,934000001,Volkswagen,Golf,2018,sim,,sim,2026-10-27 09:00:00,2026-10-27 11:15:00,135
-CC-11-DD,934000001,Renault,Clio,2012,sim,segundo carro,nao,2026-10-28 08:30:00,,
-EE-22-FF,934000002,Peugeot,208,2020,sim,,nao,2026-10-28 09:10:00,,
-GG-33-HH,934000003,Seat,Ibiza,2016,sim,,sim,2026-10-26 14:00:00,2026-10-26 16:40:00,160
+matricula,telemovel,marca,modelo,ano,feito,entrada_em,pronto_em,duracao_min
+AA-00-BB,934000001,Volkswagen,Golf,2018,sim,2026-10-27 09:00:00,2026-10-27 11:15:00,135
+CC-11-DD,934000001,Renault,Clio,2012,nao,2026-10-28 08:30:00,,
+EE-22-FF,934000002,Peugeot,208,2020,nao,2026-10-28 09:10:00,,
+GG-33-HH,934000003,Seat,Ibiza,2016,sim,2026-10-26 14:00:00,2026-10-26 16:40:00,160

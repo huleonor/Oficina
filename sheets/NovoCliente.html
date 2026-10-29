@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <style>
+      :root {
+        --ink: #26293c;
+        --soft: #4a4f63;
+        --line: #d5dadb;
+        --turq: #36b3af;
+        --bg: #f4f6f6;
+        --err: #a12828;
+        --ok: #1b7471;
+      }
+      * { box-sizing: border-box; }
+      body {
+        font: 15px/1.45 system-ui, -apple-system, sans-serif;
+        color: var(--ink);
+        margin: 0;
+        padding: 18px 20px 20px;
+        background: #fff;
+      }
+      h1 { font-size: 1.25rem; margin: 0 0 4px; }
+      .sub { color: var(--soft); margin: 0 0 16px; font-size: 0.92rem; }
+      .bloco {
+        background: var(--bg);
+        border-radius: 10px;
+        padding: 14px 14px 6px;
+        margin-bottom: 12px;
+      }
+      .bloco h2 {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--soft);
+        margin: 0 0 10px;
+      }
+      label {
+        display: grid;
+        gap: 4px;
+        margin-bottom: 10px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--soft);
+      }
+      input {
+        font: inherit;
+        color: var(--ink);
+        font-weight: 500;
+        width: 100%;
+        padding: 11px 12px;
+        border: 1.5px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+      input:focus {
+        outline: 2px solid var(--turq);
+        border-color: var(--turq);
+      }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .check {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 12px;
+        font-size: 0.92rem;
+        font-weight: 500;
+        color: var(--ink);
+        text-transform: none;
+        letter-spacing: normal;
+      }
+      .check input { width: auto; }
+      .car-fields.is-off { opacity: 0.45; pointer-events: none; }
+      button {
+        font: inherit;
+        font-weight: 700;
+        border: 0;
+        border-radius: 8px;
+        padding: 14px 16px;
+        cursor: pointer;
+        width: 100%;
+        background: var(--turq);
+        color: var(--ink);
+        font-size: 1.05rem;
+        margin-top: 4px;
+      }
+      button:disabled { opacity: 0.55; cursor: wait; }
+      .msg {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        font-size: 0.92rem;
+        display: none;
+      }
+      .msg.ok { display: block; background: #e7f6f5; color: var(--ok); }
+      .msg.err { display: block; background: #fdecec; color: var(--err); }
+    </style>
+  </head>
+  <body>
+    <h1>Novo cliente</h1>
+    <p class="sub">Preenche e guarda — vai para as folhas Clientes e Carros.</p>
+
+    <form id="form" novalidate>
+      <div class="bloco">
+        <h2>A pessoa</h2>
+        <label>Nome *<input id="nome" type="text" placeholder="Ana Sousa" autofocus required /></label>
+        <label>Telemóvel *<input id="tel" type="tel" placeholder="934 000 000" inputmode="numeric" required /></label>
+      </div>
+
+      <div class="bloco">
+        <h2>O carro</h2>
+        <label class="check">
+          <input id="sem_carro" type="checkbox" />
+          Ainda sem carro (registo só da pessoa)
+        </label>
+        <div class="car-fields" id="car_fields">
+          <label>Matrícula *<input id="mat" type="text" placeholder="AA-00-BB" /></label>
+          <div class="row">
+            <label>Marca *<input id="marca" type="text" placeholder="VW" /></label>
+            <label>Modelo *<input id="modelo" type="text" placeholder="Golf" /></label>
+          </div>
+          <label>Ano<input id="ano" type="number" min="1980" max="2100" placeholder="2018" /></label>
+        </div>
+      </div>
+
+      <button type="submit" id="btn">Guardar cliente</button>
+    </form>
+    <div id="msg" class="msg"></div>
+
+    <script>
+      var $ = function (id) { return document.getElementById(id); };
+      var msg = $('msg');
+      var btn = $('btn');
+      var sem = $('sem_carro');
+      var car = $('car_fields');
+
+      function showMsg(text, ok) {
+        msg.textContent = text;
+        msg.className = 'msg ' + (ok ? 'ok' : 'err');
+      }
+
+      sem.addEventListener('change', function () {
+        car.classList.toggle('is-off', sem.checked);
+      });
+
+      $('form').addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var semCarro = sem.checked;
+        var payload = {
+          nome: $('nome').value,
+          telemovel: $('tel').value,
+          nota: '',
+          matricula: semCarro ? '' : $('mat').value,
+          marca: semCarro ? '' : $('marca').value,
+          modelo: semCarro ? '' : $('modelo').value,
+          ano: semCarro ? '' : $('ano').value,
+        };
+        if (!semCarro && !payload.matricula) {
+          showMsg('Indique a matrícula, ou marque «Ainda sem carro».', false);
+          return;
+        }
+        btn.disabled = true;
+        showMsg('A guardar…', true);
+        google.script.run
+          .withSuccessHandler(function (res) {
+            btn.disabled = false;
+            if (!res || !res.ok) {
+              showMsg((res && res.erro) || 'Erro ao guardar', false);
+              return;
+            }
+            showMsg(res.msg || 'Guardado.', true);
+            $('form').reset();
+            car.classList.remove('is-off');
+            setTimeout(function () { google.script.host.close(); }, 1200);
+          })
+          .withFailureHandler(function (e) {
+            btn.disabled = false;
+            showMsg(e.message || String(e), false);
+          })
+          .formNovoCliente(payload);
+      });
+    </script>
+  </body>
+</html>

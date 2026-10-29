@@ -1,5 +1,0 @@
-chave,valor,nota
-pontos_por_euro,1,Cliente: 1 euro gasto = 1 ponto
-custo_por_ponto_eur,0.05,Oficina: cada ponto resgatado custa ~0.05 € (meta 5% do gasto)
-meta_custo_percentagem,5,Meta de custo do programa em % do que o cliente gasta
-pontos_por_indicacao,300,Pontos por trazer um cliente novo (= 15 € de custo à meta de 5%)
