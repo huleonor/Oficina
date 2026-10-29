@@ -16,7 +16,7 @@ Não abras Clientes / Carros / Movimentos para registar.
 
 | O que fazer | O que aparece |
 | --- | --- |
-| Novo cliente | Nome + Telemóvel + Matrícula + Marca + Modelo |
+| Novo cliente | Nome + Telemóvel + Matrícula + Marca + Modelo + **Indicação** (opcional: sim/não + quem) |
 | Novo carro | **Pesquisar** (filtra a lista) + **Cliente** + Matrícula + Marca + Modelo |
 | Gasto | **Pesquisar** + **Cliente** + **Tipo de gasto** + Valor € + Matrícula (opcional) |
 

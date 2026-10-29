@@ -27,8 +27,10 @@ var ENT = {
   f3: 'B9', // Matrícula | Tipo de gasto
   f4: 'B10', // Marca | Valor €
   f5: 'B11', // Modelo | Matrícula opcional
-  guardar: 'B13',
-  resultado: 'B15',
+  f6: 'B13', // Veio por indicação? (só Novo cliente)
+  f7: 'B14', // Quem indicou (lista, opcional)
+  guardar: 'B16',
+  resultado: 'B18',
 };
 
 var TIPOS_GASTO = ['Serviço', 'Peças', 'Diagnóstico', 'Outro'];
@@ -253,7 +255,7 @@ function montarEntrada_(ss) {
         .build(),
     );
 
-  sh.getRange('A13')
+  sh.getRange('A16')
     .setValue('GUARDAR')
     .setFontWeight('bold')
     .setFontSize(13)
@@ -262,10 +264,10 @@ function montarEntrada_(ss) {
     .setValue('')
     .setBackground('#fff3b0')
     .setBorder(true, true, true, true, false, false, '#1b7471', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  sh.getRange('C13').setValue('← escreve SIM e Enter').setFontColor('#1b7471').setFontWeight('bold');
+  sh.getRange('C16').setValue('← escreve SIM e Enter').setFontColor('#1b7471').setFontWeight('bold');
 
-  sh.getRange('A15').setValue('Resultado').setFontWeight('bold').setFontColor('#4a4f63');
-  sh.getRange('B15:C15').merge().setValue('').setWrap(true);
+  sh.getRange('A18').setValue('Resultado').setFontWeight('bold').setFontColor('#4a4f63');
+  sh.getRange('B18:C18').merge().setValue('').setWrap(true);
 
   actualizarFormularioEntrada_(sh);
   return sh;
@@ -292,10 +294,12 @@ function actualizarFormularioEntrada_(sh, opt) {
     f3: sh.getRange(ENT.f3).getValue(),
     f4: sh.getRange(ENT.f4).getValue(),
     f5: sh.getRange(ENT.f5).getValue(),
+    f6: sh.getRange(ENT.f6).getValue(),
+    f7: sh.getRange(ENT.f7).getValue(),
   };
 
-  sh.getRange('A5:C11').clearContent().clearDataValidations().clearFormat();
-  sh.getRange('A5:C11').setBackground(null);
+  sh.getRange('A5:C14').clearContent().clearDataValidations().clearFormat();
+  sh.getRange('A5:C14').setBackground(null);
 
   var amarelo = function (a1) {
     sh.getRange(a1)
@@ -368,7 +372,7 @@ function actualizarFormularioEntrada_(sh, opt) {
   }
 
   // Novo cliente
-  hint('Novo cliente — preenche a pessoa e o carro. No fim, Guardar → SIM.');
+  hint('Novo cliente — pessoa + carro. Indicação é opcional. No fim, Guardar → SIM.');
   label(5, '① Pessoa', '#1b7471');
   label(6, 'Nome');
   amarelo(ENT.f1);
@@ -386,15 +390,38 @@ function actualizarFormularioEntrada_(sh, opt) {
   label(11, 'Modelo');
   amarelo(ENT.f5);
   sh.getRange(ENT.f5).setValue(valoresGuardados.f5);
+  label(12, '③ Indicação (opcional)', '#1b7471');
+  label(13, 'Veio por indicação?');
+  amarelo(ENT.f6);
+  sh.getRange(ENT.f6)
+    .setDataValidation(
+      SpreadsheetApp.newDataValidation()
+        .requireValueInList(['não', 'sim'], true)
+        .setAllowInvalid(false)
+        .build(),
+    )
+    .setValue(valoresGuardados.f6 || 'não');
+  sh.getRange('C13').setValue('se for sim, escolhe quem indicou em baixo').setFontColor('#4a4f63');
+  label(14, 'Quem indicou');
+  amarelo(ENT.f7);
+  var veioPorIndicacao = sim_(valoresGuardados.f6 || 'não');
+  if (veioPorIndicacao) {
+    aplicarListaClientes_(sh, ENT.f7, '', 'C14');
+    if (valoresGuardados.f7) sh.getRange(ENT.f7).setValue(valoresGuardados.f7);
+  } else {
+    sh.getRange(ENT.f7).setValue('').clearDataValidations();
+    sh.getRange('C14').setValue('só aparece lista se em cima for «sim»').setFontColor('#4a4f63');
+  }
   sh.getRange(ENT.f1).activate();
 }
 
-function aplicarListaClientes_(sh, a1, filtro) {
+function aplicarListaClientes_(sh, a1, filtro, hintA1) {
+  hintA1 = hintA1 || 'C7';
   var lista = listaClientesRotulos_(filtro);
   var cell = sh.getRange(a1);
   cell.clearDataValidations();
   if (!lista.length) {
-    sh.getRange('C7').setValue('nenhum cliente — cria primeiro um «Novo cliente»').setFontColor('#a12828');
+    sh.getRange(hintA1).setValue('nenhum cliente — cria primeiro um «Novo cliente»').setFontColor('#a12828');
     return;
   }
   cell.setDataValidation(
@@ -402,7 +429,9 @@ function aplicarListaClientes_(sh, a1, filtro) {
   );
   var actual = String(cell.getValue() || '').trim();
   if (!actual || lista.indexOf(actual) < 0) cell.setValue(lista[0]);
-  sh.getRange('C7').setValue(lista.length + ' cliente(s) — abre a seta ou muda a pesquisa').setFontColor('#4a4f63');
+  sh.getRange(hintA1)
+    .setValue(lista.length + ' cliente(s) — abre a seta ou muda a pesquisa')
+    .setFontColor('#4a4f63');
 }
 
 function semAcentos_(s) {
@@ -445,7 +474,7 @@ function telDoRotuloCliente_(rotulo) {
 }
 
 function limparEntrada_(sh) {
-  [ENT.f1, ENT.f2, ENT.f3, ENT.f4, ENT.f5, ENT.guardar].forEach(function (a1) {
+  [ENT.f1, ENT.f2, ENT.f3, ENT.f4, ENT.f5, ENT.f6, ENT.f7, ENT.guardar].forEach(function (a1) {
     sh.getRange(a1).setValue('');
   });
   actualizarFormularioEntrada_(sh);
@@ -458,9 +487,23 @@ function processarEntrada_(sh) {
   var f3 = String(sh.getRange(ENT.f3).getValue() || '').trim();
   var f4 = String(sh.getRange(ENT.f4).getValue() || '').trim();
   var f5 = String(sh.getRange(ENT.f5).getValue() || '').trim();
+  var f6 = String(sh.getRange(ENT.f6).getValue() || '').trim();
+  var f7 = String(sh.getRange(ENT.f7).getValue() || '').trim();
   var res;
 
   if (accao === 'Novo cliente') {
+    var quemIndicou = '';
+    if (sim_(f6)) {
+      quemIndicou = telDoRotuloCliente_(f7);
+      if (!quemIndicou) {
+        res = { ok: false, erro: 'Se veio por indicação, escolhe quem indicou.' };
+        sh.getRange(ENT.guardar).setValue('');
+        sh.getRange(ENT.resultado)
+          .setValue('✗ ' + res.erro)
+          .setFontColor('#a12828');
+        return;
+      }
+    }
     res = formNovoCliente({
       nome: f1,
       telemovel: f2,
@@ -469,6 +512,7 @@ function processarEntrada_(sh) {
       modelo: f5,
       ano: '',
       nota: '',
+      quemIndicou: quemIndicou,
     });
   } else if (accao === 'Novo carro') {
     res = formNovoCarro({
@@ -543,21 +587,45 @@ function formNovoCliente(p) {
   var ss = ss_();
   var tel = normalizarTel_(p.telemovel || '');
   var nome = String(p.nome || '').trim();
+  var quem = normalizarTel_(p.quemIndicou || '');
   if (!tel || tel.length < 9) return { ok: false, erro: 'Telemóvel inválido.' };
   if (!nome) return { ok: false, erro: 'Indique o nome.' };
   if (acharCliente_(ss, tel)) return { ok: false, erro: 'Já existe um cliente com este telemóvel.' };
+  if (quem) {
+    if (!acharCliente_(ss, quem)) return { ok: false, erro: 'Quem indicou não está em Clientes.' };
+    if (quem === tel) return { ok: false, erro: 'Quem indicou não pode ser o próprio cliente.' };
+  }
 
-  append_(ss, FOLHAS.clientes, { telemovel: tel, nome: nome, ativo: 'sim', nota: String(p.nota || '').trim() });
+  var nota = String(p.nota || '').trim();
+  if (quem) nota = (nota ? nota + ' · ' : '') + 'indicado por ' + quem;
+  append_(ss, FOLHAS.clientes, { telemovel: tel, nome: nome, ativo: 'sim', nota: nota });
 
   var mat = String(p.matricula || '').trim().toUpperCase();
+  var msg;
   if (mat) {
     if (!String(p.marca || '').trim() || !String(p.modelo || '').trim()) {
       return { ok: false, erro: 'Com matrícula, indique marca e modelo.' };
     }
     append_(ss, FOLHAS.carros, novoCarroCampos_(tel, mat, p));
-    return { ok: true, msg: 'Cliente ' + nome + ' + carro ' + mat + ' criados. Cronómetro a contar.' };
+    msg = 'Cliente ' + nome + ' + carro ' + mat + ' criados. Cronómetro a contar.';
+  } else {
+    msg = 'Cliente ' + nome + ' criado. Pode acrescentar o carro depois.';
   }
-  return { ok: true, msg: 'Cliente ' + nome + ' criado. Pode acrescentar o carro depois.' };
+
+  if (quem) {
+    var pts = REGRAS.pontosPorIndicacao;
+    append_(ss, FOLHAS.movimentos, {
+      data: hoje_(),
+      telemovel: quem,
+      tipo: 'indicacao',
+      valor_eur: '',
+      pontos: pts,
+      matricula: '',
+      nota: 'trouxe ' + tel + ' ' + nome,
+    });
+    msg += ' Indicação: +' + pts + ' pts a quem trouxe.';
+  }
+  return { ok: true, msg: msg };
 }
 
 function formNovoCarro(p) {
@@ -739,7 +807,7 @@ function onEdit(e) {
     var cel = e.range.getA1Notation();
     if (cel === ENT.accao) {
       // Mudou «O que fazer?» → limpa campos e redesenha.
-      [ENT.f1, ENT.f2, ENT.f3, ENT.f4, ENT.f5, ENT.guardar].forEach(function (a1) {
+      [ENT.f1, ENT.f2, ENT.f3, ENT.f4, ENT.f5, ENT.f6, ENT.f7, ENT.guardar].forEach(function (a1) {
         sh.getRange(a1).setValue('');
       });
       sh.getRange(ENT.resultado).setValue('');
@@ -751,6 +819,13 @@ function onEdit(e) {
       var accao = String(sh.getRange(ENT.accao).getValue() || '').trim();
       if (accao === 'Novo carro' || accao === 'Gasto') {
         actualizarFormularioEntrada_(sh, { soLista: true });
+      }
+      return;
+    }
+    if (cel === ENT.f6) {
+      // Ligou / desligou indicação no Novo cliente.
+      if (String(sh.getRange(ENT.accao).getValue() || '').trim() === 'Novo cliente') {
+        actualizarFormularioEntrada_(sh);
       }
       return;
     }
