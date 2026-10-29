@@ -1,24 +1,18 @@
 # Protótipo INOVACAR — operação
 
-Protótipo para mostrar: **tabelas**, sem formulário Entrada.
+Uma folha só: **Pontos**.
 
-## Fluxo
-
-1. **Clientes** — regista a pessoa (`telemovel`, `nome`). A coluna `pontos` actualiza sozinha.
-2. **Carros** — se tiver carro, uma linha com a mesma `telemovel`.
-3. **Movimentos** — cada gasto / indicação / resgate = uma linha nova.
-
-| tipo | O que escrever | Pontos |
+| Lado | Colunas | O que fazes |
 | --- | --- | --- |
-| gasto | `valor_eur` | = euros |
-| indicacao | no telemóvel de quem trouxe | +300 |
-| resgate | `nota` = id do prémio (ou pontos negativos) | negativo |
-| ajuste | `pontos` à mão | o que escrever |
+| Esquerda — CLIENTES | `telemovel`, `nome`, `pontos` | Pontos **à mão** (editas a célula) |
+| Direita — GASTOS | `data`, `telemovel`, `valor_eur`, `nota` | Cada gasto = **uma linha nova** |
+
+Sem carros. Sem cálculo automático de pontos.
 
 ## Site
 
-O cliente mete **só o telemóvel**. O site devolve saldo + movimentos (mesmos dados destas folhas).
+O cliente mete o telemóvel → vê o saldo (coluna pontos) e a lista de gastos.
 
 ## Menu
 
-**Pontos INOVACAR → Preparar protótipo** (cria folhas + exemplos) · **Recalcular pontos**.
+**Pontos INOVACAR → Preparar protótipo** (limpa a folha e põe Ana / Bruno de exemplo).

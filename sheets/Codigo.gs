@@ -1,31 +1,19 @@
 /**
- * INOVACAR — protótipo de pontos (Apps Script).
+ * INOVACAR — protótipo numa folha só.
  *
- * Dia a dia (fácil de testar):
- *   1. Folha «Clientes» — uma linha = uma pessoa (vê os pontos)
- *   2. Folha «Carros»   — uma linha = um carro (liga pelo telemóvel)
- *   3. Folha «Movimentos» — uma linha = um gasto / indicação / resgate
+ * Folha «Pontos»:
+ *   Esquerda  — clientes (telemovel, nome, pontos) → pontos editam-se à mão
+ *   Direita   — gastos (data, telemovel, valor_eur, nota) → cada gasto = linha nova
  *
- * Site: Web App POST { telemovel } → saldo + movimentos
- * Regras: 1 € = 1 pt · indicação = 300 pts
+ * Site: POST { telemovel } → saldo (coluna pontos) + lista de gastos
  */
 
 var SPREADSHEET_ID = '1Y4kAFBR1wPxucrGMxHn6jyOFDQi50SGtrAhb7XHWlFs';
+var FOLHA = 'Pontos';
 
-var FOLHAS = {
-  demo: 'Demo',
-  clientes: 'Clientes',
-  carros: 'Carros',
-  movimentos: 'Movimentos',
-  premios: 'Premios',
-};
-
-var REGRAS = {
-  pontosPorEuro: 1,
-  pontosPorIndicacao: 300,
-  custoPorPontoEur: 0.05,
-  metaCustoPercentagem: 5,
-};
+// Clientes: colunas A–C · Gastos: colunas E–H
+var CLI = { inicio: 1, cols: ['telemovel', 'nome', 'pontos'] };
+var GAS = { inicio: 5, cols: ['data', 'telemovel', 'valor_eur', 'nota'] };
 
 function ss_() {
   try {
@@ -34,8 +22,6 @@ function ss_() {
   } catch (err) {}
   return SpreadsheetApp.openById(SPREADSHEET_ID);
 }
-
-/* ========== Web App (site) ========== */
 
 function doGet() {
   return json_({ ok: true, servico: 'inovacar-pontos', metodo: 'POST' });
@@ -50,26 +36,17 @@ function doPost(e) {
     var tel = normalizarTel_(body.telemovel || '');
     if (!tel || tel.length < 9) return json_({ ok: false, erro: 'telemovel_invalido' });
 
-    var ss = ss_();
-    var cliente = acharCliente_(ss, tel);
+    var sh = folha_();
+    var cliente = acharCliente_(sh, tel);
     if (!cliente) return json_({ ok: false, erro: 'nao_encontrado' });
-
-    var movs = movimentosDo_(ss, tel);
-    var saldo = 0;
-    for (var i = 0; i < movs.length; i++) saldo += movs[i].pontos;
 
     return json_({
       ok: true,
       nome: primeiroNome_(cliente.nome),
-      saldo: saldo,
-      movimentos: movs,
-      premios: premiosActivos_(ss),
-      regras: {
-        pontosPorEuro: REGRAS.pontosPorEuro,
-        pontosPorIndicacao: REGRAS.pontosPorIndicacao,
-        custoPorPontoEur: REGRAS.custoPorPontoEur,
-        metaCustoPercentagem: REGRAS.metaCustoPercentagem,
-      },
+      saldo: Number(cliente.pontos) || 0,
+      movimentos: gastosDo_(sh, tel),
+      premios: null,
+      regras: { pontosAMao: true },
     });
   } catch (err) {
     return json_({ ok: false, erro: 'servidor', detalhe: String(err) });
@@ -88,517 +65,159 @@ function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Pontos INOVACAR')
     .addItem('Preparar protótipo', 'prepararFolha')
-    .addItem('Recalcular pontos', 'recalcularPontos')
-    .addItem('Ir a Clientes', 'irClientes')
     .addToUi();
 }
 
-function irClientes() {
-  var ss = ss_();
-  var sh = ss.getSheetByName(FOLHAS.clientes) || montarClientes_(ss);
-  ss.setActiveSheet(sh);
-}
-
 /**
- * Monta folhas limpas + dados de exemplo para demonstrar em 30 s.
+ * Uma folha limpa + 2 clientes + alguns gastos de exemplo.
  */
 function prepararFolha() {
   var ss = ss_();
-
-  // Já não usamos a Entrada — esconde se existir.
-  var antiga = ss.getSheetByName('Entrada');
-  if (antiga) {
-    try {
-      antiga.hideSheet();
-    } catch (err) {}
-  }
-
-  montarDemo_(ss);
-  reiniciarFolha_(ss, FOLHAS.clientes, ['telemovel', 'nome', 'pontos', 'indicado_por', 'ativo', 'nota']);
-  reiniciarFolha_(ss, FOLHAS.carros, ['matricula', 'telemovel', 'marca', 'modelo', 'ano']);
-  reiniciarFolha_(ss, FOLHAS.movimentos, ['data', 'telemovel', 'tipo', 'valor_eur', 'pontos', 'matricula', 'nota']);
-  reiniciarFolha_(ss, FOLHAS.premios, ['id', 'nome', 'pontos', 'activo', 'descricao']);
-  montarClientes_(ss);
-  montarCarros_(ss);
-  montarMovimentos_(ss);
-  montarPremios_(ss);
-  semearDemo_(ss);
-  actualizarSaldos_(ss);
-
+  var sh = ss.getSheetByName(FOLHA);
+  if (!sh) sh = ss.insertSheet(FOLHA, 0);
+  ss.setActiveSheet(sh);
   try {
-    SpreadsheetApp.getUi().alert(
-      'Protótipo pronto.\n\n' +
-        '1) Abre «Clientes» — cada linha é uma pessoa (coluna pontos).\n' +
-        '2) Em «Movimentos» acrescenta um gasto (telemovel + tipo=gasto + valor_eur).\n' +
-        '3) Os pontos actualizam sozinhos.\n' +
-        '4) No site, consulta com o telemóvel (ex. 934000001).',
-    );
-  } catch (err) {
-    Logger.log('Protótipo preparado.');
-  }
-}
-
-function montarDemo_(ss) {
-  var sh = ss.getSheetByName(FOLHAS.demo);
-  if (!sh) sh = ss.insertSheet(FOLHAS.demo, 0);
-  try {
-    ss.setActiveSheet(sh);
     ss.moveActiveSheet(1);
   } catch (err) {}
 
+  // Esconde o resto — o protótipo vive só aqui.
+  ss.getSheets().forEach(function (outra) {
+    if (outra.getName() === FOLHA) return;
+    try {
+      outra.hideSheet();
+    } catch (err2) {}
+  });
+
   sh.clear();
-  sh.setHiddenGridlines(true);
-  sh.setColumnWidth(1, 640);
+  sh.setHiddenGridlines(false);
+  sh.setColumnWidths(1, 3, 140);
+  sh.setColumnWidth(4, 24);
+  sh.setColumnWidths(5, 4, 130);
+  sh.setColumnWidth(7, 100);
+  sh.setColumnWidth(8, 200);
+
+  // Título
   sh.getRange('A1')
-    .setValue('INOVACAR — protótipo (fácil de testar)')
+    .setValue('CLIENTES (pontos à mão)')
     .setFontWeight('bold')
-    .setFontSize(16)
+    .setFontSize(12)
     .setFontColor('#ffffff')
     .setBackground('#1b7471');
-  sh.setRowHeight(1, 40);
-  sh.getRange('A3').setValue('Como testar em 30 segundos').setFontWeight('bold').setFontSize(13);
-  sh.getRange('A5').setValue(
-    '1. Abre a folha «Clientes» — já há 2 pessoas de exemplo (Ana e Bruno).\n' +
-      '2. Vê a coluna «pontos» (saldo de cada um).\n' +
-      '3. Abre «Movimentos» e acrescenta uma linha:\n' +
-      '      data = hoje · telemovel = 934000001 · tipo = gasto · valor_eur = 50\n' +
-      '4. Volta a «Clientes» — os pontos da Ana sobem (+50).\n' +
-      '5. No site da oficina, consulta pontos com 934000001.\n\n' +
-      'Indicação: em Movimentos põe tipo = indicacao no telemóvel de quem trouxe (+300 pts).\n' +
-      'Carro novo: uma linha em «Carros» com a mesma telemovel do dono.',
-  );
-  sh.getRange('A5').setWrap(true);
-  sh.setRowHeight(5, 180);
-  sh.getRange('A7')
-    .setValue('Números de teste: 934000001 (Ana) · 934000002 (Bruno)')
-    .setFontColor('#4a4f63');
-  return sh;
-}
+  sh.getRange('A1:C1').merge();
+  sh.getRange('E1')
+    .setValue('GASTOS (cada linha = dinheiro gasto)')
+    .setFontWeight('bold')
+    .setFontSize(12)
+    .setFontColor('#ffffff')
+    .setBackground('#1b7471');
+  sh.getRange('E1:H1').merge();
 
-function montarClientes_(ss) {
-  var headers = ['telemovel', 'nome', 'pontos', 'indicado_por', 'ativo', 'nota'];
-  garantir_(ss, FOLHAS.clientes, headers);
-  var sh = ss.getSheetByName(FOLHAS.clientes);
-  sh.getRange(1, 1, 1, headers.length)
+  // Cabeçalhos
+  sh.getRange(2, CLI.inicio, 1, CLI.cols.length)
+    .setValues([CLI.cols])
     .setFontWeight('bold')
     .setBackground('#e7f6f5');
-  var iAtivo = col_(sh, 'ativo');
-  if (iAtivo >= 0) {
-    sh.getRange(2, iAtivo + 1, Math.max(sh.getMaxRows() - 1, 1), 1).setDataValidation(
-      SpreadsheetApp.newDataValidation()
-        .requireValueInList(['sim', 'nao'], true)
-        .setAllowInvalid(false)
-        .build(),
-    );
-  }
-  // pontos é calculado — fundo cinza claro
-  var iPts = col_(sh, 'pontos');
-  if (iPts >= 0) {
-    sh.getRange(2, iPts + 1, Math.max(sh.getMaxRows() - 1, 1), 1).setBackground('#f4f6f6');
-  }
-  return sh;
-}
+  sh.getRange(2, GAS.inicio, 1, GAS.cols.length)
+    .setValues([GAS.cols])
+    .setFontWeight('bold')
+    .setBackground('#e7f6f5');
 
-function montarCarros_(ss) {
-  var headers = ['matricula', 'telemovel', 'marca', 'modelo', 'ano'];
-  garantir_(ss, FOLHAS.carros, headers);
-  var sh = ss.getSheetByName(FOLHAS.carros);
-  sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#e7f6f5');
-  return sh;
-}
+  // Exemplos — pontos à mão (não calculados)
+  sh.getRange(3, CLI.inicio, 2, CLI.cols.length).setValues([
+    ['934000001', 'Ana Sousa', 420],
+    ['934000002', 'Bruno Martins', 50],
+  ]);
 
-function montarMovimentos_(ss) {
-  var headers = ['data', 'telemovel', 'tipo', 'valor_eur', 'pontos', 'matricula', 'nota'];
-  garantir_(ss, FOLHAS.movimentos, headers);
-  var sh = ss.getSheetByName(FOLHAS.movimentos);
-  sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#e7f6f5');
-  var iTipo = col_(sh, 'tipo');
-  if (iTipo >= 0) {
-    sh.getRange(2, iTipo + 1, Math.max(sh.getMaxRows() - 1, 1), 1).setDataValidation(
-      SpreadsheetApp.newDataValidation()
-        .requireValueInList(['gasto', 'indicacao', 'resgate', 'ajuste'], true)
-        .setAllowInvalid(false)
-        .build(),
-    );
-  }
-  return sh;
-}
+  var hoje = hoje_();
+  sh.getRange(3, GAS.inicio, 3, GAS.cols.length).setValues([
+    [hoje, '934000001', 120, 'revisão'],
+    [hoje, '934000001', 300, 'indicação (registo)'],
+    [hoje, '934000002', 50, 'óleo'],
+  ]);
 
-function montarPremios_(ss) {
-  var headers = ['id', 'nome', 'pontos', 'activo', 'descricao'];
-  garantir_(ss, FOLHAS.premios, headers);
-  var sh = ss.getSheetByName(FOLHAS.premios);
-  sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#e7f6f5');
-  return sh;
-}
+  sh.getRange('A12')
+    .setValue(
+      'Como testar: 1) muda os pontos da Ana à mão · 2) em GASTOS acrescenta uma linha (telemovel + valor_eur) · 3) no site consulta 934000001',
+    )
+    .setFontColor('#4a4f63')
+    .setWrap(true);
+  sh.getRange('A12:H12').merge();
 
-/** Apaga a folha e põe só o cabeçalho — «Preparar protótipo» fica limpo para mostrar. */
-function reiniciarFolha_(ss, nome, headers) {
-  var sh = ss.getSheetByName(nome);
-  if (!sh) sh = ss.insertSheet(nome);
-  sh.clear();
-  sh.getRange(1, 1, 1, headers.length).setValues([headers]);
-}
-
-/** Dados de exemplo (sempre, depois de reiniciar). */
-function semearDemo_(ss) {
-  append_(ss, FOLHAS.clientes, {
-    telemovel: '934000001',
-    nome: 'Ana Sousa',
-    pontos: 0,
-    indicado_por: '',
-    ativo: 'sim',
-    nota: 'exemplo',
-  });
-  append_(ss, FOLHAS.clientes, {
-    telemovel: '934000002',
-    nome: 'Bruno Martins',
-    pontos: 0,
-    indicado_por: '934000001',
-    ativo: 'sim',
-    nota: 'exemplo — indicado pela Ana',
-  });
-
-  append_(ss, FOLHAS.carros, {
-    matricula: 'AA-00-BB',
-    telemovel: '934000001',
-    marca: 'VW',
-    modelo: 'Golf',
-    ano: 2018,
-  });
-  append_(ss, FOLHAS.carros, {
-    matricula: 'EE-22-FF',
-    telemovel: '934000002',
-    marca: 'Renault',
-    modelo: 'Clio',
-    ano: 2020,
-  });
-
-  append_(ss, FOLHAS.movimentos, {
-    data: hoje_(),
-    telemovel: '934000001',
-    tipo: 'gasto',
-    valor_eur: 120,
-    pontos: 120,
-    matricula: 'AA-00-BB',
-    nota: 'revisão (exemplo)',
-  });
-  append_(ss, FOLHAS.movimentos, {
-    data: hoje_(),
-    telemovel: '934000001',
-    tipo: 'indicacao',
-    valor_eur: '',
-    pontos: REGRAS.pontosPorIndicacao,
-    matricula: '',
-    nota: 'trouxe 934000002 Bruno Martins',
-  });
-  append_(ss, FOLHAS.movimentos, {
-    data: hoje_(),
-    telemovel: '934000002',
-    tipo: 'gasto',
-    valor_eur: 50,
-    pontos: 50,
-    matricula: 'EE-22-FF',
-    nota: 'óleo (exemplo)',
-  });
-
-  append_(ss, FOLHAS.premios, {
-    id: 'lavagem',
-    nome: 'Lavagem exterior',
-    pontos: 100,
-    activo: 'sim',
-    descricao: 'Lavagem exterior do veículo',
-  });
-  append_(ss, FOLHAS.premios, {
-    id: 'desconto10',
-    nome: 'Desconto 10 €',
-    pontos: 200,
-    activo: 'sim',
-    descricao: 'Desconto de 10 euros na próxima fatura',
-  });
-}
-
-/* ========== Pontos ========== */
-
-function recalcularPontos() {
-  var ss = ss_();
-  var sh = ss.getSheetByName(FOLHAS.movimentos);
-  if (!sh) return;
-  var data = sh.getDataRange().getValues();
-  if (data.length < 2) return;
-  var h = data[0].map(function (x) {
-    return String(x).trim().toLowerCase();
-  });
-  var iTipo = h.indexOf('tipo');
-  var iValor = h.indexOf('valor_eur');
-  var iPts = h.indexOf('pontos');
-  var iNota = h.indexOf('nota');
-  if (iPts < 0) return;
-  var premios = mapaPremios_(ss);
-  for (var r = 1; r < data.length; r++) {
-    var row = data[r];
-    if (linhaVazia_(row)) continue;
-    var pts = calcularPontos_(
-      String(row[iTipo] || '').trim().toLowerCase(),
-      row[iValor],
-      row[iPts],
-      iNota >= 0 ? row[iNota] : '',
-      premios,
-    );
-    if (pts !== '' && pts !== row[iPts]) sh.getRange(r + 1, iPts + 1).setValue(pts);
-  }
-  actualizarSaldos_(ss);
   try {
-    SpreadsheetApp.getUi().alert('Pontos e saldos actualizados.');
-  } catch (err) {
-    Logger.log('Pontos recalculados.');
-  }
-}
-
-/** Escreve o saldo em Clientes!pontos (soma dos movimentos). */
-function actualizarSaldos_(ss) {
-  var cli = ss.getSheetByName(FOLHAS.clientes);
-  if (!cli || cli.getLastRow() < 2) return;
-  var iTel = col_(cli, 'telemovel');
-  var iPts = col_(cli, 'pontos');
-  if (iTel < 0 || iPts < 0) return;
-
-  var saldos = {};
-  valores_(ss, FOLHAS.movimentos).forEach(function (r) {
-    var t = normalizarTel_(r.telemovel);
-    if (!t) return;
-    var pts = calcularPontos_(
-      String(r.tipo || '').trim().toLowerCase(),
-      r.valor_eur,
-      r.pontos,
-      r.nota,
-      mapaPremios_(ss),
+    SpreadsheetApp.getUi().alert(
+      'Protótipo numa folha só.\n\n' +
+        'Esquerda: clientes — edita a coluna pontos à mão.\n' +
+        'Direita: gastos — cada gasto é uma linha nova.\n\n' +
+        'Consulta no site: 934000001',
     );
-    if (pts === '') pts = 0;
-    saldos[t] = (saldos[t] || 0) + (Number(pts) || 0);
-  });
-
-  var n = cli.getLastRow() - 1;
-  var tels = cli.getRange(2, iTel + 1, n, 1).getValues();
-  var out = tels.map(function (row) {
-    var t = normalizarTel_(row[0]);
-    return [t ? saldos[t] || 0 : 0];
-  });
-  cli.getRange(2, iPts + 1, n, 1).setValues(out).setBackground('#f4f6f6');
+  } catch (err3) {
+    Logger.log('Protótipo preparado (uma folha).');
+  }
 }
 
-function onEdit(e) {
-  if (!e || !e.range) return;
-  var sh = e.range.getSheet();
-  if (sh.getName() !== FOLHAS.movimentos) return;
-  var row = e.range.getRow();
-  if (row < 2) return;
+/* ========== Leitura ========== */
 
-  var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (x) {
-    return String(x).trim().toLowerCase();
-  });
-  var iTipo = headers.indexOf('tipo');
-  var iValor = headers.indexOf('valor_eur');
-  var iPts = headers.indexOf('pontos');
-  var iNota = headers.indexOf('nota');
-  var iData = headers.indexOf('data');
-  if (iPts < 0) return;
-
-  // Data por omissão = hoje
-  if (iData >= 0 && !sh.getRange(row, iData + 1).getValue()) {
-    sh.getRange(row, iData + 1).setValue(hoje_());
-  }
-
-  var vals = sh.getRange(row, 1, 1, headers.length).getValues()[0];
-  var pts = calcularPontos_(
-    String(vals[iTipo] || '').trim().toLowerCase(),
-    vals[iValor],
-    vals[iPts],
-    iNota >= 0 ? vals[iNota] : '',
-    mapaPremios_(ss_()),
-  );
-  if (pts !== '' && pts !== vals[iPts]) sh.getRange(row, iPts + 1).setValue(pts);
-  actualizarSaldos_(ss_());
-}
-
-function calcularPontos_(tipo, valorEur, ptsCelula, nota, premios) {
-  if (tipo === 'gasto') {
-    var v = Number(valorEur);
-    return v > 0 ? arred_(v * REGRAS.pontosPorEuro) : numOuVazio_(ptsCelula);
-  }
-  if (tipo === 'indicacao') return REGRAS.pontosPorIndicacao;
-  if (tipo === 'resgate') {
-    var n = Number(ptsCelula);
-    if (n < 0) return arred_(n);
-    var id = String(nota || '').trim();
-    if (premios[id]) return -Math.abs(Number(premios[id].pontos) || 0);
-    return n > 0 ? -arred_(n) : '';
-  }
-  if (tipo === 'ajuste') return numOuVazio_(ptsCelula);
-  return numOuVazio_(ptsCelula);
-}
-
-/* ========== Helpers ========== */
-
-function garantir_(ss, nome, headers) {
-  var sh = ss.getSheetByName(nome);
-  if (!sh) sh = ss.insertSheet(nome);
-  if (sh.getLastRow() === 0) {
-    sh.getRange(1, 1, 1, headers.length).setValues([headers]);
-    return;
-  }
-  var actual = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (x) {
-    return String(x).trim().toLowerCase();
-  });
-  // Se a 1.ª linha não parece cabeçalho (ex. folha antiga), reescreve.
-  if (actual.indexOf(headers[0]) < 0 && sh.getLastRow() <= 1) {
-    sh.clear();
-    sh.getRange(1, 1, 1, headers.length).setValues([headers]);
-    return;
-  }
-  headers.forEach(function (h) {
-    if (actual.indexOf(h) < 0) {
-      var col = sh.getLastColumn() + 1;
-      sh.getRange(1, col).setValue(h);
-      actual.push(h);
-    }
-  });
-}
-
-function col_(sh, nome) {
-  if (!sh || sh.getLastColumn() < 1) return -1;
-  var h = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
-  for (var i = 0; i < h.length; i++) {
-    if (String(h[i]).trim().toLowerCase() === nome) return i;
-  }
-  return -1;
-}
-
-function append_(ss, sheetName, obj) {
-  var sh = ss.getSheetByName(sheetName);
+function folha_() {
+  var ss = ss_();
+  var sh = ss.getSheetByName(FOLHA);
   if (!sh) {
-    garantir_(ss, sheetName, Object.keys(obj));
-    sh = ss.getSheetByName(sheetName);
+    prepararFolha();
+    sh = ss.getSheetByName(FOLHA);
   }
-  var headers = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(function (x) {
-    return String(x).trim().toLowerCase();
-  });
-  var row = headers.map(function (h) {
-    return obj[h] != null ? obj[h] : '';
-  });
-  sh.appendRow(row);
+  return sh;
 }
 
-function valores_(ss, name) {
-  var sh = ss.getSheetByName(name);
-  if (!sh || sh.getLastRow() < 2) return [];
-  var data = sh.getDataRange().getValues();
-  var h = data[0].map(function (x) {
-    return String(x).trim().toLowerCase();
-  });
-  var out = [];
-  for (var r = 1; r < data.length; r++) {
-    if (linhaVazia_(data[r])) continue;
-    var obj = {};
-    for (var c = 0; c < h.length; c++) obj[h[c]] = data[r][c];
-    out.push(obj);
-  }
-  return out;
-}
-
-function acharCliente_(ss, tel) {
-  var rows = valores_(ss, FOLHAS.clientes);
-  for (var i = 0; i < rows.length; i++) {
-    if (normalizarTel_(rows[i].telemovel) === tel && sim_(rows[i].ativo == null ? 'sim' : rows[i].ativo)) {
-      return { telemovel: tel, nome: String(rows[i].nome || '').trim() };
+function acharCliente_(sh, tel) {
+  var last = Math.max(sh.getLastRow(), 2);
+  var valores = sh.getRange(3, CLI.inicio, last, CLI.cols.length).getValues();
+  for (var i = 0; i < valores.length; i++) {
+    var rowTel = normalizarTel_(valores[i][0]);
+    if (!rowTel) continue;
+    if (rowTel === tel) {
+      return { telemovel: rowTel, nome: String(valores[i][1] || ''), pontos: valores[i][2] };
     }
   }
   return null;
 }
 
-function movimentosDo_(ss, tel) {
-  var premios = mapaPremios_(ss);
+function gastosDo_(sh, tel) {
+  var last = Math.max(sh.getLastRow(), 2);
+  var valores = sh.getRange(3, GAS.inicio, last, GAS.cols.length).getValues();
   var out = [];
-  valores_(ss, FOLHAS.movimentos).forEach(function (r) {
-    if (normalizarTel_(r.telemovel) !== tel) return;
-    var tipo = String(r.tipo || '').trim().toLowerCase();
-    var pts = calcularPontos_(tipo, r.valor_eur, r.pontos, r.nota, premios);
-    if (pts === '') pts = 0;
+  for (var i = 0; i < valores.length; i++) {
+    var rowTel = normalizarTel_(valores[i][1]);
+    if (rowTel !== tel) continue;
+    var valor = Number(valores[i][2]);
+    if (!valor && valores[i][2] !== 0) continue;
     out.push({
-      data: formatData_(r.data),
-      tipo: tipo,
-      valorEur: r.valor_eur === '' || r.valor_eur == null ? null : Number(r.valor_eur),
-      pontos: Number(pts) || 0,
-      nota: String(r.nota || '').trim(),
+      data: formatData_(valores[i][0]),
+      tipo: 'gasto',
+      valorEur: valor || 0,
+      pontos: 0,
+      nota: String(valores[i][3] || '') + (valor ? ' · ' + valor + ' €' : ''),
     });
-  });
-  out.sort(function (a, b) {
-    return a.data < b.data ? 1 : a.data > b.data ? -1 : 0;
-  });
-  return out;
-}
-
-function premiosActivos_(ss) {
-  return valores_(ss, FOLHAS.premios)
-    .filter(function (r) {
-      return sim_(r.activo == null ? 'sim' : r.activo) && r.id;
-    })
-    .map(function (r) {
-      return {
-        id: String(r.id).trim(),
-        nome: String(r.nome || '').trim(),
-        pontos: Number(r.pontos) || 0,
-        descricao: String(r.descricao || '').trim(),
-      };
-    });
-}
-
-function mapaPremios_(ss) {
-  var map = {};
-  premiosActivos_(ss).forEach(function (p) {
-    map[p.id] = p;
-  });
-  return map;
-}
-
-function normalizarTel_(raw) {
-  return String(raw || '').replace(/\D/g, '');
-}
-
-function sim_(v) {
-  var s = String(v == null ? '' : v)
-    .trim()
-    .toLowerCase();
-  return s === 'sim' || s === 'yes' || s === 'true' || s === '1';
-}
-
-function linhaVazia_(row) {
-  for (var i = 0; i < row.length; i++) {
-    if (row[i] !== '' && row[i] != null) return false;
   }
-  return true;
+  return out.reverse();
 }
 
-function arred_(n) {
-  return Math.round(Number(n) || 0);
-}
-
-function numOuVazio_(v) {
-  if (v === '' || v == null) return '';
-  var n = Number(v);
-  return isNaN(n) ? '' : arred_(n);
-}
-
-function hoje_() {
-  return Utilities.formatDate(new Date(), 'Europe/Lisbon', 'yyyy-MM-dd');
-}
-
-function formatData_(v) {
-  if (v instanceof Date) return Utilities.formatDate(v, 'Europe/Lisbon', 'yyyy-MM-dd');
-  return String(v || '').trim().slice(0, 10);
+function normalizarTel_(v) {
+  var s = String(v == null ? '' : v).replace(/\D/g, '');
+  if (s.indexOf('351') === 0 && s.length > 9) s = s.slice(3);
+  return s;
 }
 
 function primeiroNome_(nome) {
   var p = String(nome || '').trim().split(/\s+/)[0];
-  return p || 'Cliente';
+  return p || 'cliente';
+}
+
+function hoje_() {
+  return Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'Europe/Lisbon', 'yyyy-MM-dd');
+}
+
+function formatData_(v) {
+  if (v instanceof Date) {
+    return Utilities.formatDate(v, Session.getScriptTimeZone() || 'Europe/Lisbon', 'yyyy-MM-dd');
+  }
+  return String(v || '').slice(0, 10);
 }
