@@ -93,9 +93,10 @@ function prepararFolha() {
     .setFontWeight('bold')
     .setBackground('#e7f6f5');
 
-  sh.getRange(3, 1, 2, COLS.length).setValues([
+  sh.getRange(3, 1, 3, COLS.length).setValues([
     ['934000001', 'Ana Sousa', 420],
     ['934000002', 'Bruno Martins', 50],
+    ['928021473', 'Jorge Abrantes', 700],
   ]);
 
   sh.getRange('A6')
