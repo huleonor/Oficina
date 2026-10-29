@@ -1,39 +1,24 @@
 /**
- * INOVACAR — pontos + carros (Apps Script ligado à folha).
+ * INOVACAR — protótipo de pontos (Apps Script).
  *
- * Dia a dia: folha «Entrada» (células amarelas + escrever SIM em Guardar).
- * Folhas de dados: Clientes · Carros · Movimentos · Premios
- * Site: Web App POST { telemovel }
+ * Dia a dia (fácil de testar):
+ *   1. Folha «Clientes» — uma linha = uma pessoa (vê os pontos)
+ *   2. Folha «Carros»   — uma linha = um carro (liga pelo telemóvel)
+ *   3. Folha «Movimentos» — uma linha = um gasto / indicação / resgate
  *
+ * Site: Web App POST { telemovel } → saldo + movimentos
  * Regras: 1 € = 1 pt · indicação = 300 pts
  */
 
 var SPREADSHEET_ID = '1Y4kAFBR1wPxucrGMxHn6jyOFDQi50SGtrAhb7XHWlFs';
 
 var FOLHAS = {
-  entrada: 'Entrada',
+  demo: 'Demo',
   clientes: 'Clientes',
   carros: 'Carros',
   movimentos: 'Movimentos',
   premios: 'Premios',
 };
-
-/* Células da folha Entrada (coluna B = valores). Os rótulos mudam com a acção.
- * B8 fica livre para o título de secção «② …». */
-var ENT = {
-  accao: 'B4',
-  f1: 'B6', // Nome | Pesquisar
-  f2: 'B7', // Telemóvel | Cliente (lista)
-  f3: 'B9', // Matrícula | Tipo de gasto
-  f4: 'B10', // Marca | Valor €
-  f5: 'B11', // Modelo | Matrícula opcional
-  f6: 'B13', // Veio por indicação? (só Novo cliente)
-  f7: 'B14', // Quem indicou (lista, opcional)
-  guardar: 'B16',
-  resultado: 'B18',
-};
-
-var TIPOS_GASTO = ['Serviço', 'Peças', 'Diagnóstico', 'Outro'];
 
 var REGRAS = {
   pontosPorEuro: 1,
@@ -102,667 +87,237 @@ function json_(obj) {
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Pontos INOVACAR')
-    .addItem('Ir à folha Entrada', 'irEntrada')
-    .addSeparator()
-    .addItem('Novo cliente…', 'abrirNovoCliente')
-    .addItem('Novo carro…', 'abrirNovoCarro')
-    .addItem('Outras entradas…', 'abrirEntradaRapida')
-    .addSeparator()
-    .addItem('Preparar folha', 'prepararFolha')
+    .addItem('Preparar protótipo', 'prepararFolha')
     .addItem('Recalcular pontos', 'recalcularPontos')
+    .addItem('Ir a Clientes', 'irClientes')
     .addToUi();
 }
 
-function irEntrada() {
-  var sh = montarEntrada_(ss_());
-  ss_().setActiveSheet(sh);
-  sh.getRange(ENT.f1).activate();
-}
-
-/** Janela grande: só cliente (+ carro). O fluxo do dia a dia. */
-function abrirNovoCliente() {
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutputFromFile('NovoCliente').setWidth(440).setHeight(620),
-    'Novo cliente',
-  );
-}
-
-/** Janela grande: carro para um cliente que já existe (com pesquisa). */
-function abrirNovoCarro() {
-  SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutputFromFile('NovoCarro').setWidth(460).setHeight(640),
-    'Novo carro',
-  );
-}
-
-/** Painel lateral: gasto, indicação, resgate, chegou/pronto. */
-function abrirEntradaRapida() {
-  SpreadsheetApp.getUi().showSidebar(
-    HtmlService.createHtmlOutputFromFile('Formularios').setTitle('Outras entradas').setWidth(360),
-  );
-}
-
-function prepararFolha() {
+function irClientes() {
   var ss = ss_();
-  montarEntrada_(ss);
-  garantir_(ss, FOLHAS.clientes, ['telemovel', 'nome', 'ativo', 'nota']);
-  garantir_(ss, FOLHAS.carros, [
-    'matricula',
-    'telemovel',
-    'marca',
-    'modelo',
-    'ano',
-    'feito',
-    'entrada_em',
-    'pronto_em',
-    'duracao_min',
-  ]);
-  garantir_(ss, FOLHAS.movimentos, [
-    'data',
-    'telemovel',
-    'tipo',
-    'valor_eur',
-    'pontos',
-    'matricula',
-    'nota',
-  ]);
-  garantir_(ss, FOLHAS.premios, ['id', 'nome', 'pontos', 'activo', 'descricao']);
-
-  var mov = ss.getSheetByName(FOLHAS.movimentos);
-  var iTipo = col_(mov, 'tipo');
-  if (iTipo >= 0) {
-    mov
-      .getRange(2, iTipo + 1, Math.max(mov.getMaxRows() - 1, 1), 1)
-      .setDataValidation(
-        SpreadsheetApp.newDataValidation()
-          .requireValueInList(['gasto', 'indicacao', 'resgate', 'ajuste'], true)
-          .setAllowInvalid(false)
-          .build(),
-      );
-  }
-  var dv = SpreadsheetApp.newDataValidation()
-    .requireValueInList(['sim', 'nao'], true)
-    .setAllowInvalid(false)
-    .build();
-  var cli = ss.getSheetByName(FOLHAS.clientes);
-  var car = ss.getSheetByName(FOLHAS.carros);
-  var iAtivo = col_(cli, 'ativo');
-  var iFeito = col_(car, 'feito');
-  if (iAtivo >= 0) cli.getRange(2, iAtivo + 1, Math.max(cli.getMaxRows() - 1, 1), 1).setDataValidation(dv);
-  if (iFeito >= 0) car.getRange(2, iFeito + 1, Math.max(car.getMaxRows() - 1, 1), 1).setDataValidation(dv);
-
-  try {
-    SpreadsheetApp.getUi().alert(
-      'Folha pronta.\n\nUsa o separador «Entrada» (o primeiro):\n1) Escolhe o que fazer\n2) Preenche as células amarelas\n3) Em Guardar escreve SIM',
-    );
-  } catch (err) {
-    Logger.log('Folha preparada.');
-  }
+  var sh = ss.getSheetByName(FOLHAS.clientes) || montarClientes_(ss);
+  ss.setActiveSheet(sh);
 }
 
 /**
- * Folha «Entrada»: formulário que muda conforme «O que fazer?».
- * Células amarelas + SIM em Guardar → grava nas outras folhas.
+ * Monta folhas limpas + dados de exemplo para demonstrar em 30 s.
  */
-function montarEntrada_(ss) {
-  var sh = ss.getSheetByName(FOLHAS.entrada);
-  if (!sh) sh = ss.insertSheet(FOLHAS.entrada, 0);
-  else ss.setActiveSheet(sh);
+function prepararFolha() {
+  var ss = ss_();
+
+  // Já não usamos a Entrada — esconde se existir.
+  var antiga = ss.getSheetByName('Entrada');
+  if (antiga) {
+    try {
+      antiga.hideSheet();
+    } catch (err) {}
+  }
+
+  montarDemo_(ss);
+  montarClientes_(ss);
+  montarCarros_(ss);
+  montarMovimentos_(ss);
+  montarPremios_(ss);
+  semearDemoSeVazio_(ss);
+  actualizarSaldos_(ss);
 
   try {
+    SpreadsheetApp.getUi().alert(
+      'Protótipo pronto.\n\n' +
+        '1) Abre «Clientes» — cada linha é uma pessoa (coluna pontos).\n' +
+        '2) Em «Movimentos» acrescenta um gasto (telemovel + tipo=gasto + valor_eur).\n' +
+        '3) Os pontos actualizam sozinhos.\n' +
+        '4) No site, consulta com o telemóvel (ex. 934000001).',
+    );
+  } catch (err) {
+    Logger.log('Protótipo preparado.');
+  }
+}
+
+function montarDemo_(ss) {
+  var sh = ss.getSheetByName(FOLHAS.demo);
+  if (!sh) sh = ss.insertSheet(FOLHAS.demo, 0);
+  try {
+    ss.setActiveSheet(sh);
     ss.moveActiveSheet(1);
   } catch (err) {}
 
   sh.clear();
-  sh.clearConditionalFormatRules();
   sh.setHiddenGridlines(true);
-  sh.setColumnWidth(1, 180);
-  sh.setColumnWidth(2, 300);
-  sh.setColumnWidth(3, 340);
-  sh.setRowHeight(1, 44);
-  sh.setRowHeight(2, 28);
-
-  sh.getRange('A1:C1')
-    .merge()
-    .setValue('  ENTRADA')
+  sh.setColumnWidth(1, 640);
+  sh.getRange('A1')
+    .setValue('INOVACAR — protótipo (fácil de testar)')
     .setFontWeight('bold')
-    .setFontSize(20)
+    .setFontSize(16)
     .setFontColor('#ffffff')
-    .setBackground('#1b7471')
-    .setVerticalAlignment('middle');
-
-  sh.getRange('A2:C2')
-    .merge()
-    .setValue('  Escolhe o que fazer → preenche só o que aparece a amarelo → em Guardar escreve SIM')
-    .setFontColor('#4a4f63')
-    .setBackground('#e7f6f5')
-    .setVerticalAlignment('middle');
-
-  sh.getRange('A4')
-    .setValue('O que fazer?')
-    .setFontWeight('bold')
-    .setFontSize(12);
-  sh.getRange(ENT.accao)
-    .setValue('Novo cliente')
-    .setFontWeight('bold')
-    .setFontSize(12)
-    .setBackground('#fff3b0')
-    .setBorder(true, true, true, true, false, false, '#1b7471', SpreadsheetApp.BorderStyle.SOLID_MEDIUM)
-    .setDataValidation(
-      SpreadsheetApp.newDataValidation()
-        .requireValueInList(['Novo cliente', 'Novo carro', 'Gasto'], true)
-        .setAllowInvalid(false)
-        .build(),
-    );
-
-  sh.getRange('A16')
-    .setValue('GUARDAR')
-    .setFontWeight('bold')
-    .setFontSize(13)
-    .setFontColor('#1b7471');
-  sh.getRange(ENT.guardar)
-    .setValue('')
-    .setBackground('#fff3b0')
-    .setBorder(true, true, true, true, false, false, '#1b7471', SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
-  sh.getRange('C16').setValue('← escreve SIM e Enter').setFontColor('#1b7471').setFontWeight('bold');
-
-  sh.getRange('A18').setValue('Resultado').setFontWeight('bold').setFontColor('#4a4f63');
-  sh.getRange('B18:C18').merge().setValue('').setWrap(true);
-
-  actualizarFormularioEntrada_(sh);
+    .setBackground('#1b7471');
+  sh.setRowHeight(1, 40);
+  sh.getRange('A3').setValue('Como testar em 30 segundos').setFontWeight('bold').setFontSize(13);
+  sh.getRange('A5').setValue(
+    '1. Abre a folha «Clientes» — já há 2 pessoas de exemplo (Ana e Bruno).\n' +
+      '2. Vê a coluna «pontos» (saldo de cada um).\n' +
+      '3. Abre «Movimentos» e acrescenta uma linha:\n' +
+      '      data = hoje · telemovel = 934000001 · tipo = gasto · valor_eur = 50\n' +
+      '4. Volta a «Clientes» — os pontos da Ana sobem (+50).\n' +
+      '5. No site da oficina, consulta pontos com 934000001.\n\n' +
+      'Indicação: em Movimentos põe tipo = indicacao no telemóvel de quem trouxe (+300 pts).\n' +
+      'Carro novo: uma linha em «Carros» com a mesma telemovel do dono.',
+  );
+  sh.getRange('A5').setWrap(true);
+  sh.setRowHeight(5, 180);
+  sh.getRange('A7')
+    .setValue('Números de teste: 934000001 (Ana) · 934000002 (Bruno)')
+    .setFontColor('#4a4f63');
   return sh;
 }
 
-/**
- * Mostra só os campos da acção escolhida.
- * @param {GoogleAppsScript.Spreadsheet.Sheet} sh
- * @param {{soLista?: boolean}=} opt  soLista=true: só refresca dropdown de clientes (pesquisa).
- */
-function actualizarFormularioEntrada_(sh, opt) {
-  opt = opt || {};
-  var accao = String(sh.getRange(ENT.accao).getValue() || '').trim();
-  var pesquisa = String(sh.getRange(ENT.f1).getValue() || '').trim();
-
-  if (opt.soLista && (accao === 'Novo carro' || accao === 'Gasto')) {
-    aplicarListaClientes_(sh, ENT.f2, pesquisa);
-    return;
-  }
-
-  var valoresGuardados = {
-    f1: sh.getRange(ENT.f1).getValue(),
-    f2: sh.getRange(ENT.f2).getValue(),
-    f3: sh.getRange(ENT.f3).getValue(),
-    f4: sh.getRange(ENT.f4).getValue(),
-    f5: sh.getRange(ENT.f5).getValue(),
-    f6: sh.getRange(ENT.f6).getValue(),
-    f7: sh.getRange(ENT.f7).getValue(),
-  };
-
-  sh.getRange('A5:C14').clearContent().clearDataValidations().clearFormat();
-  sh.getRange('A5:C14').setBackground(null);
-
-  var amarelo = function (a1) {
-    sh.getRange(a1)
-      .setBackground('#fff3b0')
-      .setBorder(true, true, true, true, false, false, '#d5dadb', SpreadsheetApp.BorderStyle.SOLID);
-  };
-  var label = function (row, texto, cor) {
-    sh.getRange(row, 1)
-      .setValue(texto)
-      .setFontWeight('bold')
-      .setFontColor(cor || '#26293c');
-  };
-  var hint = function (texto) {
-    sh.getRange('C4').setValue(texto).setFontColor('#4a4f63').setWrap(true);
-    sh.setRowHeight(4, 52);
-  };
-
-  if (accao === 'Novo carro') {
-    hint('Novo carro — pesquisa o dono, escolhe na lista, depois matrícula / marca / modelo.');
-    label(5, '① Dono', '#1b7471');
-    label(6, 'Pesquisar');
-    amarelo(ENT.f1);
-    sh.getRange(ENT.f1).setValue(valoresGuardados.f1);
-    sh.getRange('C6').setValue('escreve nome ou telemóvel → a lista em baixo filtra').setFontColor('#4a4f63');
-    label(7, 'Cliente');
-    amarelo(ENT.f2);
-    aplicarListaClientes_(sh, ENT.f2, String(valoresGuardados.f1 || '').trim());
-    label(8, '② Carro', '#1b7471');
-    label(9, 'Matrícula');
-    amarelo(ENT.f3);
-    sh.getRange(ENT.f3).setValue(valoresGuardados.f3);
-    label(10, 'Marca');
-    amarelo(ENT.f4);
-    sh.getRange(ENT.f4).setValue(valoresGuardados.f4);
-    label(11, 'Modelo');
-    amarelo(ENT.f5);
-    sh.getRange(ENT.f5).setValue(valoresGuardados.f5);
-    sh.getRange(ENT.f1).activate();
-    return;
-  }
-
-  if (accao === 'Gasto') {
-    hint('Gasto — pesquisa o cliente, escolhe o tipo e o valor (1 € = 1 ponto).');
-    label(5, '① Cliente', '#1b7471');
-    label(6, 'Pesquisar');
-    amarelo(ENT.f1);
-    sh.getRange(ENT.f1).setValue(valoresGuardados.f1);
-    sh.getRange('C6').setValue('escreve nome ou telemóvel → a lista em baixo filtra').setFontColor('#4a4f63');
-    label(7, 'Cliente');
-    amarelo(ENT.f2);
-    aplicarListaClientes_(sh, ENT.f2, String(valoresGuardados.f1 || '').trim());
-    label(8, '② Gasto', '#1b7471');
-    label(9, 'Tipo de gasto');
-    amarelo(ENT.f3);
-    sh.getRange(ENT.f3).setDataValidation(
+function montarClientes_(ss) {
+  var headers = ['telemovel', 'nome', 'pontos', 'indicado_por', 'ativo', 'nota'];
+  garantir_(ss, FOLHAS.clientes, headers);
+  var sh = ss.getSheetByName(FOLHAS.clientes);
+  sh.getRange(1, 1, 1, headers.length)
+    .setFontWeight('bold')
+    .setBackground('#e7f6f5');
+  var iAtivo = col_(sh, 'ativo');
+  if (iAtivo >= 0) {
+    sh.getRange(2, iAtivo + 1, Math.max(sh.getMaxRows() - 1, 1), 1).setDataValidation(
       SpreadsheetApp.newDataValidation()
-        .requireValueInList(TIPOS_GASTO, true)
+        .requireValueInList(['sim', 'nao'], true)
         .setAllowInvalid(false)
         .build(),
     );
-    sh.getRange(ENT.f3).setValue(valoresGuardados.f3 || TIPOS_GASTO[0]);
-    label(10, 'Valor €');
-    amarelo(ENT.f4);
-    sh.getRange(ENT.f4).setValue(valoresGuardados.f4);
-    label(11, 'Matrícula (opcional)');
-    amarelo(ENT.f5);
-    sh.getRange(ENT.f5).setValue(valoresGuardados.f5);
-    sh.getRange(ENT.f1).activate();
-    return;
   }
+  // pontos é calculado — fundo cinza claro
+  var iPts = col_(sh, 'pontos');
+  if (iPts >= 0) {
+    sh.getRange(2, iPts + 1, Math.max(sh.getMaxRows() - 1, 1), 1).setBackground('#f4f6f6');
+  }
+  return sh;
+}
 
-  // Novo cliente
-  hint('Novo cliente — pessoa + carro. Indicação é opcional. No fim, Guardar → SIM.');
-  label(5, '① Pessoa', '#1b7471');
-  label(6, 'Nome');
-  amarelo(ENT.f1);
-  sh.getRange(ENT.f1).setValue(valoresGuardados.f1);
-  label(7, 'Telemóvel');
-  amarelo(ENT.f2);
-  sh.getRange(ENT.f2).setValue(valoresGuardados.f2);
-  label(8, '② Carro', '#1b7471');
-  label(9, 'Matrícula');
-  amarelo(ENT.f3);
-  sh.getRange(ENT.f3).setValue(valoresGuardados.f3);
-  label(10, 'Marca');
-  amarelo(ENT.f4);
-  sh.getRange(ENT.f4).setValue(valoresGuardados.f4);
-  label(11, 'Modelo');
-  amarelo(ENT.f5);
-  sh.getRange(ENT.f5).setValue(valoresGuardados.f5);
-  label(12, '③ Indicação (opcional)', '#1b7471');
-  label(13, 'Veio por indicação?');
-  amarelo(ENT.f6);
-  sh.getRange(ENT.f6)
-    .setDataValidation(
+function montarCarros_(ss) {
+  var headers = ['matricula', 'telemovel', 'marca', 'modelo', 'ano'];
+  garantir_(ss, FOLHAS.carros, headers);
+  var sh = ss.getSheetByName(FOLHAS.carros);
+  sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#e7f6f5');
+  return sh;
+}
+
+function montarMovimentos_(ss) {
+  var headers = ['data', 'telemovel', 'tipo', 'valor_eur', 'pontos', 'matricula', 'nota'];
+  garantir_(ss, FOLHAS.movimentos, headers);
+  var sh = ss.getSheetByName(FOLHAS.movimentos);
+  sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#e7f6f5');
+  var iTipo = col_(sh, 'tipo');
+  if (iTipo >= 0) {
+    sh.getRange(2, iTipo + 1, Math.max(sh.getMaxRows() - 1, 1), 1).setDataValidation(
       SpreadsheetApp.newDataValidation()
-        .requireValueInList(['não', 'sim'], true)
+        .requireValueInList(['gasto', 'indicacao', 'resgate', 'ajuste'], true)
         .setAllowInvalid(false)
         .build(),
-    )
-    .setValue(valoresGuardados.f6 || 'não');
-  sh.getRange('C13').setValue('se for sim, escolhe quem indicou em baixo').setFontColor('#4a4f63');
-  label(14, 'Quem indicou');
-  amarelo(ENT.f7);
-  var veioPorIndicacao = sim_(valoresGuardados.f6 || 'não');
-  if (veioPorIndicacao) {
-    aplicarListaClientes_(sh, ENT.f7, '', 'C14');
-    if (valoresGuardados.f7) sh.getRange(ENT.f7).setValue(valoresGuardados.f7);
-  } else {
-    sh.getRange(ENT.f7).setValue('').clearDataValidations();
-    sh.getRange('C14').setValue('só aparece lista se em cima for «sim»').setFontColor('#4a4f63');
+    );
   }
-  sh.getRange(ENT.f1).activate();
+  return sh;
 }
 
-function aplicarListaClientes_(sh, a1, filtro, hintA1) {
-  hintA1 = hintA1 || 'C7';
-  var lista = listaClientesRotulos_(filtro);
-  var cell = sh.getRange(a1);
-  cell.clearDataValidations();
-  if (!lista.length) {
-    sh.getRange(hintA1).setValue('nenhum cliente — cria primeiro um «Novo cliente»').setFontColor('#a12828');
-    return;
-  }
-  cell.setDataValidation(
-    SpreadsheetApp.newDataValidation().requireValueInList(lista, true).setAllowInvalid(false).build(),
-  );
-  var actual = String(cell.getValue() || '').trim();
-  if (!actual || lista.indexOf(actual) < 0) cell.setValue(lista[0]);
-  sh.getRange(hintA1)
-    .setValue(lista.length + ' cliente(s) — abre a seta ou muda a pesquisa')
-    .setFontColor('#4a4f63');
+function montarPremios_(ss) {
+  var headers = ['id', 'nome', 'pontos', 'activo', 'descricao'];
+  garantir_(ss, FOLHAS.premios, headers);
+  var sh = ss.getSheetByName(FOLHAS.premios);
+  sh.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#e7f6f5');
+  return sh;
 }
 
-function semAcentos_(s) {
-  return String(s || '')
-    .toLowerCase()
-    .replace(/[áàâãä]/g, 'a')
-    .replace(/[éèêë]/g, 'e')
-    .replace(/[íìîï]/g, 'i')
-    .replace(/[óòôõö]/g, 'o')
-    .replace(/[úùûü]/g, 'u')
-    .replace(/ç/g, 'c');
-}
-
-function listaClientesRotulos_(filtro) {
-  var q = semAcentos_(String(filtro || '').trim());
-  var out = [];
-  valores_(ss_(), FOLHAS.clientes).forEach(function (r) {
-    if (!sim_(r.ativo == null ? 'sim' : r.ativo)) return;
-    var t = normalizarTel_(r.telemovel);
-    if (!t) return;
-    var nomeCli = String(r.nome || t).trim();
-    var rotulo = nomeCli + ' · ' + t;
-    if (q && semAcentos_(nomeCli + ' ' + t).indexOf(q) < 0) return;
-    out.push(rotulo);
-  });
-  out.sort(function (a, b) {
-    return a.localeCompare(b, 'pt');
-  });
-  return out;
-}
-
-function telDoRotuloCliente_(rotulo) {
-  var s = String(rotulo || '').trim();
-  var m = s.match(/(\d{9,})$/);
-  if (m) return normalizarTel_(m[1]);
-  // "Nome · 912345678"
-  var parts = s.split('·');
-  if (parts.length >= 2) return normalizarTel_(parts[parts.length - 1]);
-  return normalizarTel_(s);
-}
-
-function limparEntrada_(sh) {
-  [ENT.f1, ENT.f2, ENT.f3, ENT.f4, ENT.f5, ENT.f6, ENT.f7, ENT.guardar].forEach(function (a1) {
-    sh.getRange(a1).setValue('');
-  });
-  actualizarFormularioEntrada_(sh);
-}
-
-function processarEntrada_(sh) {
-  var accao = String(sh.getRange(ENT.accao).getValue() || '').trim();
-  var f1 = String(sh.getRange(ENT.f1).getValue() || '').trim();
-  var f2 = String(sh.getRange(ENT.f2).getValue() || '').trim();
-  var f3 = String(sh.getRange(ENT.f3).getValue() || '').trim();
-  var f4 = String(sh.getRange(ENT.f4).getValue() || '').trim();
-  var f5 = String(sh.getRange(ENT.f5).getValue() || '').trim();
-  var f6 = String(sh.getRange(ENT.f6).getValue() || '').trim();
-  var f7 = String(sh.getRange(ENT.f7).getValue() || '').trim();
-  var res;
-
-  if (accao === 'Novo cliente') {
-    var quemIndicou = '';
-    if (sim_(f6)) {
-      quemIndicou = telDoRotuloCliente_(f7);
-      if (!quemIndicou) {
-        res = { ok: false, erro: 'Se veio por indicação, escolhe quem indicou.' };
-        sh.getRange(ENT.guardar).setValue('');
-        sh.getRange(ENT.resultado)
-          .setValue('✗ ' + res.erro)
-          .setFontColor('#a12828');
-        return;
-      }
-    }
-    res = formNovoCliente({
-      nome: f1,
-      telemovel: f2,
-      matricula: f3,
-      marca: f4,
-      modelo: f5,
-      ano: '',
-      nota: '',
-      quemIndicou: quemIndicou,
+function semearDemoSeVazio_(ss) {
+  var cli = ss.getSheetByName(FOLHAS.clientes);
+  if (cli.getLastRow() < 2) {
+    append_(ss, FOLHAS.clientes, {
+      telemovel: '934000001',
+      nome: 'Ana Sousa',
+      pontos: 0,
+      indicado_por: '',
+      ativo: 'sim',
+      nota: 'exemplo',
     });
-  } else if (accao === 'Novo carro') {
-    res = formNovoCarro({
-      telemovel: telDoRotuloCliente_(f2),
-      matricula: f3,
-      marca: f4,
-      modelo: f5,
-      ano: '',
+    append_(ss, FOLHAS.clientes, {
+      telemovel: '934000002',
+      nome: 'Bruno Martins',
+      pontos: 0,
+      indicado_por: '934000001',
+      ativo: 'sim',
+      nota: 'exemplo — indicado pela Ana',
     });
-  } else if (accao === 'Gasto') {
-    res = formGasto({
-      telemovel: telDoRotuloCliente_(f2),
-      matricula: f5,
-      valorEur: f4,
-      nota: f3,
+  }
+
+  var car = ss.getSheetByName(FOLHAS.carros);
+  if (car.getLastRow() < 2) {
+    append_(ss, FOLHAS.carros, {
+      matricula: 'AA-00-BB',
+      telemovel: '934000001',
+      marca: 'VW',
+      modelo: 'Golf',
+      ano: 2018,
     });
-  } else {
-    res = { ok: false, erro: 'Escolhe «Novo cliente», «Novo carro» ou «Gasto».' };
-  }
-
-  if (res && res.ok) {
-    limparEntrada_(sh);
-    sh.getRange(ENT.resultado).setValue('✓ ' + res.msg).setFontColor('#1b7471');
-    sh.getRange(ENT.f1).activate();
-  } else {
-    sh.getRange(ENT.guardar).setValue('');
-    sh.getRange(ENT.resultado)
-      .setValue('✗ ' + ((res && res.erro) || 'Erro'))
-      .setFontColor('#a12828');
-  }
-}
-
-/* ========== Formulário ========== */
-
-function listarParaFormulario() {
-  var ss = ss_();
-  var clientes = [];
-  valores_(ss, FOLHAS.clientes).forEach(function (r) {
-    if (!sim_(r.ativo == null ? 'sim' : r.ativo)) return;
-    var t = normalizarTel_(r.telemovel);
-    if (!t) return;
-    clientes.push({ telemovel: t, nome: String(r.nome || t).trim() });
-  });
-  clientes.sort(function (a, b) {
-    return a.nome.localeCompare(b.nome, 'pt');
-  });
-  var oficina = listarCarrosOficina();
-  return {
-    clientes: clientes,
-    premios: premiosActivos_(ss),
-    carrosEmTrabalho: oficina.emTrabalho,
-    carros: oficina.todos,
-  };
-}
-
-function carrosDoCliente(telemovel) {
-  var t = normalizarTel_(telemovel || '');
-  var out = [];
-  if (!t) return out;
-  valores_(ss_(), FOLHAS.carros).forEach(function (r) {
-    if (normalizarTel_(r.telemovel) !== t) return;
-    out.push({
-      matricula: String(r.matricula || '').trim().toUpperCase(),
-      marca: String(r.marca || '').trim(),
-      modelo: String(r.modelo || '').trim(),
+    append_(ss, FOLHAS.carros, {
+      matricula: 'EE-22-FF',
+      telemovel: '934000002',
+      marca: 'Renault',
+      modelo: 'Clio',
+      ano: 2020,
     });
-  });
-  return out;
-}
-
-function formNovoCliente(p) {
-  var ss = ss_();
-  var tel = normalizarTel_(p.telemovel || '');
-  var nome = String(p.nome || '').trim();
-  var quem = normalizarTel_(p.quemIndicou || '');
-  if (!tel || tel.length < 9) return { ok: false, erro: 'Telemóvel inválido.' };
-  if (!nome) return { ok: false, erro: 'Indique o nome.' };
-  if (acharCliente_(ss, tel)) return { ok: false, erro: 'Já existe um cliente com este telemóvel.' };
-  if (quem) {
-    if (!acharCliente_(ss, quem)) return { ok: false, erro: 'Quem indicou não está em Clientes.' };
-    if (quem === tel) return { ok: false, erro: 'Quem indicou não pode ser o próprio cliente.' };
   }
 
-  var nota = String(p.nota || '').trim();
-  if (quem) nota = (nota ? nota + ' · ' : '') + 'indicado por ' + quem;
-  append_(ss, FOLHAS.clientes, { telemovel: tel, nome: nome, ativo: 'sim', nota: nota });
-
-  var mat = String(p.matricula || '').trim().toUpperCase();
-  var msg;
-  if (mat) {
-    if (!String(p.marca || '').trim() || !String(p.modelo || '').trim()) {
-      return { ok: false, erro: 'Com matrícula, indique marca e modelo.' };
-    }
-    append_(ss, FOLHAS.carros, novoCarroCampos_(tel, mat, p));
-    msg = 'Cliente ' + nome + ' + carro ' + mat + ' criados. Cronómetro a contar.';
-  } else {
-    msg = 'Cliente ' + nome + ' criado. Pode acrescentar o carro depois.';
-  }
-
-  if (quem) {
-    var pts = REGRAS.pontosPorIndicacao;
+  var mov = ss.getSheetByName(FOLHAS.movimentos);
+  if (mov.getLastRow() < 2) {
     append_(ss, FOLHAS.movimentos, {
       data: hoje_(),
-      telemovel: quem,
+      telemovel: '934000001',
+      tipo: 'gasto',
+      valor_eur: 120,
+      pontos: 120,
+      matricula: 'AA-00-BB',
+      nota: 'revisão (exemplo)',
+    });
+    append_(ss, FOLHAS.movimentos, {
+      data: hoje_(),
+      telemovel: '934000001',
       tipo: 'indicacao',
       valor_eur: '',
-      pontos: pts,
+      pontos: REGRAS.pontosPorIndicacao,
       matricula: '',
-      nota: 'trouxe ' + tel + ' ' + nome,
+      nota: 'trouxe 934000002 Bruno Martins',
     });
-    msg += ' Indicação: +' + pts + ' pts a quem trouxe.';
+    append_(ss, FOLHAS.movimentos, {
+      data: hoje_(),
+      telemovel: '934000002',
+      tipo: 'gasto',
+      valor_eur: 50,
+      pontos: 50,
+      matricula: 'EE-22-FF',
+      nota: 'óleo (exemplo)',
+    });
   }
-  return { ok: true, msg: msg };
-}
 
-function formNovoCarro(p) {
-  var ss = ss_();
-  var tel = normalizarTel_(p.telemovel || '');
-  var mat = String(p.matricula || '').trim().toUpperCase();
-  if (!acharCliente_(ss, tel)) return { ok: false, erro: 'Cliente não encontrado.' };
-  if (!mat) return { ok: false, erro: 'Indique a matrícula.' };
-  if (!String(p.marca || '').trim() || !String(p.modelo || '').trim()) {
-    return { ok: false, erro: 'Indique marca e modelo.' };
+  var prem = ss.getSheetByName(FOLHAS.premios);
+  if (prem.getLastRow() < 2) {
+    append_(ss, FOLHAS.premios, {
+      id: 'lavagem',
+      nome: 'Lavagem exterior',
+      pontos: 100,
+      activo: 'sim',
+      descricao: 'Lavagem exterior do veículo',
+    });
+    append_(ss, FOLHAS.premios, {
+      id: 'desconto10',
+      nome: 'Desconto 10 €',
+      pontos: 200,
+      activo: 'sim',
+      descricao: 'Desconto de 10 euros na próxima fatura',
+    });
   }
-  if (
-    carrosDoCliente(tel).some(function (c) {
-      return c.matricula === mat;
-    })
-  ) {
-    return { ok: false, erro: 'Esta matrícula já está neste cliente.' };
-  }
-  append_(ss, FOLHAS.carros, novoCarroCampos_(tel, mat, p));
-  return { ok: true, msg: 'Carro ' + mat + ' adicionado. Cronómetro a contar.' };
 }
 
-function formCarroChegou(p) {
-  var mat = String(p.matricula || '').trim().toUpperCase();
-  if (!mat) return { ok: false, erro: 'Escolha o carro.' };
-  var hit = acharCarro_(ss_(), mat);
-  if (!hit) return { ok: false, erro: 'Matrícula não encontrada.' };
-  actualizarCarro_(ss_(), hit.row, {
-    feito: 'nao',
-    entrada_em: agora_(),
-    pronto_em: '',
-    duracao_min: '',
-  });
-  return { ok: true, msg: mat + ' entrou. Tempo a contar desde agora.' };
-}
-
-function formCarroPronto(p) {
-  var mat = String(p.matricula || '').trim().toUpperCase();
-  if (!mat) return { ok: false, erro: 'Escolha o carro.' };
-  var ss = ss_();
-  var hit = acharCarro_(ss, mat);
-  if (!hit) return { ok: false, erro: 'Matrícula não encontrada.' };
-  var entrada = parseData_(hit.rowData.entrada_em);
-  var fim = new Date();
-  var mins = entrada ? Math.max(0, Math.round((fim.getTime() - entrada.getTime()) / 60000)) : '';
-  actualizarCarro_(ss, hit.row, {
-    feito: 'sim',
-    pronto_em: agora_(),
-    duracao_min: mins,
-  });
-  var texto = mins === '' ? 'sem hora de entrada' : formatDuracao_(mins);
-  return { ok: true, msg: mat + ' pronto. Demorou ' + texto + '.' };
-}
-
-function listarCarrosOficina() {
-  var todos = [];
-  var emTrabalho = [];
-  valores_(ss_(), FOLHAS.carros).forEach(function (r) {
-    var mat = String(r.matricula || '').trim().toUpperCase();
-    if (!mat) return;
-    var item = {
-      matricula: mat,
-      marca: String(r.marca || '').trim(),
-      modelo: String(r.modelo || '').trim(),
-      entrada_em: formatDataHora_(r.entrada_em),
-      feito: sim_(r.feito) ? 'sim' : 'nao',
-    };
-    todos.push(item);
-    if (!sim_(r.feito)) emTrabalho.push(item);
-  });
-  return { todos: todos, emTrabalho: emTrabalho };
-}
-
-function formGasto(p) {
-  var ss = ss_();
-  var tel = normalizarTel_(p.telemovel || '');
-  var valor = Number(p.valorEur);
-  if (!acharCliente_(ss, tel)) return { ok: false, erro: 'Cliente não encontrado.' };
-  if (!(valor > 0)) return { ok: false, erro: 'Indique o valor da fatura.' };
-  var pts = arred_(valor * REGRAS.pontosPorEuro);
-  append_(ss, FOLHAS.movimentos, {
-    data: hoje_(),
-    telemovel: tel,
-    tipo: 'gasto',
-    valor_eur: valor,
-    pontos: pts,
-    matricula: String(p.matricula || '').trim().toUpperCase(),
-    nota: String(p.nota || '').trim(),
-  });
-  return { ok: true, msg: '+' + pts + ' pontos (gasto ' + valor + ' €).' };
-}
-
-function formIndicacao(p) {
-  var ss = ss_();
-  var quem = normalizarTel_(p.quemIndicou || '');
-  var novo = normalizarTel_(p.novoTelemovel || '');
-  var nomeNovo = String(p.novoNome || '').trim();
-  if (!acharCliente_(ss, quem)) return { ok: false, erro: 'Quem indicou não está em Clientes.' };
-  if (!novo || novo.length < 9) return { ok: false, erro: 'Telemóvel do novo inválido.' };
-  if (!acharCliente_(ss, novo)) {
-    if (!nomeNovo) return { ok: false, erro: 'Indique o nome do novo cliente.' };
-    append_(ss, FOLHAS.clientes, { telemovel: novo, nome: nomeNovo, ativo: 'sim', nota: 'indicado por ' + quem });
-  }
-  var pts = REGRAS.pontosPorIndicacao;
-  append_(ss, FOLHAS.movimentos, {
-    data: hoje_(),
-    telemovel: quem,
-    tipo: 'indicacao',
-    valor_eur: '',
-    pontos: pts,
-    matricula: '',
-    nota: 'trouxe ' + novo + (nomeNovo ? ' ' + nomeNovo : ''),
-  });
-  return { ok: true, msg: '+' + pts + ' pontos de indicação.' };
-}
-
-function formResgate(p) {
-  var ss = ss_();
-  var tel = normalizarTel_(p.telemovel || '');
-  if (!acharCliente_(ss, tel)) return { ok: false, erro: 'Cliente não encontrado.' };
-  var premios = mapaPremios_(ss);
-  var premio = premios[String(p.premioId || '').trim()];
-  if (!premio) return { ok: false, erro: 'Escolha um prémio.' };
-  var pts = -Math.abs(Number(premio.pontos) || 0);
-  append_(ss, FOLHAS.movimentos, {
-    data: hoje_(),
-    telemovel: tel,
-    tipo: 'resgate',
-    valor_eur: '',
-    pontos: pts,
-    matricula: String(p.matricula || '').trim().toUpperCase(),
-    nota: premio.id,
-  });
-  return { ok: true, msg: 'Resgate: ' + premio.nome + ' (' + pts + ' pts).' };
-}
-
-/* ========== Pontos automáticos ========== */
+/* ========== Pontos ========== */
 
 function recalcularPontos() {
   var ss = ss_();
@@ -791,56 +346,53 @@ function recalcularPontos() {
     );
     if (pts !== '' && pts !== row[iPts]) sh.getRange(r + 1, iPts + 1).setValue(pts);
   }
+  actualizarSaldos_(ss);
   try {
-    SpreadsheetApp.getUi().alert('Pontos recalculados.');
+    SpreadsheetApp.getUi().alert('Pontos e saldos actualizados.');
   } catch (err) {
     Logger.log('Pontos recalculados.');
   }
 }
 
+/** Escreve o saldo em Clientes!pontos (soma dos movimentos). */
+function actualizarSaldos_(ss) {
+  var cli = ss.getSheetByName(FOLHAS.clientes);
+  if (!cli || cli.getLastRow() < 2) return;
+  var iTel = col_(cli, 'telemovel');
+  var iPts = col_(cli, 'pontos');
+  if (iTel < 0 || iPts < 0) return;
+
+  var saldos = {};
+  valores_(ss, FOLHAS.movimentos).forEach(function (r) {
+    var t = normalizarTel_(r.telemovel);
+    if (!t) return;
+    var pts = calcularPontos_(
+      String(r.tipo || '').trim().toLowerCase(),
+      r.valor_eur,
+      r.pontos,
+      r.nota,
+      mapaPremios_(ss),
+    );
+    if (pts === '') pts = 0;
+    saldos[t] = (saldos[t] || 0) + (Number(pts) || 0);
+  });
+
+  var n = cli.getLastRow() - 1;
+  var tels = cli.getRange(2, iTel + 1, n, 1).getValues();
+  var out = tels.map(function (row) {
+    var t = normalizarTel_(row[0]);
+    return [t ? saldos[t] || 0 : 0];
+  });
+  cli.getRange(2, iPts + 1, n, 1).setValues(out).setBackground('#f4f6f6');
+}
+
 function onEdit(e) {
   if (!e || !e.range) return;
   var sh = e.range.getSheet();
-  var nome = sh.getName();
-
-  if (nome === FOLHAS.entrada) {
-    var cel = e.range.getA1Notation();
-    if (cel === ENT.accao) {
-      // Mudou «O que fazer?» → limpa campos e redesenha.
-      [ENT.f1, ENT.f2, ENT.f3, ENT.f4, ENT.f5, ENT.f6, ENT.f7, ENT.guardar].forEach(function (a1) {
-        sh.getRange(a1).setValue('');
-      });
-      sh.getRange(ENT.resultado).setValue('');
-      actualizarFormularioEntrada_(sh);
-      return;
-    }
-    if (cel === ENT.f1) {
-      // Pesquisa: filtra a lista de clientes.
-      var accao = String(sh.getRange(ENT.accao).getValue() || '').trim();
-      if (accao === 'Novo carro' || accao === 'Gasto') {
-        actualizarFormularioEntrada_(sh, { soLista: true });
-      }
-      return;
-    }
-    if (cel === ENT.f6) {
-      // Ligou / desligou indicação no Novo cliente.
-      if (String(sh.getRange(ENT.accao).getValue() || '').trim() === 'Novo cliente') {
-        actualizarFormularioEntrada_(sh);
-      }
-      return;
-    }
-    if (cel !== ENT.guardar) return;
-    var v = String(e.value || e.range.getValue() || '')
-      .trim()
-      .toLowerCase();
-    if (v !== 'sim' && v !== 's' && v !== 'yes') return;
-    processarEntrada_(sh);
-    return;
-  }
-
-  if (nome !== FOLHAS.movimentos) return;
+  if (sh.getName() !== FOLHAS.movimentos) return;
   var row = e.range.getRow();
   if (row < 2) return;
+
   var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (x) {
     return String(x).trim().toLowerCase();
   });
@@ -848,7 +400,14 @@ function onEdit(e) {
   var iValor = headers.indexOf('valor_eur');
   var iPts = headers.indexOf('pontos');
   var iNota = headers.indexOf('nota');
+  var iData = headers.indexOf('data');
   if (iPts < 0) return;
+
+  // Data por omissão = hoje
+  if (iData >= 0 && !sh.getRange(row, iData + 1).getValue()) {
+    sh.getRange(row, iData + 1).setValue(hoje_());
+  }
+
   var vals = sh.getRange(row, 1, 1, headers.length).getValues()[0];
   var pts = calcularPontos_(
     String(vals[iTipo] || '').trim().toLowerCase(),
@@ -858,6 +417,7 @@ function onEdit(e) {
     mapaPremios_(ss_()),
   );
   if (pts !== '' && pts !== vals[iPts]) sh.getRange(row, iPts + 1).setValue(pts);
+  actualizarSaldos_(ss_());
 }
 
 function calcularPontos_(tipo, valorEur, ptsCelula, nota, premios) {
@@ -879,51 +439,6 @@ function calcularPontos_(tipo, valorEur, ptsCelula, nota, premios) {
 
 /* ========== Helpers ========== */
 
-function novoCarroCampos_(tel, mat, p) {
-  return {
-    matricula: mat,
-    telemovel: tel,
-    marca: String(p.marca || '').trim(),
-    modelo: String(p.modelo || '').trim(),
-    ano: p.ano || '',
-    feito: 'nao',
-    entrada_em: agora_(),
-    pronto_em: '',
-    duracao_min: '',
-  };
-}
-
-function acharCarro_(ss, matricula) {
-  var sh = ss.getSheetByName(FOLHAS.carros);
-  if (!sh) return null;
-  var data = sh.getDataRange().getValues();
-  if (data.length < 2) return null;
-  var h = data[0].map(function (x) {
-    return String(x).trim().toLowerCase();
-  });
-  var iMat = h.indexOf('matricula');
-  if (iMat < 0) return null;
-  for (var r = 1; r < data.length; r++) {
-    if (String(data[r][iMat] || '').trim().toUpperCase() === matricula) {
-      var obj = {};
-      for (var c = 0; c < h.length; c++) obj[h[c]] = data[r][c];
-      return { row: r + 1, rowData: obj };
-    }
-  }
-  return null;
-}
-
-function actualizarCarro_(ss, rowNumber, updates) {
-  var sh = ss.getSheetByName(FOLHAS.carros);
-  var headers = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (x) {
-    return String(x).trim().toLowerCase();
-  });
-  Object.keys(updates).forEach(function (k) {
-    var i = headers.indexOf(k);
-    if (i >= 0) sh.getRange(rowNumber, i + 1).setValue(updates[k]);
-  });
-}
-
 function garantir_(ss, nome, headers) {
   var sh = ss.getSheetByName(nome);
   if (!sh) sh = ss.insertSheet(nome);
@@ -934,6 +449,12 @@ function garantir_(ss, nome, headers) {
   var actual = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(function (x) {
     return String(x).trim().toLowerCase();
   });
+  // Se a 1.ª linha não parece cabeçalho (ex. folha antiga), reescreve.
+  if (actual.indexOf(headers[0]) < 0 && sh.getLastRow() <= 1) {
+    sh.clear();
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]);
+    return;
+  }
   headers.forEach(function (h) {
     if (actual.indexOf(h) < 0) {
       var col = sh.getLastColumn() + 1;
@@ -1071,42 +592,9 @@ function hoje_() {
   return Utilities.formatDate(new Date(), 'Europe/Lisbon', 'yyyy-MM-dd');
 }
 
-function agora_() {
-  return Utilities.formatDate(new Date(), 'Europe/Lisbon', 'yyyy-MM-dd HH:mm:ss');
-}
-
 function formatData_(v) {
   if (v instanceof Date) return Utilities.formatDate(v, 'Europe/Lisbon', 'yyyy-MM-dd');
   return String(v || '').trim().slice(0, 10);
-}
-
-function formatDataHora_(v) {
-  if (!v && v !== 0) return '';
-  if (v instanceof Date) return Utilities.formatDate(v, 'Europe/Lisbon', 'yyyy-MM-dd HH:mm');
-  return String(v).trim();
-}
-
-function parseData_(raw) {
-  if (raw instanceof Date) return raw;
-  var s = String(raw || '').trim();
-  if (!s) return null;
-  var m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
-  if (!m) return null;
-  return new Date(
-    Number(m[1]),
-    Number(m[2]) - 1,
-    Number(m[3]),
-    Number(m[4] || 0),
-    Number(m[5] || 0),
-    Number(m[6] || 0),
-  );
-}
-
-function formatDuracao_(mins) {
-  var h = Math.floor(mins / 60);
-  var m = mins % 60;
-  if (h <= 0) return m + ' min';
-  return h + ' h ' + m + ' min';
 }
 
 function primeiroNome_(nome) {

@@ -1,4 +1,3 @@
-telemovel,nome,ativo,nota
-934000001,Ana Sousa,sim,
-934000002,Bruno Martins,sim,indicado pela Ana
-934000003,Carla Reis,sim,
+telemovel,nome,pontos,indicado_por,ativo,nota
+934000001,Ana Sousa,0,,sim,exemplo
+934000002,Bruno Martins,0,934000001,sim,exemplo — indicado pela Ana
