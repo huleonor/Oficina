@@ -5,60 +5,65 @@ A Google Sheet **INOVACAR Pontos** é a base de dados. A página não tem servid
 Apps Script.
 
 Vive em `public/gestao/`: HTML, CSS e JavaScript simples, que o Astro copia tal como está. Fica em
-https://huleonor.github.io/Oficina/gestao/ quando o site é publicado (não aparece no menu nem no sitemap).
+https://huleonor.github.io/Oficina/gestao/ (não aparece no menu nem no sitemap).
 
 ## O que faz
 
-- **Oficina**: o quadro dos carros que estão na oficina, em três colunas: À espera, Em trabalho, Pronto a levantar.
-  Cada cartão diz há quanto tempo, a quem é e se passou o dia prometido. Um botão leva o carro ao passo seguinte
-  (Começar, Marcar pronto, Entregar) e grava a hora.
-- **Dar entrada**: escreve-se a matrícula. Se o carro já existe, aparece com o dono; se é novo, pede a marca e o
-  cliente (e sugere clientes que já existam enquanto se escreve o nome ou o telemóvel).
-- **Clientes** e **Carros**: listas com pesquisa, a ficha de cada um e o histórico de visitas.
-- **Tempos**: quanto tempo os carros ficam na oficina e quanto tempo levam a ser feitos, por serviço, e quantos
-  ficaram prontos no dia prometido. Os tempos contam só as horas de abertura (seg a sex, 09:00 às 18:30;
-  muda-se em `config.js`).
+- **Oficina**: o objetivo da semana (por omissão 12 carros entregues, uma barra que enche a cada entrega) e o quadro
+  dos carros lá dentro: À espera, Em trabalho, Pronto a levantar. Cada carro em trabalho tem um relógio grande que
+  conta o tempo de trabalho (só nas horas de abertura) e uma barra contra a média desse serviço. **Pausar** (à espera
+  de peças, do cliente, de outro trabalho) para o relógio; **Retomar** volta a contar. Atrasados e prometidos para
+  hoje aparecem primeiro.
+- **Entregar**: pergunta quanto o cliente pagou, mostra os pontos que ganha e o saldo com que fica, e o carro
+  sai do cartão.
+- **Dar entrada**: a matrícula encontra o carro e o dono; um carro novo pede marca e cliente (com sugestões de
+  clientes que já existem). Dá para começar o trabalho logo.
+- **Clientes**: saldo de pontos, **Trocar pontos** (escolhe o prémio, tira os pontos e uma unidade do stock),
+  **Dar pontos** (um gasto sem trabalho, uma indicação, um ajuste), os movimentos (que se podem anular), os carros
+  e as visitas.
+- **Prémios**: as regras (pontos por euro, 3% de retorno, quanto custa um ponto, a indicação) e cada prémio com
+  os pontos, o custo à oficina, o retorno real, o stock (aviso quando há 3 ou menos) e o link de compra.
+  **Ajustar aos 3%** acerta os pontos de todos.
+- **Relatórios** (semana, mês, 3 meses, ano, comparados com o período anterior): carros entregues, faturado,
+  tempos médios, prontos no dia prometido, pontos dados e trocados, custo dos prémios; carros por semana contra o
+  objetivo, um mapa de atividade por dia, pontos por mês, tempos por serviço, prémios mais trocados, alertas de
+  stock e os melhores clientes.
 
-Se a ligação falhar, as alterações ficam guardadas no aparelho e seguem para a sheet quando ela voltar.
+Os tempos contam só as horas de abertura (seg a sex, 09:00 às 18:30; muda-se em `public/gestao/config.js`).
+Se a ligação falhar, as alterações ficam guardadas no aparelho e seguem quando a sheet voltar a responder.
 
 ## A sheet
-
-O script cria três abas novas na primeira vez que é usado e só escreve nelas. Da aba **Pontos** só lê o saldo
-(a ficha do cliente mostra os pontos dele, pelo telemóvel). O script dos pontos (`Codigo.gs`) fica como está.
 
 | Aba | Colunas |
 | --- | --- |
 | Gestão Clientes | id, nome, telemovel, email, nif, notas, criado_em |
 | Gestão Carros | id, cliente_id, matricula, marca, modelo, ano, km, notas, criado_em |
-| Gestão Trabalhos | id, carro_id, servico, descricao, estado, entrada, inicio, pronto, entregue, previsto, notas, criado_em |
+| Gestão Trabalhos | id, carro_id, servico, descricao, estado, entrada, inicio, pronto, entregue, previsto, pausado_em, pausa_min, pausa_motivo, valor, notas, criado_em |
+| Gestão Movimentos | id, data, cliente_id, tipo (gasto, resgate, indicacao, ajuste), valor_eur, pontos, premio_id, premio_nome, custo_eur, trabalho_id, nota, criado_em |
+| Gestão Prémios | id, nome, pontos, custo_eur, stock, descricao, comprar, nota, ativo, criado_em |
+| Gestão Regras | id, valor, nota |
 
-As datas ficam legíveis (`2026-11-08 09:12`). `estado` é `espera`, `curso`, `pronto` ou `entregue`.
-Pode acrescentar colunas suas no fim de cada aba: a página ignora-as e não as estraga.
+O saldo de um cliente é a soma dos seus movimentos. A aba **Pontos** (a que o site lia) passa a ser atualizada
+sozinha com esse saldo; não a edite à mão. Os clientes que estavam nela foram passados para a gestão com um
+movimento "Saldo de antes".
 
-## Ligar à sheet (uma vez)
+## Ligar (uma vez)
 
-1. Em [script.google.com](https://script.google.com/home/projects/create), crie um projeto novo, à parte do dos pontos
-   (por exemplo "INOVACAR Gestão"), e cole o conteúdo de [`Gestao.gs`](Gestao.gs).
-2. No topo do ficheiro, troque `mude-este-pin` por um PIN seu (é o que a equipa vai escrever na página).
-3. **Implementar > Nova implementação > Aplicação Web**. Executar como: **Eu**. Quem tem acesso: **Qualquer pessoa**.
-4. Autorize o acesso à sheet e copie o URL que acaba em `/exec`.
-5. Na página, carregue na engrenagem, cole o URL e o PIN e carregue em **Testar e ligar**.
+O script é o mesmo do site dos pontos, com o mesmo URL (já está em `public/gestao/config.js`).
 
-Para não ter de colar o URL em cada aparelho, ponha-o em `public/gestao/config.js` (`apiUrl`). O PIN nunca vai para o
-repositório: cada aparelho escreve-o uma vez e fica guardado nesse aparelho.
-
-Se mudar o código do script mais tarde: **Implementar > Gerir implementações > Editar > Nova versão**, para o
-mesmo URL continuar a funcionar.
+1. Na sheet: **Extensões > Apps Script**. Substitua o código pelo de [`Codigo.gs`](Codigo.gs) e guarde.
+2. Volte à sheet e recarregue. No menu **INOVACAR**, escolha **Definir PIN da gestão**.
+3. No Apps Script: **Implementar > Gerir implementações > lápis > Versão: Nova versão > Implementar**. O URL fica igual.
+4. Na página de gestão, escreva o PIN e carregue em **Testar e ligar**.
 
 ## Sem ligação
 
-Sem URL a página abre em **modo de demonstração**, com dados de exemplo guardados só no navegador, para
-experimentar antes de ligar.
+Na engrenagem, **Ver a demonstração** abre a página com dados de exemplo guardados só no navegador.
 
 ## Ficheiros
 
 - `public/gestao/index.html`, `app.css`, `app.js`: a página. Usa o logo e o favicon do site.
 - `public/gestao/config.js`: o URL do script, o horário e a lista de serviços (os mesmos do site).
 - `public/gestao/icones.js`: ícones Phosphor (MIT).
-- `public/gestao/fonts/`: as letras Barlow do site (SIL Open Font License, `OFL.txt`).
-- `sheets/Gestao.gs`: a ponte para a Google Sheet.
+- `public/gestao/fonts/`: a letra Archivo (SIL Open Font License, `OFL.txt`).
+- `sheets/Codigo.gs`: o script da sheet, para o site e para a gestão.

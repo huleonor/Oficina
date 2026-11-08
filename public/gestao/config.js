@@ -1,13 +1,12 @@
 /*
  * Configuração da gestão da INOVACAR.
  *
- * apiUrl: o URL /exec da Aplicação Web do Apps Script (sheets/Gestao.gs no repositório).
- *   Pode ficar aqui para toda a equipa, ou ser colado em cada aparelho na engrenagem.
- *   O PIN nunca fica neste ficheiro: cada aparelho escreve-o uma vez.
+ * apiUrl: o URL /exec do Apps Script da sheet (sheets/Codigo.gs no repositório), o mesmo que o site
+ *   usa para os pontos. O PIN nunca fica neste ficheiro: cada aparelho escreve-o uma vez.
  *   Vazio: a página abre em modo de demonstração, com dados só neste navegador.
  */
 window.GESTAO = {
-  apiUrl: '',
+  apiUrl: 'https://script.google.com/macros/s/AKfycbzoGFHkJw-s9kUg7E1jHAJCDE8knHaFIlt4Cb_7yw6JUtfJYkPe6gItYZP3H8cdK7q2/exec',
 
   // Horário de abertura: os tempos contam só as horas em que a oficina está aberta.
   horario: { dias: [1, 2, 3, 4, 5], abre: '09:00', fecha: '18:30' },

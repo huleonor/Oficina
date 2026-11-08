@@ -1,59 +1,49 @@
 # Economia do programa de pontos
 
-Números fixos no `Codigo.gs` (e catálogo na folha `Premios`).
-A página pública **não** mostra estes custos — são só para a oficina.
+As regras vivem na sheet (aba **Gestão Regras**) e mudam-se na página de gestão: **Prémios, Mudar regras**.
+A página pública **não** mostra estes custos: são só para a oficina.
 
 ## Duas faces do mesmo ponto
 
 | Para o cliente | Para a oficina |
 | --- | --- |
-| Gasta **1 €** → ganha **1 ponto** | Cada ponto resgatado custa cerca de **0,05 €** |
-| Meta: devolver ~**5%** do que gastou em prémios | `custoPorPontoEur = 0.05` |
+| Gasta **1 €** → ganha **1 ponto** (`pontos_por_euro`) | Cada ponto trocado custa **0,03 €** |
+| Recebe de volta **3%** do que gasta, em prémios (`retorno_percent`) | 1 ponto = 3% ÷ 1 ponto por euro |
 
-Exemplo: cliente gasta **500 €** → **500 pontos**.
-Se trocar tudo, o custo da oficina é cerca de **25 €** (5%).
+Exemplo: o cliente gasta **500 €** → **500 pontos**, que valem cerca de **15 €** em prémios (3%).
+
+Os pontos ganham-se sozinhos: ao **Entregar** um carro, a página pergunta quanto pagou e dá os pontos.
+As trocas tiram os pontos e uma unidade do stock do prémio.
 
 ## Indicações (trazer clientes)
 
 | Regra | Valor |
 | --- | --- |
-| Pontos por indicação | **300** |
-| Custo à oficina (à meta de 5%) | **15 €** (300 × 0,05) |
+| Pontos por indicação (`pontos_por_indicacao`) | **300** |
+| Custo à oficina a 3% | **9 €** (300 × 0,03) |
 
-Só contar a indicação quando o novo cliente **já fez o primeiro serviço**.
+Só contar a indicação quando o novo cliente **já fez o primeiro serviço** (ficha do cliente, Dar pontos, Trouxe um amigo).
 
-## Calibrar um prémio novo
+## Calibrar um prémio
 
 ```
-pontos_do_premio ≈ custo_real_para_a_oficina ÷ 0.05
+pontos_do_premio ≈ custo_real_para_a_oficina ÷ 0,03
 ```
 
-| Custo real na oficina | Pontos a pedir |
-| --- | --- |
-| 1,50 € | 30 |
-| 5 € | 100 |
-| 10 € | 200 |
-| 25 € | 500 |
+A página faz a conta: ao escrever o custo de um prémio, sugere os pontos, e o botão **Ajustar aos 3%** acerta todos.
 
-## Catálogo actual (universal + alinhado a 5%)
+## Catálogo inicial (a 3%)
 
 | Prémio | Pontos | Custo oficina |
 | --- | --- | --- |
-| Aromatizante | 30 | ~1,50 € |
-| Kit de limpeza | 60 | ~3 € |
-| Aspiração do habitáculo | 80 | ~4 € |
-| Lavagem exterior | 100 | ~5 € |
-| Lavagem completa | 180 | ~9 € |
-| Desconto 10 € | 200 | 10 € |
-| Check-up rápido | 250 | ~12,50 € |
-| Desconto 25 € | 500 | 25 € |
+| Aromatizante | 50 | 1,50 € |
+| Kit de limpeza | 100 | 3 € |
+| Aspiração do habitáculo | 130 | 4 € |
+| Lavagem exterior | 170 | 5 € |
+| Lavagem completa | 300 | 9 € |
+| Desconto 10 € | 330 | 10 € |
+| Check-up rápido | 420 | 12,50 € |
+| Desconto 25 € | 830 | 25 € |
 
+Nos prémios que se compram (aromatizante, kit de limpeza) preencha o **stock** e o **link de compra**.
 **Evitar no catálogo:** peças por modelo (escovas, filtros, etc.).
-
-## Onde mudar
-
-1. Constantes no topo de `Codigo.gs` (`REGRAS`) — indicação / € por ponto
-2. Folha **Premios** — pontos e nomes
-3. Cole o `Codigo.gs` actualizado e faça **Nova versão** da implantação
-4. Menu **Pontos INOVACAR → Recalcular pontos** (se mudou a indicação)
-5. Não é preciso republicar o site

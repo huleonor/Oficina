@@ -25,7 +25,7 @@ npm run images     # gerar as imagens do site a partir de inovacar-assets/
 | Trabalhos antes/depois | `src/content/projetos/*.md` |
 | Domínio final | variável `SITE_URL` (ver `astro.config.mjs`) |
 | Programa de pontos (API) | `PUBLIC_PONTOS_API` em `.env` — ver [sheets/README.md](sheets/README.md) |
-| Gestão da oficina (carros, clientes, tempos) | `public/gestao/` — ver [sheets/GESTAO.md](sheets/GESTAO.md) |
+| Gestão da oficina (carros, tempos, clientes, pontos, prémios) | `public/gestao/` — ver [sheets/GESTAO.md](sheets/GESTAO.md) |
 
 ### Programa de pontos
 
@@ -37,8 +37,8 @@ o site fala com um Apps Script Web App (nunca com a folha em público).
 2. Copie `.env.example` para `.env` e ponha o URL em `PUBLIC_PONTOS_API`.
 3. Reinicie `npm run dev`. Sem a variável, a página mostra o catálogo e avisa que a consulta ainda não está ligada.
 
-Regra base: **1 € = 1 ponto**. Custo alvo da oficina: **~5%** (0,05 € por ponto).
-Indicação: **300 pontos** (~15 €). Detalhe em [sheets/ECONOMIA.md](sheets/ECONOMIA.md).
+Regra base: **1 € = 1 ponto**, e o cliente recebe de volta **3%** do que gasta (0,03 € por ponto, editável na gestão).
+Indicação: **300 pontos** (~9 €). Detalhe em [sheets/ECONOMIA.md](sheets/ECONOMIA.md).
 Resgates só na oficina (a página é só de consulta).
 
 ### Trabalhos (antes e depois)
