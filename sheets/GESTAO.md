@@ -11,9 +11,12 @@ https://huleonor.github.io/Oficina/gestao/ (não aparece no menu nem no sitemap)
 
 - **Oficina**: o objetivo da semana (por omissão 12 carros entregues, uma barra que enche a cada entrega) e o quadro
   dos carros lá dentro: À espera, Em trabalho, Pronto a levantar. Cada carro em trabalho tem um relógio grande que
-  conta o tempo de trabalho (só nas horas de abertura) e uma barra contra a média desse serviço. **Pausar** (à espera
-  de peças, do cliente, de outro trabalho) para o relógio; **Retomar** volta a contar. Atrasados e prometidos para
-  hoje aparecem primeiro.
+  conta o tempo de trabalho (só nas horas de abertura) e uma barra contra a média desse serviço. **Pausar** é um
+  toque e para o relógio; **Retomar** volta a contar. O carro começado mais recente fica no topo, os em pausa no fim.
+  Os cartões arrastam-se entre colunas (no telemóvel: carregar e segurar, e largar no separador).
+- **Anular**: cada ação rápida (começar, pausar, arrastar, entregar, trocar pontos, apagar) mostra um aviso com
+  **Anular** (ou Ctrl/⌘ Z) durante 6 segundos, que desfaz também na sheet. Os formulários têm o botão Guardar.
+- **Fichas**: tocar na pessoa abre o cliente; tocar na matrícula abre o carro.
 - **Entregar**: pergunta quanto o cliente pagou, mostra os pontos que ganha e o saldo com que fica, e o carro
   sai do cartão.
 - **Dar entrada**: a matrícula encontra o carro e o dono; um carro novo pede marca e cliente (com sugestões de
@@ -65,5 +68,5 @@ Na engrenagem, **Ver a demonstração** abre a página com dados de exemplo guar
 - `public/gestao/index.html`, `app.css`, `app.js`: a página. Usa o logo e o favicon do site.
 - `public/gestao/config.js`: o URL do script, o horário e a lista de serviços (os mesmos do site).
 - `public/gestao/icones.js`: ícones Phosphor (MIT).
-- `public/gestao/fonts/`: a letra Archivo (SIL Open Font License, `OFL.txt`).
+- `public/gestao/fonts/`: a letra Figtree (SIL Open Font License, `OFL.txt`).
 - `sheets/Codigo.gs`: o script da sheet, para o site e para a gestão.

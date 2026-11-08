@@ -38,6 +38,9 @@
   const placa = (m, tam = '') => m
     ? `<span class="placa ${tam}" aria-label="Matrícula ${esc(m)}"><span>${esc(m)}</span></span>`
     : `<span class="placa vazia ${tam}"><span>Sem matrícula</span></span>`;
+  const corDe = (txt) => { let h = 0; for (const ch of String(txt)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % 6; };
+  const iniciais = (n) => { const p = String(n || '?').trim().split(/\s+/); return ((p[0] || '?')[0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase(); };
+  const avatar = (nome, tam = '') => `<span class="avatar a${corDe(nome)} ${tam}" aria-hidden="true">${esc(iniciais(nome))}</span>`;
   const telFormatar = (t) => {
     const d = soDigitos(t);
     return d.length === 9 ? `${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}` : String(t || '');
@@ -129,7 +132,6 @@
   const ORDEM = ['espera', 'curso', 'pronto', 'entregue'];
   const seguinte = (e) => ORDEM[ORDEM.indexOf(e) + 1];
   const CARIMBO_DE = { curso: 'inicio', pronto: 'pronto', entregue: 'entregue' };
-  const MOTIVOS = ['À espera de peças', 'À espera do cliente', 'Outro trabalho primeiro'];
   const TIPOS = {
     gasto: { nome: 'Serviço na oficina', ic: 'receipt' },
     resgate: { nome: 'Troca de pontos', ic: 'gift' },
@@ -226,8 +228,8 @@
     if (!d) return null;
     const hoje = new Date();
     if (fimDoDia(d) < hoje) { const dias = Math.round((inicioDia(hoje) - inicioDia(d)) / DIA); return { tipo: 'atraso', txt: dias <= 1 ? 'Atrasado desde ontem' : `Atrasado ${dias} dias` }; }
-    if (mesmoDia(d, hoje)) return { tipo: 'hoje', txt: 'Prometido para hoje' };
-    return { tipo: 'ok', txt: `Para ${quando(t.previsto, false)}` };
+    if (mesmoDia(d, hoje)) return { tipo: 'hoje', txt: 'Hoje' };
+    return { tipo: 'ok', txt: quando(t.previsto, false) };
   }
   const cumpriuPrazo = (t) => {
     if (!t.previsto || !t.pronto) return null;
@@ -294,7 +296,20 @@
     }
   }
 
-  function gravar(ops, msg) {
+  // O inverso de um lote: o que repõe a sheet como estava antes dele.
+  function inversas(ops) {
+    return ops.slice().reverse().map((o) => {
+      const atual = (st[o.tabela] || []).find((x) => x.id === o.id);
+      if (o.op === 'apagar') return atual ? { op: 'criar', tabela: o.tabela, id: o.id, dados: { ...atual } } : null;
+      if (!atual) return { op: 'apagar', tabela: o.tabela, id: o.id };
+      const dados = {};
+      Object.keys(o.dados || {}).forEach((k) => { dados[k] = atual[k] ?? ''; });
+      return { op: 'atualizar', tabela: o.tabela, id: o.id, dados };
+    }).filter(Boolean);
+  }
+
+  function gravar(ops, msg, ic, anulavel = true) {
+    const desfazer = anulavel ? inversas(ops) : null;
     const base = baseAtual();
     aplicar(base, ops);
     indexar();
@@ -302,7 +317,7 @@
     guardar('ig.pendentes', st.pendentes);
     guardarCache();
     desenhar();
-    if (msg) toast(msg);
+    if (msg) toast(msg, ic, desfazer && desfazer.length ? () => gravar(desfazer, 'Anulado.', 'arrow-counter-clockwise', false) : null);
     enviar();
   }
 
@@ -387,7 +402,7 @@
     add('car0', S[1], 'Pastilhas da frente a chiar.', 'espera', em(d0, 9, 5), '', '', '', em(d0, 18, 0).slice(0, 10));
     add('car3', S[0], 'Revisão dos 40 mil.', 'espera', em(d0, 10, 40));
     add('car4', S[2], 'Luz do motor acesa, perde força a subir.', 'curso', em(util(-1), 15, 20), em(d0, 9, 30), '', '', em(util(-1), 18, 0).slice(0, 10));
-    add('car6', S[5], 'Embraiagem a patinar.', 'curso', em(util(-2), 9, 15), em(util(-2), 11, 0), '', '', em(d0, 18, 0).slice(0, 10), { pausado_em: em(d0, 9, 40), pausa_motivo: MOTIVOS[0] });
+    add('car6', S[5], 'Embraiagem a patinar.', 'curso', em(util(-2), 9, 15), em(util(-2), 11, 0), '', '', em(d0, 18, 0).slice(0, 10), { pausado_em: em(d0, 9, 40) });
     add('car5', S[3], 'Não pega de manhã.', 'pronto', em(d0, 8, 55), em(d0, 9, 10), em(d0, 10, 25), '', em(d0, 18, 0).slice(0, 10));
     // Histórico: cerca de 5 meses de carros entregues, com o que pagaram.
     const carrosIds = carros.map((c) => c.id);
@@ -654,7 +669,7 @@
     ativos.filter((t) => bateBusca(t, q)).forEach((t) => (por[t.estado] || por.espera).push(t));
     const urg = (t) => (prazo(t)?.tipo === 'atraso' ? 0 : prazo(t)?.tipo === 'hoje' ? 1 : 2);
     por.espera.sort((a, b) => urg(a) - urg(b) || (data(a.entrada) || 0) - (data(b.entrada) || 0));
-    por.curso.sort((a, b) => emPausa(a) - emPausa(b) || urg(a) - urg(b) || (data(a.inicio) || 0) - (data(b.inicio) || 0));
+    por.curso.sort((a, b) => emPausa(a) - emPausa(b) || (data(b.inicio) || 0) - (data(a.inicio) || 0));
     por.pronto.sort((a, b) => (data(a.pronto) || 0) - (data(b.pronto) || 0));
     const VAZIO = {
       espera: ['Ninguém à espera.', 'Quando chegar um carro, carregue em Dar entrada.'],
@@ -692,15 +707,15 @@
       const acima = media && tp.trabalho > media;
       corpo = `<div class="relogio${pausa ? ' em-pausa' : ''}">
           <span class="relogio-num">${relogio(tp.trabalho)}</span>
-          <span class="relogio-rot">${pausa ? `${icone('pause')}${esc(t.pausa_motivo || 'Em pausa')}` : '<span class="ponto vivo" aria-hidden="true"></span>em trabalho'}</span>
+          <span class="relogio-rot">${pausa ? `${icone('pause')}Em pausa` : '<span class="ponto vivo" aria-label="A contar"></span>'}</span>
         </div>
-        ${media ? `<div class="medidor${acima ? ' acima' : ''}" aria-label="Média deste serviço: ${esc(duracaoUtil(media))}"><span class="medidor-barra"><i style="width:${Math.min(100, Math.max(3, fr * 100))}%"></i></span><span class="medidor-txt">${acima ? `${esc(duracao(tp.trabalho - media))} acima da média` : `média ${esc(duracaoUtil(media))}`}</span></div>` : ''}`;
+        ${media ? `<div class="medidor${acima ? ' acima' : ''}" aria-label="Média deste serviço: ${esc(duracaoUtil(media))}"><span class="medidor-barra"><i style="width:${Math.min(100, Math.max(3, fr * 100))}%"></i></span><span class="medidor-txt" title="Média deste serviço: ${esc(duracaoUtil(media))}">${icone('hourglass')}${acima ? `+${esc(duracao(tp.trabalho - media))}` : esc(duracaoUtil(media))}</span></div>` : ''}`;
     } else if (t.estado === 'espera') {
-      corpo = `<div class="relogio espera"><span class="relogio-num">${relogio(tp.espera)}</span><span class="relogio-rot">à espera, chegou ${esc(quando(t.entrada).replace(/^hoje, /, 'às '))}</span></div>`;
+      corpo = `<div class="relogio espera"><span class="relogio-num">${relogio(tp.espera)}</span><span class="relogio-rot" title="Chegou">${icone('clock')}${esc(quando(t.entrada).replace(/^hoje, /, ''))}</span></div>`;
     } else {
-      corpo = `<div class="relogio pronto"><span class="relogio-num">${icone('check-circle')}</span><span class="relogio-rot">pronto ${esc(quando(t.pronto).replace(/^hoje, /, 'às '))}, feito em ${esc(duracaoUtil(tp.trabalho ?? tp.oficina))}</span></div>`;
+      corpo = `<div class="relogio pronto"><span class="relogio-num">${icone('check-circle')}</span><span class="relogio-rot"><span title="Pronto">${icone('clock')}${esc(quando(t.pronto).replace(/^hoje, /, ''))}</span><span title="Tempo de trabalho">${icone('timer')}${esc(duracaoUtil(tp.trabalho ?? tp.oficina))}</span></span></div>`;
     }
-    const prazoHtml = pz ? `<span class="prazo ${pz.tipo}">${icone(pz.tipo === 'ok' ? 'calendar-blank' : pz.tipo === 'hoje' ? 'clock-countdown' : 'warning')}${esc(pz.txt)}</span>` : '<span></span>';
+    const prazoHtml = pz ? `<span class="prazo ${pz.tipo}" title="Prometido para ${esc(quando(t.previsto, false))}">${icone(pz.tipo === 'ok' ? 'calendar-blank' : pz.tipo === 'hoje' ? 'clock-countdown' : 'warning')}${esc(pz.txt)}</span>` : '<span></span>';
     let botoes = '';
     if (t.estado === 'espera') botoes = `<button class="btn pequeno primario" type="button" data-avancar="${t.id}">${icone('play')}Começar</button>`;
     if (t.estado === 'curso') botoes = pausa
@@ -712,7 +727,7 @@
         <span class="cartao-linha">${placa(c && c.matricula)}<span class="cartao-carro">${esc(nomeCarro(c))}</span></span>
         ${corpo}
         <p class="cartao-servico"><strong>${esc(t.servico || 'Serviço por definir')}</strong>${t.descricao ? ` ${esc(t.descricao)}` : ''}</p>
-        <p class="cartao-cliente">${icone('user')}${esc(cl ? cl.nome : 'Sem cliente')}</p>
+        <p class="cartao-cliente">${icone('user')}${esc(cl ? cl.nome : 'Sem cliente')}${cl && saldoDe(cl.id) ? `<span class="cartao-pts">${icone('coins')}${pts(saldoDe(cl.id))}</span>` : ''}</p>
       </button>
       <div class="cartao-rodape">${prazoHtml}<span class="botoes">${botoes}</span></div>
     </article></li>`;
@@ -733,15 +748,18 @@
     const corpo = !st.carregado ? `<div class="carregar">${esqueletos(4)}</div>`
       : !st.clientes.length ? `<div class="lista-vazia"><strong>Ainda não há clientes.</strong>Os clientes entram quando dá entrada a um carro, ou aqui.<br><button class="btn primario" type="button" data-abrir="cliente">${icone('plus')}Novo cliente</button></div>`
       : !linhas.length ? '<div class="lista-vazia"><strong>Nenhum cliente encontrado.</strong>Procure pelo nome, telemóvel ou matrícula.</div>'
-      : `<table><thead><tr><th>Nome</th><th>Telemóvel</th><th>Carros</th><th class="num">Pontos</th><th class="num">Visitas</th><th class="num">Última visita</th></tr></thead><tbody>
-        ${linhas.map(({ c, carros, visitas, ultima, saldo }) => `<tr data-abrir-linha="cliente" data-id="${c.id}" tabindex="0" data-anim-id="${c.id}">
-          <td class="nome-linha">${esc(c.nome)}</td>
-          <td data-rotulo="Telemóvel">${esc(telFormatar(c.telemovel)) || '<span class="fraco">sem número</span>'}</td>
-          <td><div class="placas">${carros.map((k) => placa(k.matricula)).join('') || '<span class="fraco">sem carros</span>'}</div></td>
+      : `<table class="limpa"><thead><tr><th>Cliente</th><th>Carros</th><th>Estado</th><th class="num">Pontos</th><th class="num">Visitas</th><th class="num">Última visita</th></tr></thead><tbody>
+        ${linhas.map(({ c, carros, visitas, ultima, saldo }) => {
+          const dentro = carros.flatMap((k) => idx.trabalhosDoCarro.get(k.id) || []).find((t) => t.estado !== 'entregue');
+          return `<tr data-abrir-linha="cliente" data-id="${c.id}" tabindex="0" data-anim-id="${c.id}">
+          <td><span class="pessoa-cel">${avatar(c.nome)}<span><strong>${esc(c.nome)}</strong><span>${esc(telFormatar(c.telemovel)) || 'sem telemóvel'}</span></span></span></td>
+          <td><div class="placas">${carros.map((k) => placa(k.matricula)).join('') || '<span class="fraco">-</span>'}</div></td>
+          <td class="esconder-telemovel">${dentro ? `<span class="estado-dot ${dentro.estado}">${esc(ESTADOS[dentro.estado].nome)}</span>` : '<span class="fraco">-</span>'}</td>
           <td class="num" data-rotulo="Pontos"><span class="pontos-pill">${icone('coins')}${pts(saldo)}</span></td>
           <td class="num esconder-telemovel">${visitas}</td>
           <td class="num" data-rotulo="Última visita">${ultima ? esc(quando(ultima, false)) : '<span class="fraco">nunca</span>'}</td>
-        </tr>`).join('')}</tbody></table>`;
+        </tr>`;
+        }).join('')}</tbody></table>`;
 
     return `
       <div class="vista-cabeca" data-entra>
@@ -767,11 +785,11 @@
     const corpo = !st.carregado ? `<div class="carregar">${esqueletos(4)}</div>`
       : !st.carros.length ? `<div class="lista-vazia"><strong>Ainda não há carros.</strong>Cada carro entra com a primeira entrada na oficina.<br><button class="btn primario" type="button" data-abrir="entrada">${icone('plus')}Dar entrada</button></div>`
       : !linhas.length ? '<div class="lista-vazia"><strong>Nenhum carro encontrado.</strong>Procure pela matrícula, marca, modelo ou cliente.</div>'
-      : `<table><thead><tr><th>Matrícula</th><th>Carro</th><th>Cliente</th><th class="num">Visitas</th><th class="num">Gasto</th><th class="num">Última visita</th><th class="num">Tempo médio</th></tr></thead><tbody>
+      : `<table class="limpa"><thead><tr><th>Matrícula</th><th>Carro</th><th>Cliente</th><th class="num">Visitas</th><th class="num">Gasto</th><th class="num">Última visita</th><th class="num">Tempo médio</th></tr></thead><tbody>
         ${linhas.map(({ k, cl, visitas, ultima, media, naOficina, gasto }) => `<tr data-abrir-linha="carro" data-id="${k.id}" tabindex="0" data-anim-id="${k.id}">
           <td>${placa(k.matricula)}</td>
-          <td class="nome-linha">${esc(nomeCarro(k))}${k.ano ? ` <span class="fraco">${esc(k.ano)}</span>` : ''}${naOficina ? ' <span class="selo ok">Na oficina</span>' : ''}</td>
-          <td data-rotulo="Cliente">${cl ? esc(cl.nome) : '<span class="fraco">sem cliente</span>'}</td>
+          <td><span class="duas-linhas"><strong>${esc(nomeCarro(k))}</strong><span>${[k.ano, k.km ? Number(k.km).toLocaleString('pt-PT') + ' km' : ''].filter(Boolean).join(', ') || '&nbsp;'}</span></span>${naOficina ? ` <span class="estado-dot ${(idx.trabalhosDoCarro.get(k.id) || []).find((t) => t.estado !== 'entregue').estado}">Na oficina</span>` : ''}</td>
+          <td data-rotulo="Cliente">${cl ? `<span class="pessoa-cel pequena">${avatar(cl.nome, 'pequeno')}<span><strong>${esc(cl.nome)}</strong></span></span>` : '<span class="fraco">sem cliente</span>'}</td>
           <td class="num esconder-telemovel">${visitas}</td>
           <td class="num esconder-telemovel">${gasto ? esc(eur(gasto, true)) : '<span class="fraco">-</span>'}</td>
           <td class="num" data-rotulo="Última visita">${ultima ? esc(quando(ultima, false)) : '<span class="fraco">nunca</span>'}</td>
@@ -789,11 +807,11 @@
   // ---------------------------------------------------------------- vista: prémios
   const trocasDe = (pid) => st.movimentos.filter((m) => m.tipo === 'resgate' && m.premio_id === pid).length;
   function estadoStock(p) {
-    if (!temNum(p.stock)) return { cls: 'servico', txt: 'Sem stock a contar', ic: 'storefront' };
+    if (!temNum(p.stock)) return { cls: 'servico', txt: 'Serviço', ic: 'storefront' };
     const s = num(p.stock);
     if (s <= 0) return { cls: 'esgotado', txt: 'Esgotado', ic: 'warning-circle' };
-    if (s <= 3) return { cls: 'baixo', txt: `Só ${s} em stock`, ic: 'package' };
-    return { cls: 'ok', txt: `${s} em stock`, ic: 'package' };
+    if (s <= 3) return { cls: 'baixo', txt: `Só ${s}`, ic: 'package' };
+    return { cls: 'ok', txt: `${s}`, ic: 'package' };
   }
   const retornoDe = (p) => (num(p.pontos) > 0 ? (num(p.custo_eur) / (num(p.pontos) / Math.max(0.0001, regra('pontos_por_euro')))) * 100 : 0);
 
@@ -802,11 +820,11 @@
     const lista = [...st.premios].sort((a, b) => ativoP(b) - ativoP(a) || num(a.pontos) - num(b.pontos));
     const fora = lista.filter((p) => ativoP(p) && num(p.custo_eur) > 0 && Math.abs(num(p.pontos) - pontosSugeridos(p.custo_eur)) / Math.max(1, pontosSugeridos(p.custo_eur)) > 0.06);
     const regrasHtml = `<section class="regras" data-entra aria-label="Regras do programa">
-      <div class="regra-bloco"><span class="rotulo">Ganha</span><strong>${pts(regra('pontos_por_euro'))} ${regra('pontos_por_euro') === 1 ? 'ponto' : 'pontos'}</strong><span>por cada euro gasto</span></div>
-      <div class="regra-bloco"><span class="rotulo">Devolve</span><strong>${pct(alvo, alvo % 1 ? 1 : 0)}</strong><span>do que o cliente gasta</span></div>
-      <div class="regra-bloco"><span class="rotulo">Cada ponto custa</span><strong>${esc(eur(valorPonto()).replace(/\s/g, ' '))}</strong><span>à oficina</span></div>
-      <div class="regra-bloco"><span class="rotulo">Indicação</span><strong>${pts(regra('pontos_por_indicacao'))} pts</strong><span>custa ${esc(eur(regra('pontos_por_indicacao') * valorPonto()))}</span></div>
-      <button class="btn" type="button" data-abrir="regras">${icone('sliders-horizontal')}Mudar regras</button>
+      <div class="regra-bloco" title="Pontos por cada euro gasto"><span class="regra-ic">${icone('currency-eur')}</span><strong>${pts(regra('pontos_por_euro'))} pt</strong><span>por €</span></div>
+      <div class="regra-bloco" title="Parte do que o cliente gasta que lhe volta em prémios"><span class="regra-ic">${icone('percent')}</span><strong>${pct(alvo, alvo % 1 ? 1 : 0)}</strong><span>devolvido</span></div>
+      <div class="regra-bloco" title="O que cada ponto custa à oficina"><span class="regra-ic">${icone('coins')}</span><strong>${esc(eur(valorPonto()).replace(/\s/g, ' '))}</strong><span>por ponto</span></div>
+      <div class="regra-bloco" title="Pontos por trazer um amigo, custa ${esc(eur(regra('pontos_por_indicacao') * valorPonto()))}"><span class="regra-ic">${icone('user-plus')}</span><strong>${pts(regra('pontos_por_indicacao'))}</strong><span>por amigo</span></div>
+      <button class="btn-icone contorno grande" type="button" data-abrir="definicoes" aria-label="Mudar as regras" title="Mudar as regras">${icone('sliders-horizontal')}</button>
     </section>`;
     const aviso = fora.length ? `<div class="aviso-dentro ambar" data-entra>${icone('coins')}<p><strong>${plural(fora.length, 'prémio não está', 'prémios não estão')} nos ${pct(alvo, alvo % 1 ? 1 : 0)}.</strong> ${esc(fora.slice(0, 3).map((p) => `${p.nome}: ${pts(p.pontos)} em vez de ${pts(pontosSugeridos(p.custo_eur))}`).join('; '))}${fora.length > 3 ? '...' : ''}</p><button class="btn pequeno escuro" type="button" data-acao="ajustar-premios">Ajustar aos ${pct(alvo, alvo % 1 ? 1 : 0)}</button></div>` : '';
     const cartoes = !st.carregado ? `<div class="grelha-premios">${esqueletos(4)}</div>`
@@ -817,13 +835,13 @@
             <span class="premio-topo"><span class="premio-ic">${icone('gift')}</span><span class="stock ${sk.cls}">${icone(sk.ic)}${esc(sk.txt)}</span></span>
             <strong class="premio-nome">${esc(p.nome)}</strong>
             <span class="premio-pts"><b>${pts(p.pontos)}</b> pontos</span>
-            <span class="premio-linha"><span>Custa ${esc(eur(num(p.custo_eur)))}</span><span class="ret${num(p.custo_eur) && Math.abs(ret - alvo) > alvo * 0.06 ? ' fora' : ''}">devolve ${pct(ret)}</span></span>
-            <span class="premio-rodape"><span>${n ? `Trocado ${plural(n, 'vez', 'vezes')}` : 'Ainda não trocado'}</span>${p.comprar ? `<span class="comprar">${icone('link')}Onde comprar</span>` : ''}${ativoP(p) ? '' : '<span class="selo">Escondido</span>'}</span>
+            <span class="premio-linha"><span title="Custa à oficina">${icone('currency-eur')}${esc(eur(num(p.custo_eur)))}</span><span title="Devolve ao cliente" class="ret${num(p.custo_eur) && Math.abs(ret - alvo) > alvo * 0.06 ? ' fora' : ''}">${icone('percent')}${pct(ret)}</span></span>
+            <span class="premio-rodape"><span title="Vezes trocado">${icone('arrows-clockwise')}${n}</span>${p.comprar ? `<span class="comprar" title="Tem link de compra">${icone('link')}</span>` : ''}${ativoP(p) ? '' : '<span class="selo">Escondido</span>'}</span>
           </button></li>`;
         }).join('')}</ul>`;
     return `
       <div class="vista-cabeca" data-entra>
-        <div><h1>Pontos e prémios</h1><p class="resumo">O que cada prémio custa à oficina e em pontos. O site mostra os prémios ativos.</p></div>
+        <div><h1>Prémios</h1></div>
         <div class="acoes"><button class="btn primario" type="button" data-abrir="premio">${icone('plus')}Novo prémio</button></div>
       </div>
       ${st.carregado ? regrasHtml : ''}
@@ -883,7 +901,8 @@
     const r = resumoPeriodo(per.ini, per.fim), ant = resumoPeriodo(per.antIni, per.antFim);
     const custoPct = r.faturado ? (r.custo / r.faturado) * 100 : null;
 
-    const kpi = (rot, valor, extra = '', id = '', fmt = '') => `<div class="kpi"><dt>${rot}</dt><dd><span class="kpi-num"${id ? ` data-contar-id="${id}" data-contar="${valor.n}"${fmt ? ` data-fmt="${fmt}"` : ''}` : ''}>${valor.txt}</span>${extra}</dd></div>`;
+    const ICK = { 'Carros entregues': 'flag-checkered', Faturado: 'currency-eur', 'Tempo médio de trabalho': 'timer', 'Tempo médio na oficina': 'clock', 'Prontos no dia prometido': 'calendar-check', 'Pontos dados': 'coins', 'Pontos trocados': 'gift', 'Custo dos prémios': 'hand-coins' };
+    const kpi = (rot, valor, extra = '', id = '', fmt = '') => `<div class="kpi"><dt>${icone(ICK[rot] || 'chart-bar')}${rot}</dt><dd><span class="kpi-num"${id ? ` data-contar-id="${id}" data-contar="${valor.n}"${fmt ? ` data-fmt="${fmt}"` : ''}` : ''}>${valor.txt}</span>${extra}</dd></div>`;
     const kpis = `<section class="painel-kpi" data-entra aria-label="Resumo">
       <dl class="kpis">
         ${kpi('Carros entregues', { n: r.entregues, txt: pts(r.entregues) }, delta(r.entregues, ant.entregues), 'r-ent')}
@@ -1080,12 +1099,13 @@
   function abrirPainel(tipo, opcoes = {}) {
     clearTimeout(fecharTimer);
     painel.classList.remove('a-fechar');
-    const html = ({ trabalho: painelTrabalho, entrada: painelEntrada, cliente: painelCliente, carro: painelCarro, ligacao: painelLigacao, entregar: painelEntregar, trocar: painelTrocar, pontos: painelPontos, premio: painelPremio, regras: painelRegras, pausar: painelPausar }[tipo])(opcoes);
+    const html = ({ trabalho: painelTrabalho, entrada: painelEntrada, cliente: painelCliente, carro: painelCarro, ligacao: painelLigacao, entregar: painelEntregar, trocar: painelTrocar, pontos: painelPontos, premio: painelPremio, regras: painelDefinicoes, definicoes: painelDefinicoes }[tipo])(opcoes);
     if (!html) return;
     const trocar = painel.open;
     painelAtual = { tipo, ...opcoes };
     soltarToast();
     painel.innerHTML = html;
+    if (!toastEl.hidden) painel.appendChild(toastEl);
     if (!painel.open) painel.showModal();
     else if (trocar && !reduzir()) $('.painel-forma', painel).animate([{ opacity: 0, transform: 'translateX(14px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: E.emph });
     const foco = $('[data-focar]', painel);
@@ -1180,7 +1200,7 @@
         <label class="interruptor"><input type="checkbox" name="comecar"><span class="int-trilho" aria-hidden="true"></span><span>Começar já o trabalho</span></label>
         ${erroForm}
       </div>
-      <footer class="painel-pe"><div class="direita"><button class="btn" type="button" data-fechar>Cancelar</button><button class="btn primario" type="submit">${icone('plus')}Dar entrada</button></div></footer>
+      <footer class="painel-pe"><div class="direita"><button class="btn primario" type="submit">${icone('plus')}Dar entrada</button></div></footer>
     </form>`;
   }
 
@@ -1298,11 +1318,12 @@
     const pausa = emPausa(t);
     let acao = '';
     if (t.estado === 'espera') acao = `<button class="btn primario" type="button" data-avancar="${t.id}">${icone('play')}Começar</button>`;
-    if (t.estado === 'curso') acao = pausa ? `<button class="btn" type="button" data-retomar="${t.id}">${icone('play')}Retomar</button>` : `<button class="btn" type="button" data-abrir="pausar" data-id="${t.id}">${icone('pause')}Pausar</button><button class="btn pronto" type="button" data-avancar="${t.id}">${icone('check')}Pronto</button>`;
+    if (t.estado === 'curso') acao = pausa ? `<button class="btn" type="button" data-retomar="${t.id}">${icone('play')}Retomar</button>` : `<button class="btn-icone contorno grande" type="button" data-pausar="${t.id}" aria-label="Pausar" title="Pausar">${icone('pause')}</button><button class="btn pronto" type="button" data-avancar="${t.id}">${icone('check')}Pronto</button>`;
     if (t.estado === 'pronto') acao = `<button class="btn escuro" type="button" data-abrir="entregar" data-id="${t.id}">${icone('flag-checkered')}Entregar</button>`;
     return `<form class="painel-forma" data-form="trabalho" data-id="${t.id}" novalidate>
-      ${cabecaPainel(esc(nomeCarro(c)), esc(t.servico || 'Serviço por definir'), `<div class="placa-topo">${placa(c && c.matricula, 'grande')}</div>`)}
+      ${cabecaPainel(esc(nomeCarro(c)), esc(t.servico || 'Serviço por definir'), `<div class="placa-topo">${c ? `<button class="placa-btn" type="button" data-abrir="carro" data-id="${c.id}" title="Abrir o carro">${placa(c.matricula, 'grande')}</button>` : placa('', 'grande')}</div>`)}
       <div class="painel-corpo" tabindex="-1">
+        ${pessoaHtml(cl)}
         <ol class="etapas" aria-label="Estado: ${ESTADOS[t.estado].nome}">
           ${etapa('espera', 'Chegou', quando(t.entrada))}
           ${etapa('curso', 'Começou', quando(t.inicio))}
@@ -1315,15 +1336,8 @@
           <div><dt>Na oficina</dt><dd>${tp.oficina != null ? esc(duracaoUtil(tp.oficina)) : '-'}</dd></div>
         </dl>
         <p class="duracoes-nota">Em horas de abertura${tp.concluido ? '' : ', a contar'}${tp.pausa ? `. Em pausa: ${esc(duracaoUtil(tp.pausa))}, fora do trabalho` : ''}.${tp.calendario != null && tp.calendario >= DIA ? ` No calendário: ${esc(duracao(tp.calendario))}.` : ''}</p>
-        ${pausa ? `<p class="chip-estado pausa grande">${icone('pause')}Em pausa desde ${esc(quando(t.pausado_em))}: ${esc(t.pausa_motivo || 'sem motivo')}</p>` : ''}
+        ${pausa ? `<p class="chip-estado pausa grande">${icone('pause')}Em pausa desde ${esc(quando(t.pausado_em))}</p>` : ''}
         ${prazo(t)?.tipo === 'atraso' ? `<p class="prazo atraso">${icone('warning')}Prometido para ${esc(quando(t.previsto, false))}.</p>` : ''}
-
-        <div class="contacto">
-          <div class="quem"><strong>${cl ? esc(cl.nome) : 'Sem cliente'}</strong><span>${cl && cl.telemovel ? esc(telFormatar(cl.telemovel)) : 'sem telemóvel'}${cl ? `, ${pts(saldoDe(cl.id))} pontos` : ''}</span></div>
-          ${cl && cl.telemovel ? `<a class="btn pequeno" href="tel:${esc(soDigitos(cl.telemovel))}">${icone('phone')}Ligar</a>` : ''}
-          ${cl ? `<button class="btn texto pequeno" type="button" data-abrir="cliente" data-id="${cl.id}">Ficha do cliente</button>` : ''}
-          ${c ? `<button class="btn texto pequeno" type="button" data-abrir="carro" data-id="${c.id}">Ficha do carro</button>` : ''}
-        </div>
 
         ${escolhaServico(t.servico)}
         ${area('descricao', 'O que se passa', t.descricao, { opcional: true })}
@@ -1344,13 +1358,27 @@
           </div>
           ${campo('valor', 'Valor pago (€)', t.valor, { opcional: true, extra: ' inputmode="decimal"', ajuda: 'Mudar aqui não mexe nos pontos já dados. Para isso use a ficha do cliente.' })}
         </fieldset>
-        <p><button class="btn perigo pequeno" type="button" data-apagar-trabalho>${icone('trash')}Apagar este trabalho</button></p>
+        <p><button class="btn perigo pequeno" type="button" data-apagar-trabalho>${icone('trash')}Apagar</button></p>
       </div>
       <footer class="painel-pe">
         <button class="btn" type="submit">Guardar</button>
         <div class="direita">${acao}</div>
       </footer>
     </form>`;
+  }
+
+  // A pessoa: tocar abre a ficha; o telefone ao lado liga.
+  function pessoaHtml(cl) {
+    if (!cl) return '<p class="ajuda-linha">Sem cliente.</p>';
+    return `<div class="pessoa-linha">
+      <button class="pessoa" type="button" data-abrir="cliente" data-id="${cl.id}" title="Abrir a ficha">
+        ${avatar(cl.nome)}
+        <span class="pessoa-txt"><strong>${esc(cl.nome)}</strong><span>${cl.telemovel ? esc(telFormatar(cl.telemovel)) : 'sem telemóvel'}</span></span>
+        <span class="pessoa-pts">${icone('coins')}${pts(saldoDe(cl.id))}</span>
+        ${icone('caret-right', 'seta')}
+      </button>
+      ${cl.telemovel ? `<a class="btn-icone contorno grande" href="tel:${esc(soDigitos(cl.telemovel))}" aria-label="Ligar" title="Ligar">${icone('phone')}</a>` : ''}
+    </div>`;
   }
 
   function dadosTrabalho(f, t) {
@@ -1413,35 +1441,18 @@
     gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados }], msg);
   }
 
-  // --- Pausar (à espera de peças, etc.)
-  function painelPausar({ id }) {
+  // --- Pausar: um toque, sem perguntas. O relógio para até Retomar.
+  function pausar(id) {
     const t = idx.trabalho.get(id);
-    if (!t) return '';
-    const c = carroDe(t);
-    return `<form class="painel-forma compacto" data-form="pausar" data-id="${id}" novalidate>
-      ${cabecaPainel('Pausar o trabalho', `${esc(c ? c.matricula : '')} ${esc(nomeCarro(c))}. O relógio para e a pausa não conta como trabalho.`)}
-      <div class="painel-corpo">
-        <fieldset class="grupo"><legend>Porquê?</legend><div class="chips">${MOTIVOS.map((m, i) => `<label class="chip"><input type="radio" name="motivo" value="${esc(m)}"${i === 0 ? ' checked' : ''}><span>${esc(m)}</span></label>`).join('')}</div></fieldset>
-        ${campo('outro', 'Outro motivo', '', { opcional: true, ph: 'Ex.: à espera de aprovação do orçamento' })}
-      </div>
-      <footer class="painel-pe"><div class="direita"><button class="btn" type="button" data-fechar>Cancelar</button><button class="btn primario" type="submit">${icone('pause')}Pausar</button></div></footer>
-    </form>`;
-  }
-  function ligarPausar() {
-    const f = $('[data-form="pausar"]', painel);
-    f.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const id = f.dataset.id, t = idx.trabalho.get(id);
-      const motivo = f.outro.value.trim() || (f.querySelector('input[name="motivo"]:checked') || {}).value || '';
-      fecharPainel();
-      gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados: { pausado_em: agoraTexto(), pausa_motivo: motivo } }], `${carroDe(t)?.matricula || 'Trabalho'} em pausa: ${motivo.toLowerCase()}.`);
-    });
+    if (!t || t.pausado_em) return;
+    if (painel.open) fecharPainel();
+    gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados: { pausado_em: agoraTexto(), pausa_motivo: '' } }], `${carroDe(t)?.matricula || 'Trabalho'} em pausa.`, 'pause');
   }
   function retomar(id) {
     const t = idx.trabalho.get(id);
     if (!t) return;
     if (painel.open) fecharPainel();
-    gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados: { ...fecharPausa(t), pausa_motivo: '' } }], `${carroDe(t)?.matricula || 'Trabalho'}: relógio a contar outra vez.`);
+    gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados: { ...fecharPausa(t), pausa_motivo: '' } }], `${carroDe(t)?.matricula || 'Trabalho'}: a contar outra vez.`, 'play');
   }
 
   // --- Entregar: quanto pagou, os pontos que ganha, e o carro vai-se embora.
@@ -1456,13 +1467,14 @@
         <label class="campo campo-dinheiro"><span>Quanto pagou?</span>
           <span class="dinheiro"><input name="valor" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${esc(t.valor ? String(t.valor).replace('.', ',') : '')}" data-focar><b>€</b></span>
         </label>
+        ${pessoaHtml(cl)}
         ${cl ? `<div class="ganho" data-ganho>
             <span class="ganho-ic">${icone('coins')}</span>
             <p><strong class="ganho-num">+<span data-ganho-pts>0</span> pontos</strong><span>${esc(cl.nome)} fica com <b data-ganho-saldo>${pts(saldo)}</b> pontos${cl.telemovel ? '' : '. Sem telemóvel, não os vê no site'}.</span></p>
           </div>`
           : '<p class="ajuda-linha">Este carro não tem cliente: a entrega fica registada, sem pontos.</p>'}
       </div>
-      <footer class="painel-pe"><div class="direita"><button class="btn" type="button" data-fechar>Cancelar</button><button class="btn escuro" type="submit">${icone('flag-checkered')}Entregar</button></div></footer>
+      <footer class="painel-pe"><div class="direita"><button class="btn escuro" type="submit">${icone('flag-checkered')}Entregar</button></div></footer>
     </form>`;
   }
   function ligarEntregar() {
@@ -1512,14 +1524,15 @@
       ${cabecaPainel(c ? esc(c.nome) : 'Novo cliente', c ? `${plural(hist.length, 'visita', 'visitas')}${gasto ? `, ${esc(eur(gasto, true))} gastos` : ''}${hist[0] ? ', a última ' + esc(quando(hist[0].entrada, false)) : ''}` : '')}
       <div class="painel-corpo" tabindex="-1">
         ${c ? `<section class="saldo-cartao">
-            <div><span class="rotulo">Pontos</span><strong class="saldo-num" data-contar-id="saldo-${c.id}" data-contar="${saldo}">${pts(saldo)}</strong><span class="saldo-eur">valem ${esc(eur(saldo * valorPonto()))} em prémios</span></div>
+            <div><span class="rotulo">Pontos</span><strong class="saldo-num" data-contar-id="saldo-${c.id}" data-contar="${saldo}">${pts(saldo)}</strong><span class="saldo-eur">${icone('gift')}${esc(eur(saldo * valorPonto()))}</span></div>
             <div class="saldo-acoes">
-              <button class="btn primario" type="button" data-abrir="trocar" data-id="${c.id}">${icone('gift')}Trocar pontos</button>
-              <button class="btn" type="button" data-abrir="pontos" data-id="${c.id}">${icone('plus')}Dar pontos</button>
+              <button class="btn primario" type="button" data-abrir="trocar" data-id="${c.id}">${icone('gift')}Trocar</button>
+              <button class="btn" type="button" data-abrir="pontos" data-id="${c.id}">${icone('plus')}Pontos</button>
+              ${c.telemovel ? `<a class="btn" href="tel:${esc(soDigitos(c.telemovel))}" aria-label="Ligar ${esc(telFormatar(c.telemovel))}" title="Ligar">${icone('phone')}</a>` : ''}
             </div>
             ${proximoPremio(saldo)}
           </section>
-          <div class="contacto">${c.telemovel ? `<a class="btn pequeno" href="tel:${esc(soDigitos(c.telemovel))}">${icone('phone')}Ligar ${esc(telFormatar(c.telemovel))}</a>` : '<span class="ajuda-linha">Sem telemóvel: não vê os pontos no site.</span>'}</div>` : ''}
+          ${c.telemovel ? '' : '<p class="ajuda-linha">Sem telemóvel: não vê os pontos no site.</p>'}` : ''}
         <div class="grupo">
           ${campo('nome', 'Nome', c ? c.nome : '', { obrig: true, foco: !c })}
           <div class="linha-campos">
@@ -1533,13 +1546,13 @@
         <section class="grupo"><h3 class="titulo-grupo">Movimentos de pontos</h3>${movimentosHtml(movs)}</section>
         <section class="grupo"><h3 class="titulo-grupo">Carros</h3>
           ${carros.length ? `<div class="lista-carros">${carros.map((k) => `<button type="button" data-abrir="carro" data-id="${k.id}">${placa(k.matricula)}<span class="c-info"><strong>${esc(nomeCarro(k))}</strong><span>${[k.ano, k.km ? Number(k.km).toLocaleString('pt-PT') + ' km' : ''].filter(Boolean).join(', ')}</span></span>${icone('caret-right')}</button>`).join('')}</div>` : '<p class="historico-vazio">Sem carros.</p>'}
-          <p><button class="btn pequeno" type="button" data-abrir="carro" data-cliente="${c.id}">${icone('plus')}Juntar carro</button></p>
+          <p><button class="btn pequeno" type="button" data-abrir="carro" data-cliente="${c.id}">${icone('plus')}Carro</button></p>
         </section>
         <section class="grupo"><h3 class="titulo-grupo">Visitas</h3>${historicoHtml(hist, true)}</section>
-        <p><button class="btn perigo pequeno" type="button" data-apagar-cliente>${icone('trash')}Apagar cliente</button></p>` : ''}
+        <p><button class="btn perigo pequeno" type="button" data-apagar-cliente>${icone('trash')}Apagar</button></p>` : ''}
         ${erroForm}
       </div>
-      <footer class="painel-pe"><div class="direita"><button class="btn" type="button" data-fechar>Cancelar</button><button class="btn primario" type="submit">${c ? 'Guardar' : 'Criar cliente'}</button></div></footer>
+      <footer class="painel-pe"><div class="direita"><button class="btn primario" type="submit">${c ? 'Guardar' : 'Criar cliente'}</button></div></footer>
     </form>`;
   }
   function proximoPremio(saldo) {
@@ -1620,7 +1633,7 @@
         <div class="resumo-troca" data-resumo hidden></div>
         ${erroForm}
       </div>
-      <footer class="painel-pe"><div class="direita"><button class="btn" type="button" data-fechar>Cancelar</button><button class="btn primario" type="submit" data-trocar-btn disabled>${icone('gift')}Trocar</button></div></footer>
+      <footer class="painel-pe"><div class="direita"><button class="btn primario" type="submit" data-trocar-btn disabled>${icone('gift')}Trocar</button></div></footer>
     </form>`;
   }
   function ligarTrocar() {
@@ -1668,7 +1681,7 @@
         <p class="ganho-linha" data-previa></p>
         ${erroForm}
       </div>
-      <footer class="painel-pe"><div class="direita"><button class="btn" type="button" data-fechar>Cancelar</button><button class="btn primario" type="submit">${icone('coins')}Dar pontos</button></div></footer>
+      <footer class="painel-pe"><div class="direita"><button class="btn primario" type="submit">${icone('coins')}Dar pontos</button></div></footer>
     </form>`;
   }
   function ligarPontos() {
@@ -1711,9 +1724,10 @@
     return `<form class="painel-forma" data-form="carro" data-id="${k ? k.id : ''}" novalidate>
       ${cabecaPainel(k ? esc(nomeCarro(k)) : 'Novo carro', k ? plural(hist.length, 'visita', 'visitas') : '', k ? `<div class="placa-topo">${placa(k.matricula, 'grande')}</div>` : '')}
       <div class="painel-corpo" tabindex="-1">
+        ${k ? pessoaHtml(clienteDe(k)) : ''}
         ${k ? (naOficina
           ? `<p><button class="btn pequeno" type="button" data-abrir="trabalho" data-id="${naOficina.id}"><span class="ponto" data-estado="${naOficina.estado}" aria-hidden="true"></span>Na oficina: ${esc(ESTADOS[naOficina.estado].nome.toLowerCase())}</button></p>`
-          : `<p><button class="btn pequeno primario" type="button" data-abrir="entrada" data-carro="${k.id}">${icone('plus')}Dar entrada a este carro</button></p>`) : ''}
+          : `<p><button class="btn pequeno primario" type="button" data-abrir="entrada" data-carro="${k.id}">${icone('plus')}Dar entrada</button></p>`) : ''}
         <div class="grupo">
           ${campo('matricula', 'Matrícula', k ? k.matricula : '', { classe: 'campo-matricula', ph: 'AA-00-AA', obrig: true, foco: !k, extra: ' autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="12"' })}
           <div class="linha-campos tres">
@@ -1726,10 +1740,10 @@
           ${area('notas', 'Notas', k ? k.notas : '', { opcional: true, linhas: 2 })}
         </div>
         ${k ? `<section class="grupo"><h3 class="titulo-grupo">Visitas</h3>${historicoHtml(hist)}</section>
-        <p><button class="btn perigo pequeno" type="button" data-apagar-carro>${icone('trash')}Apagar carro</button></p>` : ''}
+        <p><button class="btn perigo pequeno" type="button" data-apagar-carro>${icone('trash')}Apagar</button></p>` : ''}
         ${erroForm}
       </div>
-      <footer class="painel-pe"><div class="direita"><button class="btn" type="button" data-fechar>Cancelar</button><button class="btn primario" type="submit">${k ? 'Guardar' : 'Criar carro'}</button></div></footer>
+      <footer class="painel-pe"><div class="direita"><button class="btn primario" type="submit">${k ? 'Guardar' : 'Criar carro'}</button></div></footer>
     </form>`;
   }
   function ligarCarro() {
@@ -1780,10 +1794,10 @@
           <label class="interruptor"><input type="checkbox" name="ativo"${!p || ativoP(p) ? ' checked' : ''}><span class="int-trilho" aria-hidden="true"></span><span>Mostrar no site e aceitar trocas</span></label>
         </div>
         ${p && p.comprar ? `<p><a class="btn pequeno" href="${esc(p.comprar)}" target="_blank" rel="noopener">${icone('link')}Abrir o link de compra</a></p>` : ''}
-        ${p ? `<p><button class="btn perigo pequeno" type="button" data-apagar-premio>${icone('trash')}Apagar prémio</button></p>` : ''}
+        ${p ? `<p><button class="btn perigo pequeno" type="button" data-apagar-premio>${icone('trash')}Apagar</button></p>` : ''}
         ${erroForm}
       </div>
-      <footer class="painel-pe"><div class="direita"><button class="btn" type="button" data-fechar>Cancelar</button><button class="btn primario" type="submit">${p ? 'Guardar' : 'Criar prémio'}</button></div></footer>
+      <footer class="painel-pe"><div class="direita"><button class="btn primario" type="submit">${p ? 'Guardar' : 'Criar prémio'}</button></div></footer>
     </form>`;
   }
   function ligarPremio() {
@@ -1820,43 +1834,55 @@
     });
   }
 
-  // --- Regras
-  function painelRegras() {
-    return `<form class="painel-forma compacto" data-form="regras" novalidate>
-      ${cabecaPainel('Regras', 'Mudar aqui não mexe nos pontos já dados.')}
+  // --- Definições (engrenagem): a ligação, as regras dos pontos e o objetivo, com ícones.
+  const campoIc = (ic, nome, rotulo, valor, o = {}) => `
+    <label class="campo"><span>${rotulo}</span>
+      <span class="com-ic">${icone(ic)}<input name="${nome}" value="${esc(valor)}"${o.extra || ''}>${o.sufixo ? `<b>${o.sufixo}</b>` : ''}</span>
+    </label>`;
+  function painelDefinicoes() {
+    const demo = emDemo(), ok = !demo && !st.erro;
+    return `<form class="painel-forma" data-form="regras" novalidate>
+      ${cabecaPainel('Definições')}
       <div class="painel-corpo">
-        <div class="linha-campos">
-          ${campo('pontos_por_euro', 'Pontos por euro gasto', regra('pontos_por_euro'), { extra: ' inputmode="decimal"' })}
-          ${campo('retorno_percent', 'Devolve ao cliente (%)', String(regra('retorno_percent')).replace('.', ','), { extra: ' inputmode="decimal"', ajuda: 'Parte do que gasta que lhe volta em prémios.' })}
-        </div>
-        <div class="linha-campos">
-          ${campo('pontos_por_indicacao', 'Pontos por indicação', regra('pontos_por_indicacao'), { extra: ' inputmode="numeric"' })}
-          ${campo('objetivo_semana', 'Objetivo: carros por semana', regra('objetivo_semana'), { extra: ' inputmode="numeric"' })}
-        </div>
-        <p class="ganho-linha" data-previa></p>
+        <button class="linha-def" type="button" data-abrir="ligacao">
+          <span class="def-ic ${ok ? 'ok' : demo ? '' : 'mal'}">${icone(demo ? 'cloud-slash' : 'plugs-connected')}</span>
+          <span class="def-txt"><strong>Google Sheet</strong><span>${demo ? 'Demonstração' : ok ? 'Ligada' : 'Sem ligação'}</span></span>
+          ${icone('caret-right', 'seta')}
+        </button>
+        <fieldset class="grupo"><legend>${icone('coins')}Pontos</legend>
+          <div class="linha-campos">
+            ${campoIc('currency-eur', 'pontos_por_euro', 'Por cada euro', regra('pontos_por_euro'), { extra: ' inputmode="decimal"', sufixo: 'pts' })}
+            ${campoIc('percent', 'retorno_percent', 'Devolve ao cliente', String(regra('retorno_percent')).replace('.', ','), { extra: ' inputmode="decimal"', sufixo: '%' })}
+          </div>
+          ${campoIc('user-plus', 'pontos_por_indicacao', 'Trazer um amigo', regra('pontos_por_indicacao'), { extra: ' inputmode="numeric"', sufixo: 'pts' })}
+          <p class="ganho-linha" data-previa></p>
+        </fieldset>
+        <fieldset class="grupo"><legend>${icone('wrench')}Oficina</legend>
+          ${campoIc('target', 'objetivo_semana', 'Objetivo por semana', regra('objetivo_semana'), { extra: ' inputmode="numeric"', sufixo: 'carros' })}
+        </fieldset>
         ${erroForm}
       </div>
-      <footer class="painel-pe"><div class="direita"><button class="btn" type="button" data-fechar>Cancelar</button><button class="btn primario" type="submit">Guardar</button></div></footer>
+      <footer class="painel-pe"><div class="direita"><button class="btn primario" type="submit">${icone('check')}Guardar</button></div></footer>
     </form>`;
   }
   function ligarRegras() {
     const f = $('[data-form="regras"]', painel);
     const previa = () => {
       const ppe = num(f.pontos_por_euro.value), ret = num(f.retorno_percent.value);
-      $('[data-previa]', f).innerHTML = ppe && ret ? `${icone('coins')}<span>Quem gasta 100 € ganha <b>${pts(100 * ppe)} pontos</b>, que valem <b>${esc(eur(ret))}</b> em prémios. Cada ponto custa ${esc(eur(ret / 100 / ppe))}.</span>` : '';
+      $('[data-previa]', f).innerHTML = ppe && ret ? `${icone('receipt')}<span>100 € = <b>${pts(100 * ppe)} pts</b> = <b>${esc(eur(ret))}</b> em prémios</span>` : '';
     };
     f.addEventListener('input', previa);
     previa();
     f.addEventListener('submit', (e) => {
       e.preventDefault();
       const campos = ['pontos_por_euro', 'retorno_percent', 'pontos_por_indicacao', 'objetivo_semana'];
-      for (const k of campos) if (!(num(f[k].value) > 0)) return falhar(f, 'Todos os valores têm de ser maiores que zero.', f[k]);
-      const ops = campos.map((k) => {
-        const existe = st.regras.find((r) => r.id === k);
+      for (const k of campos) if (!(num(f[k].value) > 0)) return falhar(f, 'Os valores têm de ser maiores que zero.', f[k]);
+      const ops = campos.filter((k) => num(f[k].value) !== regra(k)).map((k) => {
+        const existe = st.regras.find((x) => x.id === k);
         return { op: existe ? 'atualizar' : 'criar', tabela: 'regras', id: k, dados: { valor: String(num(f[k].value)) } };
       });
       fecharPainel();
-      gravar(ops, 'Regras guardadas.');
+      if (ops.length) gravar(ops, 'Definições guardadas.');
     });
   }
 
@@ -1887,7 +1913,7 @@
         </section>
         <p>${emDemo() && ligacao().apiUrl ? '' : '<button class="btn texto pequeno" type="button" data-usar-demo>Ver a demonstração</button>'}</p>
       </div>
-      <footer class="painel-pe"><div class="direita"><button class="btn" type="button" data-fechar>Cancelar</button><button class="btn primario" type="submit">Testar e ligar</button></div></footer>
+      <footer class="painel-pe"><div class="direita"><button class="btn primario" type="submit">Testar e ligar</button></div></footer>
     </form>`;
   }
 
@@ -1930,7 +1956,7 @@
   }
 
   function ligarPainel(tipo) {
-    ({ entrada: ligarEntrada, trabalho: ligarTrabalho, cliente: ligarCliente, carro: ligarCarro, ligacao: ligarLigacao, entregar: ligarEntregar, trocar: ligarTrocar, pontos: ligarPontos, premio: ligarPremio, regras: ligarRegras, pausar: ligarPausar }[tipo] || (() => {}))();
+    ({ entrada: ligarEntrada, trabalho: ligarTrabalho, cliente: ligarCliente, carro: ligarCarro, ligacao: ligarLigacao, entregar: ligarEntregar, trocar: ligarTrocar, pontos: ligarPontos, premio: ligarPremio, regras: ligarRegras, definicoes: ligarRegras }[tipo] || (() => {}))();
   }
 
   function ajustarPremios() {
@@ -1943,22 +1969,49 @@
   }
 
   // ---------------------------------------------------------------- toast e dicas
-  let tToast;
-  function toast(msg, ic = 'check') {
+  let tToast, anularAtual = null;
+  const MAC = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  function toast(msg, ic = 'check', anular = null) {
     const el = toastEl;
     // Com um painel aberto, o aviso vai para dentro dele, para não ficar por baixo do fundo escuro.
     const casa = painel.open ? painel : document.body;
     if (el.parentElement !== casa) casa.appendChild(el);
-    el.innerHTML = `${icone(ic)}<span>${esc(msg)}</span>`;
+    const dur = anular ? 6000 : 3400;
+    anularAtual = anular;
+    el.innerHTML = `<span class="toast-ic">${icone(ic)}</span><span class="toast-txt">${esc(msg)}</span>${anular ? `<button class="toast-anular" type="button" data-anular>Anular</button><kbd class="toast-kbd">${MAC ? '⌘' : 'Ctrl'} Z</kbd>` : ''}<i class="toast-barra" style="animation-duration:${dur}ms"></i>`;
     el.hidden = false;
-    el.classList.remove('sai');
-    if (!reduzir()) el.animate([{ opacity: 0, transform: 'translate(-50%, 16px) scale(.96)' }, { opacity: 1, transform: 'translate(-50%, -2px)' }, { transform: 'translate(-50%, 0)' }], { duration: 340, easing: E.emph });
+    if (!reduzir()) {
+      el.animate([{ opacity: 0, transform: 'translate(-50%, 16px) scale(.96)' }, { opacity: 1, transform: 'translate(-50%, -2px)' }, { transform: 'translate(-50%, 0)' }], { duration: 340, easing: E.emph });
+      $('.toast-ic', el).animate([{ transform: 'scale(.4)' }, { transform: 'scale(1.15)' }, { transform: 'none' }], { duration: 380, delay: 80, easing: E.pop, fill: 'backwards' });
+    }
     clearTimeout(tToast);
-    tToast = setTimeout(async () => {
-      if (!reduzir()) await el.animate([{ opacity: 1, transform: 'translate(-50%, 0)' }, { opacity: 0, transform: 'translate(-50%, 10px)' }], { duration: 180, easing: E.sai }).finished;
-      el.hidden = true;
-    }, 3400);
+    tToast = setTimeout(esconderToast, dur);
   }
+  async function esconderToast() {
+    const el = toastEl;
+    anularAtual = null;
+    if (el.hidden) return;
+    if (!reduzir()) await el.animate([{ opacity: 1, transform: 'translate(-50%, 0)' }, { opacity: 0, transform: 'translate(-50%, 10px)' }], { duration: 180, easing: E.sai }).finished;
+    el.hidden = true;
+  }
+  function anular() {
+    const f = anularAtual;
+    if (!f) return;
+    anularAtual = null;
+    clearTimeout(tToast);
+    if (painel.open) fecharPainel();
+    f();
+  }
+  toastEl.addEventListener('click', (e) => { if (e.target.closest('[data-anular]')) anular(); });
+  // Passar o rato por cima segura o aviso.
+  toastEl.addEventListener('pointerenter', () => { clearTimeout(tToast); toastEl.classList.add('parado'); });
+  toastEl.addEventListener('pointerleave', () => { toastEl.classList.remove('parado'); clearTimeout(tToast); tToast = setTimeout(esconderToast, 2500); });
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && anularAtual && !/input|textarea|select/i.test(document.activeElement.tagName)) {
+      e.preventDefault();
+      anular();
+    }
+  });
 
   const dica = $('[data-dica-flutuante]');
   function mostrarDica(alvo) {
@@ -1974,6 +2027,107 @@
   document.addEventListener('focusin', (e) => { const a = e.target.closest && e.target.closest('[data-dica]'); if (a) mostrarDica(a); else dica.hidden = true; });
   window.addEventListener('scroll', () => { dica.hidden = true; }, { passive: true });
 
+  // ---------------------------------------------------------------- arrastar entre colunas
+  // Rato: arrastar. Toque: carregar e segurar um instante, depois arrastar (para não roubar o scroll).
+  // No telemóvel, largar em cima de um separador (À espera, Em curso, Prontos) também conta.
+  function moverPara(id, estado) {
+    const t = idx.trabalho.get(id);
+    if (!t || t.estado === estado || !ESTADOS[estado] || estado === 'entregue') return;
+    const agora = agoraTexto(), dados = { estado };
+    if (estado === 'espera') Object.assign(dados, { inicio: '', pronto: '', pausado_em: '', pausa_min: '', pausa_motivo: '' });
+    if (estado === 'curso') { dados.pronto = ''; if (!t.inicio) dados.inicio = agora; }
+    if (estado === 'pronto') { Object.assign(dados, fecharPausa(t)); if (!t.inicio) dados.inicio = t.entrada || agora; dados.pronto = agora; }
+    st.faixa = estado;
+    const mat = carroDe(t)?.matricula || 'Carro';
+    const msg = { espera: `${mat} voltou para À espera.`, curso: `${mat}: a contar.`, pronto: `${mat} está pronto.` }[estado];
+    gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados }], msg, { espera: 'clock', curso: 'play', pronto: 'check' }[estado]);
+  }
+
+  let arrasto = null, ignorarClique = false;
+  const alvoEm = (x, y) => {
+    const el = document.elementFromPoint(x, y);
+    const a = el && el.closest('.faixa[data-estado], .segmentos [data-faixa]');
+    return a ? { el: a, estado: a.dataset.estado || a.dataset.faixa } : null;
+  };
+  function iniciarArrasto(x, y) {
+    const a = arrasto;
+    if (!a || a.ativo) return;
+    clearTimeout(a.timer);
+    a.ativo = true;
+    st.animando++;
+    const r = a.card.getBoundingClientRect();
+    a.dx = x - r.left; a.dy = y - r.top;
+    a.fantasma = a.card.cloneNode(true);
+    a.fantasma.classList.add('fantasma');
+    a.fantasma.removeAttribute('data-card');
+    Object.assign(a.fantasma.style, { width: `${r.width}px`, left: '0px', top: '0px', transform: `translate(${r.left}px, ${r.top}px)` });
+    document.body.appendChild(a.fantasma);
+    a.card.classList.add('a-arrastar');
+    document.body.classList.add('arrastando');
+    if (a.toque && navigator.vibrate) navigator.vibrate(12);
+    moverFantasma(x, y);
+    if (!reduzir()) a.fantasma.firstElementChild.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }], { duration: 220, easing: E.pop });
+  }
+  function moverFantasma(x, y) {
+    const a = arrasto;
+    if (!a || !a.fantasma) return;
+    a.fantasma.style.transform = `translate(${x - a.dx}px, ${y - a.dy}px) rotate(2deg)`;
+    const alvo = alvoEm(x, y);
+    $$('.alvo-largar').forEach((el) => { if (!alvo || el !== alvo.el) el.classList.remove('alvo-largar'); });
+    if (alvo && alvo.estado !== a.estado) alvo.el.classList.add('alvo-largar');
+  }
+  async function acabarArrasto(x, y, cancelar = false) {
+    const a = arrasto;
+    arrasto = null;
+    if (!a) return;
+    clearTimeout(a.timer);
+    if (!a.ativo) return;
+    ignorarClique = true;
+    setTimeout(() => { ignorarClique = false; }, 60);
+    document.body.classList.remove('arrastando');
+    $$('.alvo-largar').forEach((el) => el.classList.remove('alvo-largar'));
+    const alvo = cancelar ? null : alvoEm(x, y);
+    const fica = !alvo || alvo.estado === a.estado;
+    if (!reduzir()) {
+      const de = a.fantasma.style.transform;
+      if (fica) {
+        // Volta ao sítio de onde saiu.
+        const r = a.card.getBoundingClientRect();
+        await a.fantasma.animate([{ transform: de }, { transform: `translate(${r.left}px, ${r.top}px)` }], { duration: 220, easing: E.std, fill: 'forwards' }).finished;
+      } else {
+        await a.fantasma.animate([{ opacity: 1, transform: de }, { opacity: 0, transform: `${de} scale(.92)` }], { duration: 160, easing: E.sai, fill: 'forwards' }).finished;
+      }
+    }
+    a.fantasma.parentNode.removeChild(a.fantasma);
+    a.card.classList.remove('a-arrastar');
+    st.animando--;
+    if (!fica) moverPara(a.id, alvo.estado);
+  }
+  document.addEventListener('pointerdown', (e) => {
+    const card = e.target.closest('[data-card]');
+    if (!card || e.button > 0 || arrasto || e.target.closest('.cartao-rodape button, .cartao-rodape a')) return;
+    const toque = e.pointerType !== 'mouse';
+    arrasto = { id: card.dataset.card, estado: card.dataset.estado, card, x0: e.clientX, y0: e.clientY, pid: e.pointerId, toque, ativo: false };
+    if (toque) arrasto.timer = setTimeout(() => iniciarArrasto(arrasto.x0, arrasto.y0), 380);
+  });
+  document.addEventListener('pointermove', (e) => {
+    const a = arrasto;
+    if (!a || e.pointerId !== a.pid) return;
+    if (!a.ativo) {
+      const d = Math.hypot(e.clientX - a.x0, e.clientY - a.y0);
+      if (a.toque) { if (d > 10) { clearTimeout(a.timer); arrasto = null; } return; }
+      if (d < 8) return;
+      iniciarArrasto(e.clientX, e.clientY);
+    }
+    moverFantasma(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerup', (e) => { if (arrasto && e.pointerId === arrasto.pid) acabarArrasto(e.clientX, e.clientY); });
+  document.addEventListener('pointercancel', (e) => { if (arrasto && e.pointerId === arrasto.pid) acabarArrasto(0, 0, true); });
+  document.addEventListener('touchmove', (e) => { if (arrasto && arrasto.ativo) e.preventDefault(); }, { passive: false });
+  document.addEventListener('contextmenu', (e) => { if (arrasto) e.preventDefault(); });
+  document.addEventListener('click', (e) => { if (ignorarClique) { e.stopPropagation(); e.preventDefault(); ignorarClique = false; } }, true);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && arrasto && arrasto.ativo) acabarArrasto(0, 0, true); });
+
   // ---------------------------------------------------------------- eventos
   document.addEventListener('click', (e) => {
     const abrir = e.target.closest('[data-abrir]');
@@ -1987,7 +2141,7 @@
     const av = e.target.closest('[data-avancar]');
     if (av) { avancar(av.dataset.avancar); return; }
     const pa = e.target.closest('[data-pausar]');
-    if (pa) { abrirPainel('pausar', { id: pa.dataset.pausar }); return; }
+    if (pa) { pausar(pa.dataset.pausar); return; }
     const re = e.target.closest('[data-retomar]');
     if (re) { retomar(re.dataset.retomar); return; }
     if (e.target.closest('[data-fechar]')) { fecharPainel(); return; }
@@ -2022,7 +2176,7 @@
   setInterval(() => { if (document.visibilityState === 'visible' && !painel.open) carregar({ silencioso: true }); }, Math.max(20, CFG.atualizarCada || 60) * 1000);
 
   // ---------------------------------------------------------------- arranque
-  $('[data-abrir="ligacao"]').innerHTML = icone('gear');
+  $('header [data-abrir="definicoes"]').innerHTML = icone('gear');
   $$('[data-icone]').forEach((el) => { el.outerHTML = icone(el.dataset.icone); });
   const cache = ler('ig.cache', null);
   if (!emDemo() && cache && cache.url === ligacao().apiUrl) {
