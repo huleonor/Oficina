@@ -385,15 +385,13 @@
     ].map(([cliente_id, matricula, marca, modelo, ano, km], k) => ({ id: 'car' + k, cliente_id, matricula, marca, modelo, ano, km, notas: '', criado_em: em(-120) }));
     const S = CFG.servicos || [];
     const premios = [
-      ['aromatizante', 'Aromatizante', 1.5, '18', 'Aromatizante para o habitáculo', 'https://www.continente.pt'],
-      ['kit-limpeza', 'Kit de limpeza', 3, '2', 'Panos de microfibra e limpa-vidros', ''],
-      ['aspiracao', 'Aspiração do habitáculo', 4, '', 'Aspiração completa do interior', ''],
-      ['lavagem', 'Lavagem exterior', 5, '', 'Lavagem exterior do veículo', ''],
-      ['lavagem-completa', 'Lavagem completa', 9, '', 'Lavagem exterior e limpeza do habitáculo', ''],
-      ['desconto10', 'Desconto 10 €', 10, '', 'Desconto de 10 euros na próxima fatura', ''],
-      ['check-up', 'Check-up rápido', 12.5, '', 'Níveis, luzes, pneus e bateria', ''],
-      ['desconto25', 'Desconto 25 €', 25, '', 'Desconto de 25 euros na próxima fatura', ''],
-    ].map(([id, nome, custo, stock, descricao, comprar]) => ({ id, nome, pontos: String(Math.round(custo / 0.03 / 10) * 10), custo_eur: String(custo), stock, descricao, comprar, nota: '', ativo: 'sim', criado_em: em(-120) }));
+      ['lavagem', 'Lavagem exterior', 65, 2, '', 'Lavagem exterior do veículo', ''],
+      ['aromatizante', 'Aromatizante', 100, 3, '18', 'Aromatizante para o habitáculo', 'https://www.continente.pt'],
+      ['protetor-para-brisas', 'Protetor de para-brisas', 130, 3.97, '6', 'Protetor solar para o para-brisas', ''],
+      ['check-up', 'Check-up rápido', 500, 15, '', 'Verificação de níveis, luzes, pneus e bateria', ''],
+      ['limpeza-completa', 'Limpeza interior e exterior', 750, 22.5, '', 'Lavagem exterior e limpeza completa do habitáculo', ''],
+      ['pre-inspecao', 'Pré-inspeção', 1000, 30, '', 'Verificação do carro antes da inspeção periódica', ''],
+    ].map(([id, nome, pontos, custo, stock, descricao, comprar]) => ({ id, nome, pontos: String(pontos), custo_eur: String(custo), stock, descricao, comprar, nota: '', ativo: 'sim', criado_em: em(-120) }));
     const regras = Object.entries(REGRAS_BASE).map(([id, valor]) => ({ id, valor, nota: '' }));
     const t = [], movs = [];
     const add = (carro, servico, descricao, estado, entrada, inicio, pronto, entregue, previsto, extra = {}) =>
@@ -438,7 +436,7 @@
       movs.push({ id: 'mv' + movs.length, data: paraTexto(entregue), cliente_id: cli, tipo: 'gasto', valor_eur: String(valor), pontos: String(valor), premio_id: '', premio_nome: '', custo_eur: '', trabalho_id: id, nota: '', criado_em: paraTexto(entregue) });
     }
     // Trocas e uma indicação.
-    [['cli2', 'lavagem', -40], ['cli0', 'aromatizante', -25], ['cli4', 'desconto10', -18], ['cli2', 'aromatizante', -9], ['cli6', 'kit-limpeza', -60], ['cli1', 'lavagem-completa', -70], ['cli0', 'aspiracao', -3]].forEach(([cli, pid, dias]) => {
+    [['cli2', 'lavagem', -40], ['cli0', 'aromatizante', -25], ['cli4', 'check-up', -18], ['cli2', 'aromatizante', -9], ['cli6', 'protetor-para-brisas', -60], ['cli1', 'limpeza-completa', -70], ['cli0', 'lavagem', -3]].forEach(([cli, pid, dias]) => {
       const p = premios.find((x) => x.id === pid);
       const dd = new Date(agora); dd.setDate(dd.getDate() + dias); dd.setHours(16, 10, 0, 0);
       movs.push({ id: 'mv' + movs.length, data: paraTexto(dd), cliente_id: cli, tipo: 'resgate', valor_eur: '', pontos: String(-num(p.pontos)), premio_id: pid, premio_nome: p.nome, custo_eur: p.custo_eur, trabalho_id: '', nota: '', criado_em: paraTexto(dd) });
