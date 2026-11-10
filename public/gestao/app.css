@@ -236,24 +236,26 @@ main:focus, main:focus-visible { outline: none; }
 
 /* ---------- Objetivo da semana ---------- */
 .semana {
-  background: var(--brand-dark); color: var(--ink-on-dark); border-radius: var(--r-xl);
-  padding: 18px 22px 20px; margin-bottom: 24px; display: grid; gap: 14px;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: var(--r-xl);
+  box-shadow: var(--sombra); padding: 18px 22px 20px; margin-bottom: 24px; display: grid; gap: 14px;
 }
-.semana .rotulo { color: var(--ink-on-dark-soft); }
-.semana .rotulo .ico { color: var(--brand-turquoise); }
+.semana .rotulo { color: var(--ink-faint); }
+.semana .rotulo .ico { color: var(--brand-turquoise-ink); }
 .semana-topo { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .semana-num { margin-top: 2px; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.semana-num strong { font-size: 2.75rem; font-weight: 850; font-stretch: var(--mais-larga); line-height: 1; display: inline-block; }
-.semana-num span { color: var(--ink-on-dark-soft); font-size: 1.0625rem; }
-.semana-falta { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-on-dark-soft); }
-.semana-falta strong { color: var(--ink-on-dark); font-weight: 800; }
+.semana-num strong { font-size: 2.75rem; font-weight: 850; font-stretch: var(--mais-larga); line-height: 1; display: inline-block; color: var(--ink); }
+.semana-num span { color: var(--ink-soft); font-size: 1.0625rem; }
+.semana-falta { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-soft); }
+.semana-falta strong { color: var(--ink); font-weight: 800; }
 .semana-falta .ico { color: var(--ouro); width: 1.4em; height: 1.4em; }
 .metas { height: 8px; }
 .metas i[hidden] { display: none; }
-.metas i { display: block; height: 100%; min-width: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--brand-turquoise-ink), var(--brand-turquoise) 60%, var(--brand-turquoise-hover)); box-shadow: 0 0 14px rgba(54, 179, 175, .45); }
-.metas.cumprida i { background: linear-gradient(90deg, #2e8b57, #45c48a); box-shadow: 0 0 14px rgba(69, 196, 138, .45); }
+.metas i { display: block; height: 100%; min-width: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--brand-turquoise-ink), var(--brand-turquoise) 60%, var(--brand-turquoise-hover)); box-shadow: 0 2px 10px -2px rgba(54, 179, 175, .55); }
+.metas.cumprida i { background: linear-gradient(90deg, #2e8b57, #45c48a); box-shadow: 0 2px 10px -2px rgba(69, 196, 138, .55); }
 .metas.extra i { background: linear-gradient(90deg, #45c48a, var(--ouro)); }
-.semana-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.semana-chips { display: flex; gap: 6px 20px; flex-wrap: wrap; }
+.semana .semana-chips .chip-estado { background: none; padding: 0; font-size: .875rem; }
+.semana-chips .chip-estado .ico { width: 1.15em; height: 1.15em; }
 
 .chip-estado {
   display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
