@@ -728,7 +728,7 @@
       <button class="cartao-abrir" type="button" data-abrir="trabalho" data-id="${t.id}" aria-label="Abrir ${esc(c ? c.matricula : '')} ${esc(nomeCarro(c))}">
         <span class="cartao-linha">${placa(c && c.matricula)}<span class="cartao-carro">${esc(nomeCarro(c))}</span></span>
         ${corpo}
-        <p class="cartao-servico"><strong>${esc(t.servico || 'Serviço por definir')}</strong>${t.descricao ? ` ${esc(t.descricao)}` : ''}</p>
+        <p class="cartao-servico"${t.descricao ? ` title="${esc(t.descricao)}"` : ''}><strong>${esc(t.servico || 'Serviço por definir')}</strong></p>
         <p class="cartao-cliente">${icone('user')}${esc(cl ? cl.nome : 'Sem cliente')}${cl && saldoDe(cl.id) ? `<span class="cartao-pts">${icone('coins')}${pts(saldoDe(cl.id))}</span>` : ''}</p>
       </button>
       <div class="cartao-rodape">${prazoHtml}<span class="botoes">${botoes}</span></div>
