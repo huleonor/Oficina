@@ -118,8 +118,9 @@
   // O relógio grande dos cartões: "2:14" (horas de abertura).
   const relogio = (ms) => {
     const m = Math.floor(Math.max(0, ms) / MIN), h = Math.floor(m / 60);
-    if (ms >= DIA_UTIL) { const d = Math.floor(ms / DIA_UTIL), r = Math.round((ms % DIA_UTIL) / HORA); return `${d}<small>${d === 1 ? 'dia' : 'dias'}</small>${r ? `${r}<small>h</small>` : ''}`; }
-    return h ? `${h}<small>h</small>${pad(m % 60)}` : `${m}<small>min</small>`;
+    const u = (n, t) => `<span><b>${n}</b><small>${t}</small></span>`;
+    if (ms >= DIA_UTIL) { const d = Math.floor(ms / DIA_UTIL), r = Math.round((ms % DIA_UTIL) / HORA); return u(d, d === 1 ? 'dia' : 'dias') + (r ? u(r, 'h') : ''); }
+    return h ? u(h, 'h') + (m % 60 ? u(pad(m % 60), 'min') : '') : u(m, 'min');
   };
 
   // ---------------------------------------------------------------- estados
@@ -385,15 +386,13 @@
     ].map(([cliente_id, matricula, marca, modelo, ano, km], k) => ({ id: 'car' + k, cliente_id, matricula, marca, modelo, ano, km, notas: '', criado_em: em(-120) }));
     const S = CFG.servicos || [];
     const premios = [
-      ['aromatizante', 'Aromatizante', 1.5, '18', 'Aromatizante para o habitáculo', 'https://www.continente.pt'],
-      ['kit-limpeza', 'Kit de limpeza', 3, '2', 'Panos de microfibra e limpa-vidros', ''],
-      ['aspiracao', 'Aspiração do habitáculo', 4, '', 'Aspiração completa do interior', ''],
-      ['lavagem', 'Lavagem exterior', 5, '', 'Lavagem exterior do veículo', ''],
-      ['lavagem-completa', 'Lavagem completa', 9, '', 'Lavagem exterior e limpeza do habitáculo', ''],
-      ['desconto10', 'Desconto 10 €', 10, '', 'Desconto de 10 euros na próxima fatura', ''],
-      ['check-up', 'Check-up rápido', 12.5, '', 'Níveis, luzes, pneus e bateria', ''],
-      ['desconto25', 'Desconto 25 €', 25, '', 'Desconto de 25 euros na próxima fatura', ''],
-    ].map(([id, nome, custo, stock, descricao, comprar]) => ({ id, nome, pontos: String(Math.round(custo / 0.03 / 10) * 10), custo_eur: String(custo), stock, descricao, comprar, nota: '', ativo: 'sim', criado_em: em(-120) }));
+      ['lavagem', 'Lavagem exterior', 65, 2, '', 'Lavagem exterior do veículo', ''],
+      ['aromatizante', 'Aromatizante', 100, 3, '18', 'Aromatizante para o habitáculo', 'https://www.continente.pt'],
+      ['protetor-para-brisas', 'Protetor de para-brisas', 130, 3.97, '6', 'Protetor solar para o para-brisas', ''],
+      ['check-up', 'Check-up rápido', 500, 15, '', 'Verificação de níveis, luzes, pneus e bateria', ''],
+      ['limpeza-completa', 'Limpeza interior e exterior', 750, 22.5, '', 'Lavagem exterior e limpeza completa do habitáculo', ''],
+      ['pre-inspecao', 'Pré-inspeção', 1000, 30, '', 'Verificação do carro antes da inspeção periódica', ''],
+    ].map(([id, nome, pontos, custo, stock, descricao, comprar]) => ({ id, nome, pontos: String(pontos), custo_eur: String(custo), stock, descricao, comprar, nota: '', ativo: 'sim', criado_em: em(-120) }));
     const regras = Object.entries(REGRAS_BASE).map(([id, valor]) => ({ id, valor, nota: '' }));
     const t = [], movs = [];
     const add = (carro, servico, descricao, estado, entrada, inicio, pronto, entregue, previsto, extra = {}) =>
@@ -438,7 +437,7 @@
       movs.push({ id: 'mv' + movs.length, data: paraTexto(entregue), cliente_id: cli, tipo: 'gasto', valor_eur: String(valor), pontos: String(valor), premio_id: '', premio_nome: '', custo_eur: '', trabalho_id: id, nota: '', criado_em: paraTexto(entregue) });
     }
     // Trocas e uma indicação.
-    [['cli2', 'lavagem', -40], ['cli0', 'aromatizante', -25], ['cli4', 'desconto10', -18], ['cli2', 'aromatizante', -9], ['cli6', 'kit-limpeza', -60], ['cli1', 'lavagem-completa', -70], ['cli0', 'aspiracao', -3]].forEach(([cli, pid, dias]) => {
+    [['cli2', 'lavagem', -40], ['cli0', 'aromatizante', -25], ['cli4', 'check-up', -18], ['cli2', 'aromatizante', -9], ['cli6', 'protetor-para-brisas', -60], ['cli1', 'limpeza-completa', -70], ['cli0', 'lavagem', -3]].forEach(([cli, pid, dias]) => {
       const p = premios.find((x) => x.id === pid);
       const dd = new Date(agora); dd.setDate(dd.getDate() + dias); dd.setHours(16, 10, 0, 0);
       movs.push({ id: 'mv' + movs.length, data: paraTexto(dd), cliente_id: cli, tipo: 'resgate', valor_eur: '', pontos: String(-num(p.pontos)), premio_id: pid, premio_nome: p.nome, custo_eur: p.custo_eur, trabalho_id: '', nota: '', criado_em: paraTexto(dd) });
@@ -496,7 +495,7 @@
     });
   }
 
-  // A meta da semana: o segmento novo acende; ao cumprir, uma onda por todos.
+  // A meta da semana: a barra cresce do valor antigo para o novo; ao cumprir, um brilho.
   let metaAntes = null;
   function animarMeta() {
     const lista = $('[data-metas]');
@@ -505,10 +504,11 @@
     const antes = metaAntes;
     metaAntes = feitos;
     if (antes == null || feitos <= antes || reduzir()) return;
-    const segs = $$('li', lista);
-    segs.slice(antes, feitos).forEach((s, i) => s.animate([{ transform: 'scaleY(.4)', opacity: 0.4 }, { transform: 'scaleY(1.35)' }, { transform: 'none', opacity: 1 }], { duration: 480, delay: i * 60, easing: E.pop }));
+    const barra = $('i', lista);
+    const de = `${Math.min(100, (antes / meta) * 100)}%`;
+    barra.animate([{ width: de }, { width: barra.style.width }], { duration: 700, easing: E.std });
     if (antes < meta && feitos >= meta) {
-      segs.forEach((s, i) => s.animate([{ transform: 'none' }, { transform: 'translateY(-6px)' }, { transform: 'none' }], { duration: 420, delay: 300 + i * 30, easing: E.std }));
+      barra.animate([{ filter: 'brightness(1)' }, { filter: 'brightness(1.35)' }, { filter: 'brightness(1)' }], { duration: 600, delay: 650, easing: E.std });
       setTimeout(() => toast(`Objetivo da semana cumprido: ${feitos} carros entregues.`, 'trophy'), 700);
     }
   }
@@ -634,7 +634,6 @@
   function faixaSemana() {
     const meta = Math.max(1, Math.round(regra('objetivo_semana')));
     const feitos = entreguesNaSemana();
-    const segs = Math.max(meta, feitos);
     const falta = meta - feitos;
     const ativos = st.trabalhos.filter((t) => t.estado !== 'entregue');
     const atrasados = ativos.filter((t) => prazo(t)?.tipo === 'atraso').length;
@@ -651,9 +650,9 @@
         </div>
         <p class="semana-falta">${feitos >= meta ? `${icone('trophy')}Objetivo cumprido${feitos > meta ? `, mais ${feitos - meta}` : ''}` : `Faltam <strong>${falta}</strong>${restam ? ` em ${plural(restam, 'dia', 'dias')}` : ''}`}</p>
       </div>
-      <ol class="metas${feitos >= meta ? ' cumprida' : ''}" data-metas data-feitos="${feitos}" data-meta="${meta}" aria-hidden="true">
-        ${Array.from({ length: segs }, (_, i) => `<li class="${i < feitos ? (i >= meta ? 'cheio extra' : 'cheio') : ''}"></li>`).join('')}
-      </ol>
+      <div class="metas${feitos >= meta ? ' cumprida' : ''}${feitos > meta ? ' extra' : ''}" data-metas data-feitos="${feitos}" data-meta="${meta}" role="progressbar" aria-valuemin="0" aria-valuemax="${meta}" aria-valuenow="${feitos}" aria-label="${feitos} de ${meta} carros entregues">
+        <i style="width:${Math.min(100, (feitos / meta) * 100)}%"${feitos ? '' : ' hidden'}></i>
+      </div>
       ${atrasados || hoje || pausa ? `<div class="semana-chips">
         ${atrasados ? `<span class="chip-estado atraso">${icone('warning')}${plural(atrasados, 'atrasado', 'atrasados')}</span>` : ''}
         ${hoje ? `<span class="chip-estado hoje">${icone('clock-countdown')}${plural(hoje, 'prometido', 'prometidos')} para hoje</span>` : ''}
@@ -1304,6 +1303,22 @@
     });
   }
 
+  // Os tempos de um trabalho: o total na oficina, e de que se fez (antes de começar, a trabalhar, em pausa).
+  function duracoesHtml(tp) {
+    if (tp.oficina == null) return '';
+    const partes = [
+      ['espera', 'Antes de começar', tp.espera],
+      ['curso', 'A trabalhar', tp.trabalho],
+      ['pausa', 'Em pausa', tp.pausa],
+    ].filter(([, , ms]) => ms > 0);
+    const total = partes.reduce((s, [, , ms]) => s + ms, 0) || 1;
+    return `<section class="duracoes" aria-label="Tempos">
+      <p class="duracoes-total"><span>Na oficina${tp.concluido ? '' : ' <span class="ponto vivo" aria-label="A contar"></span>'}</span><strong>${esc(duracaoUtil(tp.oficina))}</strong></p>
+      ${partes.length ? `<div class="duracoes-barra" aria-hidden="true">${partes.map(([k, , ms]) => `<i class="${k}" style="flex-grow:${ms / total}"></i>`).join('')}</div>
+      <ul class="duracoes-partes">${partes.map(([k, nome, ms]) => `<li class="${k}"><span>${nome}</span><strong>${esc(duracaoUtil(ms))}</strong></li>`).join('')}</ul>` : ''}
+    </section>`;
+  }
+
   // --- Um trabalho
   function painelTrabalho({ id }) {
     const t = idx.trabalho.get(id);
@@ -1330,12 +1345,7 @@
           ${etapa('pronto', 'Pronto', quando(t.pronto))}
           ${etapa('entregue', 'Entregue', quando(t.entregue))}
         </ol>
-        <dl class="duracoes">
-          <div class="destaque"><dt>Trabalho</dt><dd>${tp.trabalho != null ? esc(duracaoUtil(tp.trabalho)) : '-'}</dd></div>
-          <div><dt>À espera</dt><dd>${tp.espera != null ? esc(duracaoUtil(tp.espera)) : '-'}</dd></div>
-          <div><dt>Na oficina</dt><dd>${tp.oficina != null ? esc(duracaoUtil(tp.oficina)) : '-'}</dd></div>
-        </dl>
-        <p class="duracoes-nota">Em horas de abertura${tp.concluido ? '' : ', a contar'}${tp.pausa ? `. Em pausa: ${esc(duracaoUtil(tp.pausa))}, fora do trabalho` : ''}.${tp.calendario != null && tp.calendario >= DIA ? ` No calendário: ${esc(duracao(tp.calendario))}.` : ''}</p>
+        ${duracoesHtml(tp)}
         ${pausa ? `<p class="chip-estado pausa grande">${icone('pause')}Em pausa desde ${esc(quando(t.pausado_em))}</p>` : ''}
         ${prazo(t)?.tipo === 'atraso' ? `<p class="prazo atraso">${icone('warning')}Prometido para ${esc(quando(t.previsto, false))}.</p>` : ''}
 

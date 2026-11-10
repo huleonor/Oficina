@@ -36,14 +36,12 @@ A página faz a conta: ao escrever o custo de um prémio, sugere os pontos, e o 
 
 | Prémio | Pontos | Custo oficina |
 | --- | --- | --- |
-| Aromatizante | 50 | 1,50 € |
-| Kit de limpeza | 100 | 3 € |
-| Aspiração do habitáculo | 130 | 4 € |
-| Lavagem exterior | 170 | 5 € |
-| Lavagem completa | 300 | 9 € |
-| Desconto 10 € | 330 | 10 € |
-| Check-up rápido | 420 | 12,50 € |
-| Desconto 25 € | 830 | 25 € |
+| Lavagem exterior | 65 | 2 € |
+| Aromatizante | 100 | 3 € |
+| Protetor de para-brisas | 130 | 3,97 € |
+| Check-up rápido | 500 | 15 € |
+| Limpeza interior e exterior | 750 | 22,5 € |
+| Pré-inspeção | 1000 | 30 € |
 
-Nos prémios que se compram (aromatizante, kit de limpeza) preencha o **stock** e o **link de compra**.
+Nos prémios que se compram (aromatizante, protetor de para-brisas) preencha o **stock** e o **link de compra**.
 **Evitar no catálogo:** peças por modelo (escovas, filtros, etc.).
