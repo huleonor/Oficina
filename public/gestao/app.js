@@ -65,6 +65,8 @@
   const mesmoDia = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   const inicioDia = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const inicioSemana = (d) => { const x = inicioDia(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+  // Nos cartões: "09:05" se foi hoje, senão só o dia ("ontem", "6 nov").
+  const curtoQuando = (s) => { const d = data(s); return !d ? '' : mesmoDia(d, new Date()) ? quando(s).replace(/^hoje, /, '') : quando(s, false); };
   function quando(s, comHora = true) {
     const d = data(s);
     if (!d) return '';
@@ -710,11 +712,12 @@
         </div>
         ${media ? `<div class="medidor${acima ? ' acima' : ''}" aria-label="Média deste serviço: ${esc(duracaoUtil(media))}"><span class="medidor-barra"><i style="width:${Math.min(100, Math.max(3, fr * 100))}%"></i></span><span class="medidor-txt" title="Média deste serviço: ${esc(duracaoUtil(media))}">${icone('hourglass')}${acima ? `+${esc(duracao(tp.trabalho - media))}` : esc(duracaoUtil(media))}</span></div>` : ''}`;
     } else if (t.estado === 'espera') {
-      corpo = `<div class="relogio espera"><span class="relogio-num">${relogio(tp.espera)}</span><span class="relogio-rot" title="Chegou">${icone('clock')}${esc(quando(t.entrada).replace(/^hoje, /, ''))}</span></div>`;
+      corpo = `<div class="relogio espera"><span class="relogio-num">${relogio(tp.espera)}</span><span class="relogio-rot" title="Chegou ${esc(quando(t.entrada))}">${icone('clock')}${esc(curtoQuando(t.entrada))}</span></div>`;
     } else {
-      corpo = `<div class="relogio pronto"><span class="relogio-num">${icone('check-circle')}</span><span class="relogio-rot"><span title="Pronto">${icone('clock')}${esc(quando(t.pronto).replace(/^hoje, /, ''))}</span><span title="Tempo de trabalho">${icone('timer')}${esc(duracaoUtil(tp.trabalho ?? tp.oficina))}</span></span></div>`;
+      corpo = `<div class="relogio pronto"><span class="relogio-num">${icone('check-circle')}</span><span class="relogio-rot"><span title="Pronto ${esc(quando(t.pronto))}">${icone('clock')}${esc(curtoQuando(t.pronto))}</span><span title="Tempo de trabalho">${icone('timer')}${esc(duracaoUtil(tp.trabalho ?? tp.oficina))}</span></span></div>`;
     }
-    const prazoHtml = pz ? `<span class="prazo ${pz.tipo}" title="Prometido para ${esc(quando(t.previsto, false))}">${icone(pz.tipo === 'ok' ? 'calendar-blank' : pz.tipo === 'hoje' ? 'clock-countdown' : 'warning')}${esc(pz.txt)}</span>` : '<span></span>';
+    const prazoCurto = pz && pz.tipo === 'atraso' ? pz.txt.replace(/^Atrasado desde ontem$/, '1 dia').replace(/^Atrasado /, '') : pz && pz.txt;
+    const prazoHtml = pz ? `<span class="prazo ${pz.tipo}" title="${pz.tipo === 'atraso' ? `${esc(pz.txt)}. ` : ''}Prometido para ${esc(quando(t.previsto, false))}">${icone(pz.tipo === 'ok' ? 'calendar-blank' : pz.tipo === 'hoje' ? 'clock-countdown' : 'warning')}${esc(prazoCurto)}</span>` : '<span></span>';
     let botoes = '';
     if (t.estado === 'espera') botoes = `<button class="btn pequeno primario" type="button" data-avancar="${t.id}">${icone('play')}Começar</button>`;
     if (t.estado === 'curso') botoes = pausa
