@@ -1,6 +1,20 @@
 /* INOVACAR Gestão. Cores da marca (azul-noite e turquesa); letra Figtree, simples e legível. */
 
 @font-face {
+  font-family: "Barlow";
+  src: url(fonts/barlow-600.woff2) format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Barlow";
+  src: url(fonts/barlow-500.woff2) format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
   font-family: "Figtree";
   src: url(fonts/figtree-var.woff2) format("woff2");
   font-weight: 300 900;
@@ -295,13 +309,14 @@ main:focus, main:focus-visible { outline: none; }
   border-radius: var(--r-l) var(--r-l) 0 0; cursor: pointer;
 }
 .cartao-linha { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.cartao-carro { font-weight: 700; font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cartao-carro { font-weight: 700; font-size: .9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .relogio { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .relogio-num { display: inline-flex; align-items: baseline; gap: 10px; font-size: 2rem; line-height: 1; color: var(--ink); }
-.relogio-num b { font-weight: 750; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
-.relogio-num small { font-size: .5em; font-weight: 600; margin-left: 2px; letter-spacing: 0; color: var(--ink-faint); }
-.relogio-rot { display: inline-flex; align-items: center; gap: 6px; font-size: .875rem; color: var(--ink-soft); font-weight: 550; }
+.relogio-num { font-family: "Barlow", var(--font); gap: 8px; }
+.relogio-num b { font-weight: 600; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.relogio-num small { font-size: .55em; font-weight: 500; margin-left: 2px; letter-spacing: .01em; color: var(--ink-faint); }
+.relogio-rot { display: inline-flex; align-items: center; gap: 6px; font-size: .8125rem; color: var(--ink-soft); font-weight: 550; }
 .relogio.espera .relogio-num { color: var(--ink-soft); font-size: 1.75rem; }
 .relogio.pronto { align-items: center; }
 .relogio.pronto .relogio-num { color: var(--pronto); font-size: 1.75rem; }
@@ -316,9 +331,9 @@ main:focus, main:focus-visible { outline: none; }
 .medidor-txt { font-size: .8125rem; color: var(--ink-faint); white-space: nowrap; }
 .medidor.acima .medidor-txt { color: var(--pausa-ink); font-weight: 600; }
 
-.cartao-servico { color: var(--ink-soft); font-size: .9375rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.cartao-servico { color: var(--ink-faint); font-size: .875rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .cartao-servico strong { color: var(--ink); font-weight: 650; }
-.cartao-cliente { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-faint); font-size: .875rem; }
+.cartao-cliente { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-faint); font-size: .8125rem; }
 .cartao-rodape { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 12px 12px 14px; min-height: 50px; }
 .botoes { display: flex; gap: 8px; align-items: center; }
 .prazo { font-size: .8125rem; color: var(--ink-soft); display: inline-flex; gap: 5px; align-items: center; font-weight: 550; }
