@@ -12,11 +12,11 @@ https://huleonor.github.io/Oficina/gestao/ (não aparece no menu nem no sitemap)
 Conta o tempo de cada arranjo, por modelo de carro. Mais nada: sem clientes nem pontos.
 
 - **Contar um tempo**: escreve-se o modelo (com sugestões dos que já existem), escolhe-se o arranjo e carrega-se
-  em **Começar a contar**.
+  em **Começar a contar**. Um arranjo escrito em **Outro** fica guardado e aparece como botão da próxima vez
+  (maiúsculas e acentos não contam: "troca de pneus" junta-se a "Troca de pneus").
 - **A contar**: cada trabalho tem um relógio (h:mm:ss), **Pausar** / **Retomar** e **Terminar**, e mostra a média
   das vezes anteriores do mesmo modelo e arranjo (ou só do arranjo).
-- **Tempos registados**: as médias por modelo e arranjo (vezes, média, mais rápido, mais lento) e todos os tempos
-  por dia, com pesquisa e apagar.
+- **Tempos registados**: um cartão por modelo e arranjo, com a média e os tempos de cada vez (com pesquisa e apagar).
 
 O tempo é o do relógio, desde Começar até Terminar, sem as pausas.
 Se a ligação falhar, os tempos ficam guardados no aparelho e seguem quando a sheet voltar a responder.

@@ -224,7 +224,21 @@
 
   // ---------------------------------------------------------------- desenho
   const conteudo = $('[data-conteudo]');
-  const arranjos = () => (CFG.servicos || []).filter((s) => sem(s) !== 'outro');
+  // Os arranjos do site e os que já se escreveram em "Outro" (vêm da sheet e ficam também no aparelho).
+  function arranjos() {
+    const base = (CFG.servicos || []).filter((s) => sem(s) !== 'outro');
+    const usos = new Map();
+    [...ler('tp.arranjos', []), ...st.trabalhos.map((t) => t.servico)].forEach((s) => {
+      s = String(s || '').trim();
+      if (!s || base.some((b) => sem(b) === sem(s))) return;
+      const k = sem(s);
+      const u = usos.get(k) || { nome: s, n: 0 };
+      u.n++; usos.set(k, u);
+    });
+    return [...base, ...[...usos.values()].sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome, 'pt')).map((u) => u.nome)];
+  }
+  // O nome como já existe (para "troca de pneus" e "Troca de pneus" contarem juntos).
+  const nomeArranjo = (s) => arranjos().find((a) => sem(a) === sem(s)) || s.charAt(0).toUpperCase() + s.slice(1);
 
   function desenhar() {
     desenharSync();
@@ -279,9 +293,12 @@
       const erro = $('[data-erro]', f);
       const falta = !modelo ? 'Escreva o modelo do carro.' : !arranjo ? (r ? 'Escreva o arranjo.' : 'Escolha o arranjo.') : '';
       if (falta) { erro.textContent = falta; erro.hidden = false; (!modelo ? f.modelo : r ? outro : f.querySelector('input[name="arranjo"]')).focus(); return; }
+      const nome = nomeArranjo(arranjo);
+      const guardados = ler('tp.arranjos', []);
+      if (!guardados.some((g) => sem(g) === sem(nome))) guardar('tp.arranjos', [...guardados, nome]);
       guardar('tp.ultimo', {});
       f.reset();
-      comecar(modelo, arranjo);
+      comecar(modelo, nome);
     });
   }
 
@@ -325,22 +342,12 @@
     const q = sem(st.busca);
     const todos = st.trabalhos.filter(terminado).sort((a, b) => String(b.pronto).localeCompare(String(a.pronto)));
     const lista = q ? todos.filter((t) => sem(`${modeloDe(t)} ${t.servico}`).includes(q)) : todos;
-    // Médias por modelo e arranjo.
+    // Um grupo por modelo e arranjo: os tempos e a média. O mais recente primeiro.
     const grupos = new Map();
     lista.forEach((t) => {
       const k = `${sem(modeloDe(t))}|${sem(t.servico)}`;
-      const g = grupos.get(k) || { modelo: modeloDe(t), arranjo: t.servico, soma: 0, n: 0, min: Infinity, max: 0 };
-      const v = tempo(t);
-      g.soma += v; g.n++; g.min = Math.min(g.min, v); g.max = Math.max(g.max, v);
-      grupos.set(k, g);
-    });
-    const medias = [...grupos.values()].sort((a, b) => a.modelo.localeCompare(b.modelo, 'pt') || String(a.arranjo).localeCompare(String(b.arranjo), 'pt'));
-    // Registos por dia.
-    const dias = [];
-    lista.slice(0, 200).forEach((t) => {
-      const d = diaTexto(data(t.pronto));
-      if (!dias.length || dias[dias.length - 1].dia !== d) dias.push({ dia: d, itens: [] });
-      dias[dias.length - 1].itens.push(t);
+      if (!grupos.has(k)) grupos.set(k, { modelo: modeloDe(t), arranjo: t.servico, itens: [] });
+      grupos.get(k).itens.push(t);
     });
     const vazio = !todos.length
       ? '<p class="vazio">Ainda não há tempos registados. Escolha o modelo e o arranjo e carregue em Começar a contar.</p>'
@@ -351,21 +358,23 @@
         ${todos.length ? `<label class="busca">${icone('magnifying-glass')}<input name="busca" type="search" placeholder="Procurar modelo ou arranjo" value="${esc(st.busca)}" aria-label="Procurar"></label>` : ''}
       </div>
       ${vazio}
-      ${medias.length ? `<h3 class="subtitulo">Médias</h3>
-      <div class="tabela-rolar"><table class="tabela">
-        <thead><tr><th scope="col">Modelo</th><th scope="col">Arranjo</th><th scope="col" class="n">Vezes</th><th scope="col" class="n">Média</th><th scope="col" class="n">Mais rápido</th><th scope="col" class="n">Mais lento</th></tr></thead>
-        <tbody>${medias.map((g) => `<tr><td>${esc(g.modelo)}</td><td>${esc(g.arranjo || '—')}</td><td class="n">${g.n}</td><td class="n forte">${duracao(g.soma / g.n)}</td><td class="n">${duracao(g.min)}</td><td class="n">${duracao(g.max)}</td></tr>`).join('')}</tbody>
-      </table></div>` : ''}
-      ${dias.length ? `<h3 class="subtitulo">Todos</h3>` : ''}
-      ${dias.map((d) => `<h4 class="dia">${esc(d.dia)}</h4>
-        <ul class="registos">${d.itens.map((t) => {
-          const i = data(t.inicio), p = data(t.pronto);
-          return `<li class="registo">
-            <div class="registo-texto"><b>${esc(modeloDe(t))}</b><span>${esc(t.servico || 'Sem arranjo')}</span><small>${hora(i)} – ${hora(p)}${num(t.pausa_min) >= 1 ? ` · ${duracao(num(t.pausa_min) * MIN)} em pausa` : ''}</small></div>
-            <span class="registo-tempo">${duracao(tempo(t))}</span>
-            <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar" title="Apagar">${icone('trash')}</button>
-          </li>`;
-        }).join('')}</ul>`).join('')}
+      <div class="grupos">${[...grupos.values()].map((g) => {
+        const ms = g.itens.reduce((s, t) => s + tempo(t), 0) / g.itens.length;
+        return `<article class="grupo">
+          <header class="grupo-cabeca">
+            <div><h3>${esc(g.modelo)}</h3><p>${esc(g.arranjo || 'Sem arranjo')}</p></div>
+            <div class="media"><small>Média</small><b>${duracao(ms)}</b><small>${g.itens.length} ${g.itens.length === 1 ? 'vez' : 'vezes'}</small></div>
+          </header>
+          <ul class="registos">${g.itens.map((t) => {
+            const i = data(t.inicio), p = data(t.pronto);
+            return `<li class="registo">
+              <span class="registo-texto">${diaTexto(p)}, ${hora(i)} – ${hora(p)}${num(t.pausa_min) >= 1 ? ` <small>(${duracao(num(t.pausa_min) * MIN)} em pausa)</small>` : ''}</span>
+              <span class="registo-tempo">${duracao(tempo(t))}</span>
+              <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar" title="Apagar">${icone('trash')}</button>
+            </li>`;
+          }).join('')}</ul>
+        </article>`;
+      }).join('')}</div>
     </section>`;
   }
 
