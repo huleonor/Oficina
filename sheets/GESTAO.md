@@ -1,6 +1,6 @@
 # INOVACAR Gestão
 
-Uma página para gerir a oficina: os carros que estão lá dentro, os clientes e quanto tempo demora cada carro.
+Uma página para contar quanto tempo demora cada arranjo, por modelo de carro.
 A Google Sheet **INOVACAR Pontos** é a base de dados. A página não tem servidor próprio: fala com a sheet por um
 Apps Script.
 
@@ -9,33 +9,22 @@ https://huleonor.github.io/Oficina/gestao/ (não aparece no menu nem no sitemap)
 
 ## O que faz
 
-- **Oficina**: o objetivo da semana (por omissão 12 carros entregues, uma barra que enche a cada entrega) e o quadro
-  dos carros lá dentro: À espera, Em trabalho, Pronto a levantar. Cada carro em trabalho tem um relógio grande que
-  conta o tempo de trabalho (só nas horas de abertura) e uma barra contra a média desse serviço. **Pausar** é um
-  toque e para o relógio; **Retomar** volta a contar. O carro começado mais recente fica no topo, os em pausa no fim.
-  Os cartões arrastam-se entre colunas (no telemóvel: carregar e segurar, e largar no separador).
-- **Anular**: cada ação rápida (começar, pausar, arrastar, entregar, trocar pontos, apagar) mostra um aviso com
-  **Anular** (ou Ctrl/⌘ Z) durante 6 segundos, que desfaz também na sheet. Os formulários têm o botão Guardar.
-- **Fichas**: tocar na pessoa abre o cliente; tocar na matrícula abre o carro.
-- **Entregar**: pergunta quanto o cliente pagou, mostra os pontos que ganha e o saldo com que fica, e o carro
-  sai do cartão.
-- **Dar entrada**: a matrícula encontra o carro e o dono; um carro novo pede marca e cliente (com sugestões de
-  clientes que já existem). Dá para começar o trabalho logo.
-- **Clientes**: saldo de pontos, **Trocar pontos** (escolhe o prémio, tira os pontos e uma unidade do stock),
-  **Dar pontos** (um gasto sem trabalho, uma indicação, um ajuste), os movimentos (que se podem anular), os carros
-  e as visitas.
-- **Prémios**: as regras (pontos por euro, 3% de retorno, quanto custa um ponto, a indicação) e cada prémio com
-  os pontos, o custo à oficina, o retorno real, o stock (aviso quando há 3 ou menos) e o link de compra.
-  **Ajustar aos 3%** acerta os pontos de todos.
-- **Relatórios** (semana, mês, 3 meses, ano, comparados com o período anterior): carros entregues, faturado,
-  tempos médios, prontos no dia prometido, pontos dados e trocados, custo dos prémios; carros por semana contra o
-  objetivo, um mapa de atividade por dia, pontos por mês, tempos por serviço, prémios mais trocados, alertas de
-  stock e os melhores clientes.
+Conta o tempo de cada arranjo, por modelo de carro. Mais nada: sem clientes nem pontos.
 
-Os tempos contam só as horas de abertura (seg a sex, 09:00 às 18:30; muda-se em `public/gestao/config.js`).
-Se a ligação falhar, as alterações ficam guardadas no aparelho e seguem quando a sheet voltar a responder.
+- **Contar um tempo**: escreve-se o modelo (com sugestões dos que já existem), escolhe-se o arranjo e carrega-se
+  em **Começar a contar**.
+- **A contar**: cada trabalho tem um relógio (h:mm:ss), **Pausar** / **Retomar** e **Terminar**, e mostra a média
+  das vezes anteriores do mesmo modelo e arranjo (ou só do arranjo).
+- **Tempos registados**: as médias por modelo e arranjo (vezes, média, mais rápido, mais lento) e todos os tempos
+  por dia, com pesquisa e apagar.
+
+O tempo é o do relógio, desde Começar até Terminar, sem as pausas.
+Se a ligação falhar, os tempos ficam guardados no aparelho e seguem quando a sheet voltar a responder.
 
 ## A sheet
+
+A página usa duas abas: **Gestão Carros** (um por modelo, na coluna `modelo`) e **Gestão Trabalhos** (um por tempo:
+`servico` é o arranjo, `inicio` e `pronto` as horas, `pausa_min` os minutos em pausa). As outras abas ficam como estão.
 
 | Aba | Colunas |
 | --- | --- |

@@ -5,38 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#26293c">
-  <title>INOVACAR Gestão</title>
+  <title>INOVACAR Tempos</title>
   <link rel="icon" type="image/png" href="../favicon.png">
   <link rel="preload" href="fonts/figtree-var.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <a class="saltar" href="#conteudo">Saltar para o conteúdo</a>
-
   <header class="topo">
     <div class="topo-dentro">
-      <a class="marca" href="#oficina" aria-label="INOVACAR, Oficina Automóvel: ir para a oficina">
+      <a class="marca" href="./" aria-label="INOVACAR Tempos">
         <img src="../images/logo-inovacar-240.png" srcset="../images/logo-inovacar-240.png 1x, ../images/logo-inovacar-480.png 2x" width="92" height="56" alt="INOVACAR Oficina Automóvel">
+        <span class="marca-nome">Tempos</span>
       </a>
-      <nav class="abas" aria-label="Secções" data-nav></nav>
       <div class="topo-acoes">
         <span class="sync" data-sync aria-live="polite"></span>
-        <button class="btn-icone no-escuro" type="button" data-abrir="definicoes" aria-label="Definições" title="Definições"></button>
-        <button class="btn primario" type="button" data-abrir="entrada"><span data-icone="plus"></span><span class="rotulo-longo">Dar entrada</span></button>
+        <button class="btn-icone no-escuro" type="button" data-abrir-ligacao aria-label="Ligação à sheet" title="Ligação à sheet"><span data-icone="gear"></span></button>
       </div>
     </div>
   </header>
 
-  <div class="aviso" data-aviso hidden></div>
+  <div class="aviso" data-aviso role="status" hidden></div>
 
-  <main id="conteudo" tabindex="-1" data-conteudo></main>
-
-  <nav class="abas-baixo" aria-label="Secções" data-nav-baixo></nav>
+  <main id="conteudo" data-conteudo></main>
 
   <dialog class="painel" data-painel aria-labelledby="painel-titulo"></dialog>
 
   <div class="toast" role="status" aria-live="polite" data-toast hidden></div>
-  <div class="dica-flutuante" role="tooltip" data-dica-flutuante hidden></div>
 
   <script src="config.js"></script>
   <script src="icones.js"></script>
