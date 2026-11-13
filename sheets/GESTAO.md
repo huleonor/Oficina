@@ -20,7 +20,7 @@ Conta quanto tempo cada carro está em trabalho, num quadro com três fases:
   de onde parou.
 
 O lápis de cada cartão edita a matrícula, o modelo, o dono, o serviço e, num carro terminado, o tempo.
-Não se volta a Por começar. O **Relatório** tem todos os tempos (carros terminados, tempo total, média por
+Não se volta a Por começar. A página **Tempos** tem todos os tempos (carros terminados, tempo total, média por
 carro, média por serviço e a lista por dia).
 
 O tempo é o do relógio, desde Começar até Terminar, sem as pausas.
