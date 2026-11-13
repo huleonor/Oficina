@@ -70,6 +70,8 @@
   const carroPorMat = (m) => { const k = matChave(m); return k ? st.carros.find((c) => matChave(c.matricula) === k) : null; };
   const info = (t) => { const c = carroDe(t), d = donoDe(c); return { matricula: c ? c.matricula : '', modelo: nomeModelo(c), dono: d ? d.nome : '', servico: limpar(t.servico) }; };
   const aContar = (t) => t.estado === 'curso' && t.inicio && !t.pronto;
+  const porComecar = (t) => t.estado === 'espera' && !t.inicio && !t.pronto;
+  const faseDe = (t) => (aContar(t) ? 'curso' : porComecar(t) ? 'espera' : t.pronto ? 'pronto' : '');
   const terminado = (t) => !!(t.inicio && t.pronto);
 
   function tempo(t, agora = new Date()) {
@@ -110,12 +112,12 @@
   }
 
   const demo = {
-    dados: () => ler('tp.demo3', null) || semente(),
+    dados: () => ler('tp.demo4', null) || semente(),
     async chamar(corpo) {
       await new Promise((r) => setTimeout(r, 150));
       const d = this.dados();
       if (corpo.action === 'gravar') aplicar(d, corpo.operacoes || []);
-      guardar('tp.demo3', d);
+      guardar('tp.demo4', d);
       return { ok: true, ...JSON.parse(JSON.stringify(d)) };
     },
   };
@@ -133,6 +135,11 @@
     }
     const ini = new Date(agora.getTime() - 47 * MIN);
     trabalhos.push({ id: 'tx', carro_id: 'm0', servico: '', estado: 'curso', entrada: paraTexto(ini), inicio: paraTexto(ini), pronto: '', pausado_em: '', pausa_min: '', criado_em: paraTexto(ini) });
+    const ent = paraTexto(new Date(agora.getTime() - 20 * MIN));
+    trabalhos.push({ id: 'te1', carro_id: 'm1', servico: 'Travões', estado: 'espera', entrada: ent, inicio: '', pronto: '', pausado_em: '', pausa_min: '', criado_em: ent });
+    trabalhos.push({ id: 'te2', carro_id: 'm3', servico: '', estado: 'espera', entrada: paraTexto(new Date(agora.getTime() - 5 * MIN)), inicio: '', pronto: '', pausado_em: '', pausa_min: '', criado_em: ent });
+    const hi = new Date(agora.getTime() - 3 * HORA), hf = new Date(agora.getTime() - 2 * HORA + 12 * MIN);
+    trabalhos.push({ id: 'th', carro_id: 'm2', servico: 'Mudança de óleo', estado: 'pronto', entrada: paraTexto(hi), inicio: paraTexto(hi), pronto: paraTexto(hf), pausado_em: '', pausa_min: '', criado_em: paraTexto(hi) });
     return { clientes, carros, trabalhos };
   }
 
@@ -216,10 +223,13 @@
     return { id: carro.id, ops };
   }
 
-  function comecar(matricula, modelo, dono, servico) {
+  function adicionar(matricula, modelo, dono, servico) {
     const c = carroOps(matricula, modelo, dono);
     const agora = paraTexto(new Date());
-    gravar([...c.ops, { op: 'criar', tabela: 'trabalhos', id: novoId(), dados: { carro_id: c.id, servico, estado: 'curso', entrada: agora, inicio: agora, pronto: '', pausado_em: '', pausa_min: '', criado_em: agora } }], `${matricula}: a contar.`);
+    gravar([...c.ops, { op: 'criar', tabela: 'trabalhos', id: novoId(), dados: { carro_id: c.id, servico, estado: 'espera', entrada: agora, inicio: '', pronto: '', pausado_em: '', pausa_min: '', criado_em: agora } }], `${matricula} adicionado: por começar.`);
+  }
+  function comecar(id) {
+    gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados: { estado: 'curso', inicio: paraTexto(new Date()) } }], `${info(trab(id)).matricula || 'Carro'}: a contar.`);
   }
   const trab = (id) => st.trabalhos.find((t) => t.id === id);
   function pausar(id) { gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados: { pausado_em: paraTexto(new Date()) } }], 'Em pausa.'); }
@@ -228,14 +238,14 @@
     const somar = (new Date() - data(t.pausado_em)) / MIN;
     gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados: { pausado_em: '', pausa_min: (num(t.pausa_min) + somar).toFixed(2) } }], 'A contar de novo.');
   }
-  function terminar(id) {
+  function terminar(id, animar = true) {
     const t = trab(id);
     const agora = new Date();
     const dados = { estado: 'pronto', pronto: paraTexto(agora) };
     if (t.pausado_em) { dados.pausa_min = (num(t.pausa_min) + (agora - data(t.pausado_em)) / MIN).toFixed(2); dados.pausado_em = ''; }
     const fim = duracao(tempo({ ...t, ...dados }));
     const card = $(`.crono[data-id="${CSS.escape(id)}"]`);
-    const anima = card && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const anima = animar && card && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (anima) animarFim(card, fim);
     gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados }], `Terminado: ${fim}.`, anima ? 2100 : 0);
   }
@@ -256,7 +266,7 @@
     const t = trab(id);
     if (!t) return;
     const i = info(t);
-    if (!confirm(`Apagar o tempo de ${i.matricula || i.modelo}?`)) return;
+    if (!confirm(`Apagar ${i.matricula || i.modelo}${t.inicio ? ' e o seu tempo' : ''}?`)) return;
     gravar([{ op: 'apagar', tabela: 'trabalhos', id }], 'Apagado.');
   }
 
@@ -301,7 +311,7 @@
     return `<section class="bloco novo" aria-labelledby="t-novo">
       <header class="novo-cabeca">
         <div><h2 id="t-novo" class="titulo">Adicionar carro</h2>
-        <p class="ajuda">Matrícula, modelo e dono. O serviço é opcional.</p></div>
+        <p class="ajuda">Fica em Por começar. O tempo só conta quando carregar em Começar.</p></div>
         <button class="btn-icone" type="button" data-fechar aria-label="Fechar">${icone('x')}</button>
       </header>
       <form data-form="novo" novalidate autocomplete="off">
@@ -314,7 +324,7 @@
         <datalist id="donos">${donos.map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
         <p class="erro-form" data-erro role="alert" hidden></p>
         <div class="novo-pe">
-          <button class="btn primario grande" type="submit">${icone('play')}<span>Começar a contar</span></button>
+          <button class="btn primario grande" type="submit">${icone('plus')}<span>Adicionar</span></button>
         </div>
       </form>
     </section>`;
@@ -355,26 +365,67 @@
       const erro = $('[data-erro]', f);
       const falta = !matricula ? ['Escreva a matrícula.', f.matricula] : !modelo ? ['Escreva o modelo do carro.', f.modelo] : !dono ? ['Escreva o nome do dono.', f.dono] : null;
       if (falta) { erro.textContent = falta[0]; erro.hidden = false; falta[1].focus(); return; }
-      const ja = st.trabalhos.find((t) => aContar(t) && matChave(info(t).matricula) === matChave(matricula));
-      if (ja) { erro.textContent = `O ${matricula} já está a contar.`; erro.hidden = false; return; }
+      const ja = st.trabalhos.find((t) => (aContar(t) || porComecar(t)) && matChave(info(t).matricula) === matChave(matricula));
+      if (ja) { erro.textContent = `O ${matricula} já está na oficina (${aContar(ja) ? 'em curso' : 'por começar'}).`; erro.hidden = false; return; }
       guardar('tp.ultimo2', {});
       f.reset();
       painel.close();
-      comecar(matricula, modelo, dono, servico);
+      adicionar(matricula, modelo, dono, servico);
     });
   }
 
-  // Os carros a contar, pela ordem em que começaram (o primeiro a entrar primeiro).
+  // O quadro da oficina: Por começar → Em curso → Terminado (hoje). Muda-se com os botões ou a arrastar.
+  const FASES = {
+    espera: { nome: 'Por começar', vazio: 'Os carros adicionados ficam aqui até começar.' },
+    curso: { nome: 'Em curso', vazio: 'Arraste para aqui um carro para começar a contar.' },
+    pronto: { nome: 'Terminado hoje', vazio: 'Arraste para aqui um carro em curso para terminar.' },
+  };
   function vistaAContar() {
-    const lista = st.trabalhos.filter(aContar).sort((a, b) => String(a.inicio).localeCompare(String(b.inicio)));
+    const hoje = new Date();
+    const por = (k) => (a, b) => String(a[k]).localeCompare(String(b[k]));
+    const listas = {
+      espera: st.trabalhos.filter(porComecar).sort(por('entrada')),
+      curso: st.trabalhos.filter(aContar).sort(por('inicio')),
+      pronto: st.trabalhos.filter((t) => terminado(t) && mesmoDia(data(t.pronto), hoje)).sort((a, b) => String(b.pronto).localeCompare(String(a.pronto))),
+    };
+    const cartao = { espera: cartaoEspera, curso: crono, pronto: cartaoPronto };
     return `<div class="cabeca-pagina">
-      <h1 class="titulo-pagina">A contar <span class="conta">${lista.length}</span></h1>
+      <h1 class="titulo-pagina">Oficina</h1>
       <button class="btn primario" type="button" data-adicionar>${icone('plus')}<span>Adicionar carro</span></button>
     </div>
-    ${lista.length
-      ? `<ol class="cronos centro">${lista.map((t, i) => crono(t, i + 1)).join('')}</ol>`
-      : `<div class="vazio-contar grande">${icone('timer')}<p>Nenhum carro a contar.</p><small>Carregue em Adicionar carro para começar.</small>
-          <button class="btn primario grande" type="button" data-adicionar>${icone('plus')}<span>Adicionar carro</span></button></div>`}`;
+    <div class="quadro">${Object.keys(FASES).map((f) => `<section class="coluna col-${f}" data-coluna="${f}" aria-labelledby="col-${f}">
+      <h2 class="coluna-titulo" id="col-${f}"><i class="ponto-fase" aria-hidden="true"></i>${FASES[f].nome} <span class="conta">${listas[f].length}</span></h2>
+      ${listas[f].length ? `<ol class="cartoes">${listas[f].map((t, i) => cartao[f](t, i + 1)).join('')}</ol>` : `<p class="coluna-vazia">${FASES[f].vazio}</p>`}
+      ${f === 'pronto' ? '<a class="ver-relatorio" href="#relatorio">Ver todos no relatório →</a>' : ''}
+    </section>`).join('')}</div>`;
+  }
+
+  const cabecaCartao = (t, i, ordem = 0) => `<div class="crono-cima">
+        <div class="crono-carro">
+          <div class="crono-topo">${ordem ? `<span class="ordem" title="Ordem de entrada">${ordem}º</span>` : ''}${placa(i.matricula)}</div>
+          <p class="crono-modelo">${esc(i.modelo)}</p>
+          ${i.dono ? `<p class="crono-dono">${icone('user')}${esc(i.dono)}</p>` : ''}
+          ${i.servico ? `<p class="crono-dono">${icone('wrench')}${esc(i.servico)}</p>` : ''}
+        </div>
+        <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar" title="Apagar">${icone('trash')}</button>
+      </div>`;
+
+  function cartaoEspera(t, ordem) {
+    const i = info(t), e = data(t.entrada);
+    return `<li class="crono espera" data-id="${esc(t.id)}" data-arrastar="${esc(t.id)}">
+      ${cabecaCartao(t, i, ordem)}
+      <p class="crono-info">Entrou ${e ? `${diaTexto(e).toLowerCase()} às ${hora(e)}` : ''}.</p>
+      <button class="btn primario" type="button" data-comecar="${esc(t.id)}">${icone('play')}<span>Começar</span></button>
+    </li>`;
+  }
+
+  function cartaoPronto(t) {
+    const i = info(t), p = data(t.pronto);
+    return `<li class="crono pronto" data-id="${esc(t.id)}">
+      ${cabecaCartao(t, i)}
+      <p class="tempo-final">${icone('check-circle')}<b>${duracao(tempo(t))}</b></p>
+      <p class="crono-info">Terminado às ${hora(p)}.</p>
+    </li>`;
   }
 
   function abrirNovo() {
@@ -385,20 +436,12 @@
     painel.querySelector('[name="matricula"]').focus();
   }
 
-  function crono(t, ordem = 0) {
+  function crono(t) {
     const i = info(t);
     const pausa = !!t.pausado_em;
     const ini = data(t.inicio);
-    return `<li class="crono${pausa ? ' em-pausa' : ''}" data-id="${esc(t.id)}">
-      <div class="crono-cima">
-        <div class="crono-carro">
-          <div class="crono-topo">${ordem ? `<span class="ordem" title="Ordem de entrada">${ordem}º</span>` : ''}${placa(i.matricula)}</div>
-          <p class="crono-modelo">${esc(i.modelo)}</p>
-          ${i.dono ? `<p class="crono-dono">${icone('user')}${esc(i.dono)}</p>` : ''}
-          ${i.servico ? `<p class="crono-dono">${icone('wrench')}${esc(i.servico)}</p>` : ''}
-        </div>
-        <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar este tempo" title="Apagar">${icone('trash')}</button>
-      </div>
+    return `<li class="crono${pausa ? ' em-pausa' : ''}" data-id="${esc(t.id)}" data-arrastar="${esc(t.id)}">
+      ${cabecaCartao(t, i)}
       <p class="relogio" data-relogio="${esc(t.id)}" aria-live="off">${relogio(tempo(t))}</p>
       <p class="crono-info">${pausa ? '<span class="selo-pausa">Em pausa</span> ' : ''}Começou ${diaTexto(ini).toLowerCase()} às ${hora(ini)}.</p>
       <div class="crono-acoes">
@@ -550,7 +593,8 @@
     const b = e.target.closest('button');
     if (!b) return;
     const d = b.dataset;
-    if (d.pausar) pausar(d.pausar);
+    if (d.comecar) comecar(d.comecar);
+    else if (d.pausar) pausar(d.pausar);
     else if (d.retomar) retomar(d.retomar);
     else if (d.terminar) terminar(d.terminar);
     else if (d.apagar) apagar(d.apagar);
@@ -569,6 +613,73 @@
 
   const lerPagina = () => { st.pagina = location.hash === '#relatorio' ? 'relatorio' : 'contar'; };
   window.addEventListener('hashchange', () => { lerPagina(); desenhar(); window.scrollTo(0, 0); });
+
+  // ---------------------------------------------------------------- arrastar entre fases
+  const ORDEM_FASES = ['espera', 'curso', 'pronto'];
+  function moverPara(id, destino) {
+    const t = trab(id);
+    const de = t && faseDe(t);
+    if (!t || de === destino) return;
+    if (ORDEM_FASES.indexOf(destino) < ORDEM_FASES.indexOf(de)) { toast('Não dá para voltar a uma fase anterior.'); return; }
+    if (de === 'espera' && destino === 'pronto') { toast('Comece primeiro o carro (Em curso).'); return; }
+    if (destino === 'curso') comecar(id);
+    else if (destino === 'pronto') terminar(id, false);
+  }
+  let arr = null;
+  const colunaEm = (x, y) => { const el = document.elementFromPoint(x, y); return el && el.closest('[data-coluna]'); };
+  function arrancarArrasto(x, y) {
+    const r = arr.card.getBoundingClientRect();
+    arr.dx = x - r.left; arr.dy = y - r.top;
+    arr.fantasma = arr.card.cloneNode(true);
+    arr.fantasma.classList.add('fantasma');
+    arr.fantasma.style.width = `${r.width}px`;
+    document.body.appendChild(arr.fantasma);
+    arr.card.classList.add('a-arrastar');
+    document.body.classList.add('arrastando');
+    arr.ativo = true;
+    if (navigator.vibrate && arr.toque) navigator.vibrate(15);
+    moverArrasto(x, y);
+  }
+  function moverArrasto(x, y) {
+    arr.fantasma.style.transform = `translate(${x - arr.dx}px, ${y - arr.dy}px) rotate(2deg)`;
+    const col = colunaEm(x, y);
+    $$('[data-coluna]').forEach((c) => c.classList.toggle('alvo', c === col && c.dataset.coluna !== faseDe(trab(arr.id))));
+  }
+  function acabarArrasto(x, y, cancelar) {
+    if (!arr) return;
+    clearTimeout(arr.timer);
+    if (arr.ativo) {
+      const col = cancelar ? null : colunaEm(x, y);
+      arr.fantasma.remove();
+      arr.card.classList.remove('a-arrastar');
+      document.body.classList.remove('arrastando');
+      $$('[data-coluna]').forEach((c) => c.classList.remove('alvo'));
+      if (col) moverPara(arr.id, col.dataset.coluna);
+    }
+    arr = null;
+  }
+  document.addEventListener('pointerdown', (e) => {
+    const card = e.target.closest('[data-arrastar]');
+    if (!card || e.target.closest('button, a, input') || e.button > 0 || st.animando) return;
+    arr = { card, id: card.dataset.arrastar, x0: e.clientX, y0: e.clientY, ativo: false, toque: e.pointerType !== 'mouse' };
+    if (arr.toque) { const { clientX: x, clientY: y } = e; arr.timer = setTimeout(() => { if (arr && !arr.ativo) arrancarArrasto(x, y); }, 350); }
+  });
+  document.addEventListener('pointermove', (e) => {
+    if (!arr) return;
+    const longe = Math.hypot(e.clientX - arr.x0, e.clientY - arr.y0) > 8;
+    if (!arr.ativo) {
+      if (arr.toque) { if (longe) { clearTimeout(arr.timer); arr = null; } return; } // está a deslizar a página
+      if (longe) arrancarArrasto(e.clientX, e.clientY);
+      return;
+    }
+    e.preventDefault();
+    moverArrasto(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerup', (e) => acabarArrasto(e.clientX, e.clientY, false));
+  document.addEventListener('pointercancel', (e) => acabarArrasto(e.clientX, e.clientY, true));
+  document.addEventListener('touchmove', (e) => { if (arr && arr.ativo) e.preventDefault(); }, { passive: false });
+  document.addEventListener('contextmenu', (e) => { if (arr) e.preventDefault(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && arr) acabarArrasto(0, 0, true); });
 
   // ---------------------------------------------------------------- arranque
   lerPagina();
