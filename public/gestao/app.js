@@ -61,8 +61,10 @@
   const TABELAS = ['clientes', 'carros', 'trabalhos'];
   const st = { animando: 0, verProntos: 3, clientes: [], carros: [], trabalhos: [], pagina: 'contar', carregado: false, erro: null, codigoErro: null, pendentes: ler('tp.pendentes', []), enviando: false, lendo: false, busca: '' };
 
-  const ligacao = () => { const l = ler('ig.ligacao', {}); return { apiUrl: (l.apiUrl || CFG.apiUrl || '').trim(), pin: l.pin || '' }; };
-  const emDemo = () => !ligacao().apiUrl || ler('ig.forcarDemo', false);
+  const LOCAL = !!CFG.local;
+  const BASE = LOCAL ? 'o Excel' : 'a sheet';
+  const ligacao = () => { if (LOCAL) return { apiUrl: CFG.apiUrl, pin: '' }; const l = ler('ig.ligacao', {}); return { apiUrl: (l.apiUrl || CFG.apiUrl || '').trim(), pin: l.pin || '' }; };
+  const emDemo = () => !LOCAL && (!ligacao().apiUrl || ler('ig.forcarDemo', false));
 
   const carroDe = (t) => st.carros.find((c) => c.id === t.carro_id);
   const donoDe = (c) => (c ? st.clientes.find((x) => x.id === c.cliente_id) : null);
@@ -577,7 +579,7 @@
     if (emDemo()) { txt = 'Demonstração'; cls = 'demo'; }
     else if (st.enviando || st.lendo) txt = 'A guardar…';
     else if (st.pendentes.length) { txt = `${st.pendentes.length} por enviar`; cls = 'aviso'; }
-    else if (st.carregado) { txt = 'Guardado na sheet'; cls = 'ok'; }
+    else if (st.carregado) { txt = LOCAL ? 'Guardado no Excel' : 'Guardado na sheet'; cls = 'ok'; }
     elSync.textContent = txt;
     elSync.className = 'sync ' + cls;
   }
@@ -586,7 +588,7 @@
   function desenharAviso() {
     if (!st.erro) { elAviso.hidden = true; return; }
     const pin = ['pin', 'sem-pin'].includes(st.codigoErro);
-    elAviso.innerHTML = `${icone('warning')}<span>${pin ? (ligacao().pin ? 'PIN errado.' : 'Falta o PIN para ligar à Google Sheet.') : `Sem ligação à sheet. Os tempos ficam neste aparelho e seguem depois. <small>(${esc(st.erro)})</small>`}</span>
+    elAviso.innerHTML = `${icone('warning')}<span>${pin ? (ligacao().pin ? 'PIN errado.' : 'Falta o PIN para ligar à Google Sheet.') : `Sem ligação a ${BASE}. Os tempos ficam neste aparelho e seguem depois. <small>(${esc(st.erro)})</small>`}</span>
       <button class="btn pequeno" type="button" data-abrir-ligacao>${pin ? 'Escrever o PIN' : 'Ligação'}</button>`;
     elAviso.hidden = false;
   }
@@ -603,6 +605,20 @@
   // ---------------------------------------------------------------- ligação (PIN)
   const painel = $('[data-painel]');
   function abrirLigacao() {
+    if (LOCAL) {
+      painel.classList.remove('painel-novo');
+      painel.innerHTML = `<div class="painel-forma">
+        <header class="painel-cabeca"><h2 id="painel-titulo">Base de dados: Excel</h2>
+          <button class="btn-icone" type="button" data-fechar aria-label="Fechar">${icone('x')}</button></header>
+        <div class="painel-corpo">
+          <p>Os dados ficam no ficheiro:</p>
+          <p class="estado-ligacao"><code>${esc(CFG.ficheiro || '')}</code></p>
+          <p class="ajuda">Abas Trabalhos, Carros e Clientes. Pode abrir o ficheiro no Excel para ver; para gravar, a página precisa que o Excel o tenha fechado.</p>
+        </div>
+      </div>`;
+      painel.showModal();
+      return;
+    }
     painel.classList.remove('painel-novo');
     const l = ler('ig.ligacao', {});
     const url = l.apiUrl || CFG.apiUrl || '';
