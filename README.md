@@ -25,7 +25,7 @@ npm run images     # gerar as imagens do site a partir de inovacar-assets/
 | Trabalhos antes/depois | `src/content/projetos/*.md` |
 | Domínio final | variável `SITE_URL` (ver `astro.config.mjs`) |
 | Programa de pontos (API) | `PUBLIC_PONTOS_API` em `.env` — ver [sheets/README.md](sheets/README.md) |
-| Gestão da oficina (tempos por modelo e arranjo) | `public/gestao/` — ver [sheets/GESTAO.md](sheets/GESTAO.md) |
+| Gestão da oficina (tempo de cada carro: matrícula, modelo, dono) | `public/gestao/` — ver [sheets/GESTAO.md](sheets/GESTAO.md) |
 
 ### Programa de pontos
 
