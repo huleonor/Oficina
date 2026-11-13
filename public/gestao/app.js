@@ -218,7 +218,7 @@
   }
   function apagar(id) {
     const t = trab(id);
-    if (!t || !confirm(`Apagar o tempo de ${modeloDe(t)} (${t.servico || 'sem arranjo'})?`)) return;
+    if (!t || !confirm(`Apagar o tempo de ${modeloDe(t)} (${t.servico || 'sem serviço'})?`)) return;
     gravar([{ op: 'apagar', tabela: 'trabalhos', id }], 'Apagado.');
   }
 
@@ -266,12 +266,12 @@
           <input name="modelo" type="text" list="modelos" placeholder="Ex.: Peugeot 208" value="${esc(v.modelo || '')}" enterkeyhint="next">
           <datalist id="modelos">${modelos.map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
         </label>
-        <fieldset class="campo"><legend class="rotulo">Arranjo</legend>
+        <fieldset class="campo"><legend class="rotulo">Serviço</legend>
           <div class="chips">
             ${lista.map((s) => `<label class="chip"><input type="radio" name="arranjo" value="${esc(s)}"${v.arranjo === s ? ' checked' : ''}><span>${esc(s)}</span></label>`).join('')}
             <label class="chip"><input type="radio" name="arranjo" value="__outro"${ehOutro ? ' checked' : ''}><span>Outro</span></label>
           </div>
-          <input name="outro" type="text" class="outro" placeholder="Que arranjo?" value="${esc(v.outro || '')}"${ehOutro ? '' : ' hidden'} aria-label="Outro arranjo">
+          <input name="outro" type="text" class="outro" placeholder="Que serviço?" value="${esc(v.outro || '')}"${ehOutro ? '' : ' hidden'} aria-label="Outro serviço">
         </fieldset>
         <p class="erro-form" data-erro hidden></p>
         <button class="btn primario grande" type="submit">${icone('play')}<span>Começar a contar</span></button>
@@ -291,7 +291,7 @@
       const r = f.querySelector('input[name="arranjo"]:checked');
       const arranjo = r ? (r.value === '__outro' ? outro.value.trim() : r.value) : '';
       const erro = $('[data-erro]', f);
-      const falta = !modelo ? 'Escreva o modelo do carro.' : !arranjo ? (r ? 'Escreva o arranjo.' : 'Escolha o arranjo.') : '';
+      const falta = !modelo ? 'Escreva o modelo do carro.' : !arranjo ? (r ? 'Escreva o serviço.' : 'Escolha o serviço.') : '';
       if (falta) { erro.textContent = falta; erro.hidden = false; (!modelo ? f.modelo : r ? outro : f.querySelector('input[name="arranjo"]')).focus(); return; }
       const nome = nomeArranjo(arranjo);
       const guardados = ler('tp.arranjos', []);
@@ -313,16 +313,15 @@
 
   function crono(t) {
     const modelo = modeloDe(t);
-    const m = media(modelo, t.servico);
-    const ref = m.igual || m.arranjo;
-    const refTxt = ref ? `Média ${m.igual ? 'deste modelo' : 'deste arranjo'}: <b>${duracao(ref.ms)}</b> (${ref.n} ${ref.n === 1 ? 'vez' : 'vezes'})` : 'Primeira vez que se conta.';
+    const ref = media(modelo, t.servico).arranjo;
+    const refTxt = ref ? `Média deste serviço: <b>${duracao(ref.ms)}</b> (${ref.n} ${ref.n === 1 ? 'vez' : 'vezes'})` : 'Primeira vez deste serviço.';
     const pausa = !!t.pausado_em;
     const ini = data(t.inicio);
     return `<li class="crono${pausa ? ' em-pausa' : ''}" data-id="${esc(t.id)}">
       <div class="crono-cima">
         <div>
           <p class="crono-modelo">${esc(modelo)}</p>
-          <p class="crono-arranjo">${esc(t.servico || 'Sem arranjo')}</p>
+          <p class="crono-arranjo">${esc(t.servico || 'Sem serviço')}</p>
         </div>
         <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar este tempo" title="Apagar">${icone('trash')}</button>
       </div>
@@ -342,40 +341,48 @@
     const q = sem(st.busca);
     const todos = st.trabalhos.filter(terminado).sort((a, b) => String(b.pronto).localeCompare(String(a.pronto)));
     const lista = q ? todos.filter((t) => sem(`${modeloDe(t)} ${t.servico}`).includes(q)) : todos;
-    // Um grupo por modelo e arranjo: os tempos e a média. O mais recente primeiro.
-    const grupos = new Map();
+    // Média por tipo de serviço.
+    const porServico = new Map();
     lista.forEach((t) => {
-      const k = `${sem(modeloDe(t))}|${sem(t.servico)}`;
-      if (!grupos.has(k)) grupos.set(k, { modelo: modeloDe(t), arranjo: t.servico, itens: [] });
-      grupos.get(k).itens.push(t);
+      const k = sem(t.servico);
+      const g = porServico.get(k) || { servico: t.servico || 'Sem serviço', soma: 0, n: 0 };
+      g.soma += tempo(t); g.n++;
+      porServico.set(k, g);
+    });
+    const medias = [...porServico.values()].sort((a, b) => b.n - a.n || a.servico.localeCompare(b.servico, 'pt'));
+    // A lista dos tempos, por dia.
+    const dias = [];
+    lista.slice(0, 300).forEach((t) => {
+      const d = diaTexto(data(t.pronto));
+      if (!dias.length || dias[dias.length - 1].dia !== d) dias.push({ dia: d, itens: [] });
+      dias[dias.length - 1].itens.push(t);
     });
     const vazio = !todos.length
-      ? '<p class="vazio">Ainda não há tempos registados. Escolha o modelo e o arranjo e carregue em Começar a contar.</p>'
+      ? '<p class="vazio">Ainda não há tempos registados. Escolha o modelo e o serviço e carregue em Começar a contar.</p>'
       : !lista.length ? '<p class="vazio">Nada encontrado.</p>' : '';
-    return `<section class="bloco" aria-labelledby="t-registos">
+    return `<section class="bloco" aria-labelledby="t-media">
       <div class="cabeca-bloco">
-        <h2 id="t-registos" class="titulo">Tempos registados <span class="conta">${todos.length}</span></h2>
-        ${todos.length ? `<label class="busca">${icone('magnifying-glass')}<input name="busca" type="search" placeholder="Procurar modelo ou arranjo" value="${esc(st.busca)}" aria-label="Procurar"></label>` : ''}
+        <h2 id="t-media" class="titulo">Média por serviço</h2>
+        ${todos.length ? `<label class="busca">${icone('magnifying-glass')}<input name="busca" type="search" placeholder="Procurar modelo ou serviço" value="${esc(st.busca)}" aria-label="Procurar"></label>` : ''}
       </div>
       ${vazio}
-      <div class="grupos">${[...grupos.values()].map((g) => {
-        const ms = g.itens.reduce((s, t) => s + tempo(t), 0) / g.itens.length;
-        return `<article class="grupo">
-          <header class="grupo-cabeca">
-            <div><h3>${esc(g.modelo)}</h3><p>${esc(g.arranjo || 'Sem arranjo')}</p></div>
-            <div class="media"><small>Média</small><b>${duracao(ms)}</b><small>${g.itens.length} ${g.itens.length === 1 ? 'vez' : 'vezes'}</small></div>
-          </header>
-          <ul class="registos">${g.itens.map((t) => {
-            const i = data(t.inicio), p = data(t.pronto);
-            return `<li class="registo">
-              <span class="registo-texto">${diaTexto(p)}, ${hora(i)} – ${hora(p)}${num(t.pausa_min) >= 1 ? ` <small>(${duracao(num(t.pausa_min) * MIN)} em pausa)</small>` : ''}</span>
-              <span class="registo-tempo">${duracao(tempo(t))}</span>
-              <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar" title="Apagar">${icone('trash')}</button>
-            </li>`;
-          }).join('')}</ul>
-        </article>`;
-      }).join('')}</div>
-    </section>`;
+      ${medias.length ? `<table class="tabela">
+        <thead><tr><th scope="col">Serviço</th><th scope="col" class="n">Vezes</th><th scope="col" class="n">Média</th></tr></thead>
+        <tbody>${medias.map((g) => `<tr><td>${esc(g.servico)}</td><td class="n">${g.n}</td><td class="n forte">${duracao(g.soma / g.n)}</td></tr>`).join('')}</tbody>
+      </table>` : ''}
+    </section>
+    ${dias.length ? `<section class="bloco" aria-labelledby="t-tempos">
+      <h2 id="t-tempos" class="titulo">Tempos <span class="conta">${lista.length}</span></h2>
+      ${dias.map((d) => `<h3 class="dia">${esc(d.dia)}</h3>
+        <ul class="registos">${d.itens.map((t) => {
+          const i = data(t.inicio), p = data(t.pronto);
+          return `<li class="registo">
+            <div class="registo-texto"><b>${esc(t.servico || 'Sem serviço')}</b> <span>${esc(modeloDe(t))}</span><small>${hora(i)} – ${hora(p)}${num(t.pausa_min) >= 1 ? ` · ${duracao(num(t.pausa_min) * MIN)} em pausa` : ''}</small></div>
+            <span class="registo-tempo">${duracao(tempo(t))}</span>
+            <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar" title="Apagar">${icone('trash')}</button>
+          </li>`;
+        }).join('')}</ul>`).join('')}
+    </section>` : ''}`;
   }
 
   // O relógio e a barra avançam sem redesenhar a página.
