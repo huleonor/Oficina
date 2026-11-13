@@ -50,8 +50,8 @@
 
   // ---------------------------------------------------------------- estado
   // Usa as abas Gestão Carros (um por modelo) e Gestão Trabalhos (um por tempo) da sheet.
-  const TABELAS = ['carros', 'trabalhos'];
-  const st = { carros: [], trabalhos: [], carregado: false, erro: null, codigoErro: null, pendentes: ler('tp.pendentes', []), enviando: false, lendo: false, busca: '' };
+  const TABELAS = ['carros', 'trabalhos', 'regras'];
+  const st = { carros: [], trabalhos: [], regras: [], pagina: 'contar', carregado: false, erro: null, codigoErro: null, pendentes: ler('tp.pendentes', []), enviando: false, lendo: false, busca: '' };
 
   const ligacao = () => { const l = ler('ig.ligacao', {}); return { apiUrl: (l.apiUrl || CFG.apiUrl || '').trim(), pin: l.pin || '' }; };
   const emDemo = () => !ligacao().apiUrl || ler('ig.forcarDemo', false);
@@ -114,6 +114,7 @@
     async chamar(corpo) {
       await new Promise((r) => setTimeout(r, 150));
       const d = this.dados();
+      d.regras = d.regras || [];
       if (corpo.action === 'gravar') aplicar(d, corpo.operacoes || []);
       guardar('tp.demo', d);
       return { ok: true, ...JSON.parse(JSON.stringify(d)) };
@@ -142,7 +143,7 @@
     try {
       if (st.pendentes.length) await enviar();
       const j = await chamar({ action: 'listar' });
-      const base = { carros: j.carros || [], trabalhos: j.trabalhos || [] };
+      const base = { carros: j.carros || [], trabalhos: j.trabalhos || [], regras: j.regras || [] };
       aplicar(base, st.pendentes);
       Object.assign(st, base, { carregado: true, erro: null, codigoErro: null });
       if (!emDemo()) guardar('tp.cache', { url: ligacao().apiUrl, ...base });
@@ -159,7 +160,7 @@
     aplicar(st, ops);
     st.pendentes.push(...ops);
     guardar('tp.pendentes', st.pendentes);
-    if (!emDemo()) guardar('tp.cache', { url: ligacao().apiUrl, carros: st.carros, trabalhos: st.trabalhos });
+    if (!emDemo()) guardar('tp.cache', { url: ligacao().apiUrl, carros: st.carros, trabalhos: st.trabalhos, regras: st.regras });
     desenhar();
     if (msg) toast(msg);
     enviar();
@@ -224,18 +225,23 @@
 
   // ---------------------------------------------------------------- desenho
   const conteudo = $('[data-conteudo]');
-  // Os arranjos do site e os que já se escreveram em "Outro" (vêm da sheet e ficam também no aparelho).
+  // A lista de serviços fica na sheet (aba Gestão Regras, linha "servicos"), igual em todos os aparelhos.
+  // Enquanto não houver, usa os serviços do site e os que já se escreveram em "Outro".
+  const ID_SERVICOS = 'servicos';
   function arranjos() {
-    const base = (CFG.servicos || []).filter((s) => sem(s) !== 'outro');
-    const usos = new Map();
-    [...ler('tp.arranjos', []), ...st.trabalhos.map((t) => t.servico)].forEach((s) => {
-      s = String(s || '').trim();
-      if (!s || base.some((b) => sem(b) === sem(s))) return;
-      const k = sem(s);
-      const u = usos.get(k) || { nome: s, n: 0 };
-      u.n++; usos.set(k, u);
+    const r = st.regras.find((x) => x.id === ID_SERVICOS);
+    if (r) { try { const l = JSON.parse(r.valor); if (Array.isArray(l)) return l.filter(Boolean); } catch { /* valor estragado */ } }
+    const base = (CFG.servicos || []).filter((x) => sem(x) !== 'outro');
+    const extra = [];
+    [...ler('tp.arranjos', []), ...st.trabalhos.map((t) => t.servico)].forEach((x) => {
+      x = String(x || '').trim();
+      if (x && ![...base, ...extra].some((y) => sem(y) === sem(x))) extra.push(x);
     });
-    return [...base, ...[...usos.values()].sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome, 'pt')).map((u) => u.nome)];
+    return [...base, ...extra];
+  }
+  function guardarServicos(lista, msg) {
+    const existe = st.regras.some((x) => x.id === ID_SERVICOS);
+    gravar([{ op: existe ? 'atualizar' : 'criar', tabela: 'regras', id: ID_SERVICOS, dados: { valor: JSON.stringify(lista), nota: 'Lista de serviços da página Tempos' } }], msg);
   }
   // O nome como já existe (para "troca de pneus" e "Troca de pneus" contarem juntos).
   const nomeArranjo = (s) => arranjos().find((a) => sem(a) === sem(s)) || s.charAt(0).toUpperCase() + s.slice(1);
@@ -246,12 +252,13 @@
     const foco = document.activeElement && document.activeElement.name;
     const form = $('[data-form="novo"]');
     const antes = form ? { modelo: form.modelo.value, arranjo: (form.querySelector('input[name="arranjo"]:checked') || {}).value, outro: form.outro.value } : ler('tp.ultimo', {});
-    conteudo.innerHTML = `${vistaNovo(antes)}${vistaAContar()}${vistaRegistos()}`;
+    conteudo.innerHTML = st.pagina === 'relatorio' ? vistaRegistos() : `${vistaNovo(antes)}${vistaAContar()}`;
+    $$('[data-pagina]').forEach((el) => el.setAttribute('aria-current', el.dataset.pagina === st.pagina ? 'page' : 'false'));
     if (foco && $(`[name="${foco}"]`)) {
       const el = $(`[name="${foco}"]`);
       if (el.type !== 'radio') { el.focus(); if (el.setSelectionRange && el.type === 'text') el.setSelectionRange(el.value.length, el.value.length); }
     }
-    ligarNovo();
+    if (st.pagina !== 'relatorio') ligarNovo();
     tique();
   }
 
@@ -266,7 +273,7 @@
           <input name="modelo" type="text" list="modelos" placeholder="Ex.: Peugeot 208" value="${esc(v.modelo || '')}" enterkeyhint="next">
           <datalist id="modelos">${modelos.map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
         </label>
-        <fieldset class="campo"><legend class="rotulo">Serviço</legend>
+        <fieldset class="campo"><div class="linha-rotulo"><legend class="rotulo">Serviço</legend><button class="btn texto pequeno" type="button" data-gerir>${icone('pencil-simple')}<span>Gerir serviços</span></button></div>
           <div class="chips">
             ${lista.map((s) => `<label class="chip"><input type="radio" name="arranjo" value="${esc(s)}"${v.arranjo === s ? ' checked' : ''}><span>${esc(s)}</span></label>`).join('')}
             <label class="chip"><input type="radio" name="arranjo" value="__outro"${ehOutro ? ' checked' : ''}><span>Outro</span></label>
@@ -294,8 +301,8 @@
       const falta = !modelo ? 'Escreva o modelo do carro.' : !arranjo ? (r ? 'Escreva o serviço.' : 'Escolha o serviço.') : '';
       if (falta) { erro.textContent = falta; erro.hidden = false; (!modelo ? f.modelo : r ? outro : f.querySelector('input[name="arranjo"]')).focus(); return; }
       const nome = nomeArranjo(arranjo);
-      const guardados = ler('tp.arranjos', []);
-      if (!guardados.some((g) => sem(g) === sem(nome))) guardar('tp.arranjos', [...guardados, nome]);
+      const lista = arranjos();
+      if (!lista.some((g) => sem(g) === sem(nome))) guardarServicos([...lista, nome]);
       guardar('tp.ultimo', {});
       f.reset();
       comecar(modelo, nome);
@@ -360,15 +367,23 @@
     const vazio = !todos.length
       ? '<p class="vazio">Ainda não há tempos registados. Escolha o modelo e o serviço e carregue em Começar a contar.</p>'
       : !lista.length ? '<p class="vazio">Nada encontrado.</p>' : '';
-    return `<section class="bloco" aria-labelledby="t-media">
-      <div class="cabeca-bloco">
-        <h2 id="t-media" class="titulo">Média por serviço</h2>
-        ${todos.length ? `<label class="busca">${icone('magnifying-glass')}<input name="busca" type="search" placeholder="Procurar modelo ou serviço" value="${esc(st.busca)}" aria-label="Procurar"></label>` : ''}
-      </div>
+    const total = lista.reduce((x, t) => x + tempo(t), 0);
+    const maior = Math.max(1, ...medias.map((g) => g.soma / g.n));
+    return `<div class="cabeca-pagina">
+      <h1 class="titulo-pagina">Relatório</h1>
+      ${todos.length ? `<label class="busca">${icone('magnifying-glass')}<input name="busca" type="search" placeholder="Filtrar por modelo ou serviço" value="${esc(st.busca)}" aria-label="Filtrar"></label>` : ''}
+    </div>
+    ${lista.length ? `<div class="resumo">
+      <div class="numero"><small>Tempos registados</small><b>${lista.length}</b></div>
+      <div class="numero"><small>Tempo total</small><b>${duracao(total)}</b></div>
+      <div class="numero"><small>Média geral</small><b>${duracao(total / lista.length)}</b></div>
+    </div>` : ''}
+    <section class="bloco" aria-labelledby="t-media">
+      <h2 id="t-media" class="titulo">Média por serviço</h2>
       ${vazio}
       ${medias.length ? `<table class="tabela">
         <thead><tr><th scope="col">Serviço</th><th scope="col" class="n">Vezes</th><th scope="col" class="n">Média</th></tr></thead>
-        <tbody>${medias.map((g) => `<tr><td>${esc(g.servico)}</td><td class="n">${g.n}</td><td class="n forte">${duracao(g.soma / g.n)}</td></tr>`).join('')}</tbody>
+        <tbody>${medias.map((g) => `<tr><td>${esc(g.servico)}<div class="barra-media" aria-hidden="true"><span style="width:${Math.round((g.soma / g.n) / maior * 100)}%"></span></div></td><td class="n">${g.n}</td><td class="n forte">${duracao(g.soma / g.n)}</td></tr>`).join('')}</tbody>
       </table>` : ''}
     </section>
     ${dias.length ? `<section class="bloco" aria-labelledby="t-tempos">
@@ -480,6 +495,46 @@
     });
   }
 
+  function abrirServicos() {
+    const desenha = () => {
+      const lista = arranjos();
+      painel.innerHTML = `<div class="painel-forma">
+        <header class="painel-cabeca"><h2 id="painel-titulo">Serviços</h2>
+          <button class="btn-icone" type="button" data-fechar aria-label="Fechar">${icone('x')}</button></header>
+        <div class="painel-corpo">
+          <p class="ajuda">Os serviços que aparecem para escolher. Eliminar um serviço não apaga os tempos já registados.</p>
+          <ul class="lista-servicos">${lista.map((x, i) => {
+            const n = st.trabalhos.filter((t) => terminado(t) && sem(t.servico) === sem(x)).length;
+            return `<li><span class="nome">${esc(x)}</span><span class="n-usos">${n} ${n === 1 ? 'tempo' : 'tempos'}</span>
+              <button class="btn-icone perigo" type="button" data-eliminar="${i}" aria-label="Eliminar ${esc(x)}" title="Eliminar">${icone('trash')}</button></li>`;
+          }).join('') || '<li class="vazio">Sem serviços.</li>'}</ul>
+          <form class="adicionar" data-form="servico" novalidate autocomplete="off">
+            <input name="nome" type="text" placeholder="Novo serviço" aria-label="Nome do novo serviço">
+            <button class="btn primario" type="submit">${icone('plus')}<span>Adicionar</span></button>
+          </form>
+        </div>
+      </div>`;
+      const f = $('[data-form="servico"]', painel);
+      f.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const nome = f.nome.value.trim().replace(/\s+/g, ' ');
+        if (!nome) { f.nome.focus(); return; }
+        if (lista.some((x) => sem(x) === sem(nome))) { toast('Esse serviço já existe.'); return; }
+        guardarServicos([...lista, nome.charAt(0).toUpperCase() + nome.slice(1)], 'Serviço adicionado.');
+        desenha();
+        $('[name="nome"]', painel).focus();
+      });
+      $$('[data-eliminar]', painel).forEach((btn) => btn.addEventListener('click', () => {
+        const i = +btn.dataset.eliminar;
+        if (!confirm(`Eliminar o serviço "${lista[i]}"?`)) return;
+        guardarServicos(lista.filter((_, k) => k !== i), 'Serviço eliminado.');
+        desenha();
+      }));
+    };
+    desenha();
+    if (!painel.open) painel.showModal();
+  }
+
   // ---------------------------------------------------------------- eventos
   document.addEventListener('click', (e) => {
     const b = e.target.closest('button');
@@ -491,6 +546,7 @@
     else if (d.apagar) apagar(d.apagar);
     else if ('abrirLigacao' in d) abrirLigacao();
     else if ('fechar' in d) painel.close();
+    else if ('gerir' in d) abrirServicos();
   });
   document.addEventListener('input', (e) => {
     if (e.target.name === 'busca') { st.busca = e.target.value; desenhar(); }
@@ -502,12 +558,16 @@
     }
   });
 
+  const lerPagina = () => { st.pagina = location.hash === '#relatorio' ? 'relatorio' : 'contar'; };
+  window.addEventListener('hashchange', () => { lerPagina(); desenhar(); window.scrollTo(0, 0); });
+
   // ---------------------------------------------------------------- arranque
+  lerPagina();
   conteudo.innerHTML = '';
   $$('[data-icone]').forEach((el) => { el.outerHTML = icone(el.dataset.icone); });
   const cache = ler('tp.cache', null);
   if (!emDemo() && cache && cache.url === ligacao().apiUrl) {
-    st.carros = cache.carros || []; st.trabalhos = cache.trabalhos || [];
+    st.carros = cache.carros || []; st.trabalhos = cache.trabalhos || []; st.regras = cache.regras || [];
     aplicar(st, st.pendentes);
   }
   desenhar();
