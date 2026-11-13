@@ -1,0 +1,13 @@
+{
+  "name": "inovacar-tempos-local",
+  "version": "1.0.0",
+  "private": true,
+  "description": "INOVACAR Tempos no computador, com um ficheiro Excel como base de dados.",
+  "main": "servidor.js",
+  "scripts": {
+    "start": "node servidor.js"
+  },
+  "dependencies": {
+    "exceljs": "4.4.0"
+  }
+}
