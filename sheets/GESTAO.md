@@ -11,7 +11,7 @@ https://huleonor.github.io/Oficina/gestao/ (não aparece no menu nem no sitemap)
 
 Conta quanto tempo cada carro está em trabalho.
 
-- **Contar**: escreve-se a **matrícula**, o **modelo** e o **nome do dono**, e carrega-se em **Começar a contar**.
+- **Contar**: escreve-se a **matrícula**, o **modelo**, o **nome do dono** e, se se quiser, o **serviço**, e carrega-se em **Começar a contar**.
   Uma matrícula que já existe preenche o modelo e o dono. Cada carro a contar tem **Pausar** / **Retomar** e
   **Terminar**.
 - **Relatório**: carros terminados, tempo total, média por carro e a lista dos tempos por dia (com pesquisa por
