@@ -16,7 +16,8 @@ Conta o tempo de cada arranjo, por modelo de carro. Mais nada: sem clientes nem 
   (maiúsculas e acentos não contam: "troca de pneus" junta-se a "Troca de pneus").
 - **A contar**: cada trabalho tem um relógio (h:mm:ss), **Pausar** / **Retomar** e **Terminar**, e mostra a média
   das vezes anteriores do mesmo modelo e arranjo (ou só do arranjo).
-- **Tempos registados**: um cartão por modelo e arranjo, com a média e os tempos de cada vez (com pesquisa e apagar).
+- **Média por serviço**: quantas vezes e o tempo médio de cada tipo de serviço.
+- **Tempos**: a lista de todos os tempos, por dia (serviço, modelo, horas e duração), com pesquisa e apagar.
 
 O tempo é o do relógio, desde Começar até Terminar, sem as pausas.
 Se a ligação falhar, os tempos ficam guardados no aparelho e seguem quando a sheet voltar a responder.
