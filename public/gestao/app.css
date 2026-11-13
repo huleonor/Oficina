@@ -356,3 +356,17 @@ main { max-width: 1320px; }
 .crono.a-arrastar { opacity: .35; }
 .fantasma { position: fixed; left: 0; top: 0; z-index: 50; pointer-events: none; margin: 0; list-style: none; box-shadow: 0 18px 40px rgba(20,22,34,.25); opacity: .96; }
 body.arrastando, body.arrastando * { cursor: grabbing !important; }
+
+/* ---------- Editar, voltar e ver mais ---------- */
+.cartao-acoes { display: flex; gap: 2px; margin: -6px -8px 0 0; }
+.crono.pronto > .btn { width: 100%; margin-top: 4px; }
+.ver-mais { display: flex; justify-content: center; align-items: center; gap: 12px; }
+.ver-mais .btn { background: #fff; }
+.editar-campos { display: grid; gap: 14px; padding: 18px 0; }
+.tempo-editar { border: 0; padding: 0; margin: 0; }
+.tempo-hm { display: flex; gap: 10px; }
+.tempo-hm label { display: flex; align-items: center; gap: 6px; }
+.tempo-hm input { width: 96px; min-height: 48px; padding: 8px 12px; border: 1.5px solid var(--linha); border-radius: 10px; font-family: var(--num); font-size: 1.2rem; font-weight: 600; }
+.tempo-hm input:focus-visible { outline: none; border-color: var(--turquesa); box-shadow: 0 0 0 3px var(--turquesa-suave); }
+.tempo-hm span { color: var(--tinta-suave); font-weight: 600; }
+.painel-novo form.bloco.novo { padding: 24px; }

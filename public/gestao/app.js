@@ -59,7 +59,7 @@
   // ---------------------------------------------------------------- estado
   // Abas da sheet: Gestão Clientes (o dono), Gestão Carros (matrícula e modelo) e Gestão Trabalhos (um por tempo).
   const TABELAS = ['clientes', 'carros', 'trabalhos'];
-  const st = { animando: 0, clientes: [], carros: [], trabalhos: [], pagina: 'contar', carregado: false, erro: null, codigoErro: null, pendentes: ler('tp.pendentes', []), enviando: false, lendo: false, busca: '' };
+  const st = { animando: 0, verProntos: 3, clientes: [], carros: [], trabalhos: [], pagina: 'contar', carregado: false, erro: null, codigoErro: null, pendentes: ler('tp.pendentes', []), enviando: false, lendo: false, busca: '' };
 
   const ligacao = () => { const l = ler('ig.ligacao', {}); return { apiUrl: (l.apiUrl || CFG.apiUrl || '').trim(), pin: l.pin || '' }; };
   const emDemo = () => !ligacao().apiUrl || ler('ig.forcarDemo', false);
@@ -262,6 +262,64 @@
     </div>`);
     setTimeout(() => card.classList.add('a-sair'), 1500);
   }
+  function reabrir(id) {
+    const t = trab(id);
+    const parado = (new Date() - data(t.pronto)) / MIN;
+    gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados: { estado: 'curso', pronto: '', pausado_em: '', pausa_min: (num(t.pausa_min) + Math.max(0, parado)).toFixed(2) } }], `${info(t).matricula || 'Carro'} voltou a Em curso.`);
+  }
+
+  // Editar um cartão: matrícula, modelo, dono, serviço e, se já terminou, o tempo.
+  function abrirEditar(id) {
+    const t = trab(id);
+    if (!t) return;
+    const i = info(t);
+    const ms = terminado(t) ? tempo(t) : 0;
+    const h = Math.floor(ms / HORA), m = Math.round((ms % HORA) / MIN);
+    painel.classList.add('painel-novo');
+    painel.innerHTML = `<form class="bloco novo" data-form="editar" novalidate autocomplete="off">
+      <header class="novo-cabeca">
+        <div><h2 class="titulo" id="painel-titulo">Editar carro</h2><p class="ajuda">${esc(i.matricula || i.modelo)}</p></div>
+        <button class="btn-icone" type="button" data-fechar aria-label="Fechar">${icone('x')}</button>
+      </header>
+      <div class="editar-campos">
+        <label class="campo"><span class="rotulo">Matrícula</span><input name="matricula" class="mat" type="text" value="${esc(i.matricula)}" maxlength="10" autocapitalize="characters" spellcheck="false"></label>
+        <label class="campo"><span class="rotulo">Modelo do carro</span><input name="modelo" type="text" list="modelos-e" value="${esc(i.modelo === 'Sem modelo' ? '' : i.modelo)}"></label>
+        <label class="campo"><span class="rotulo">Nome do dono</span><input name="dono" type="text" value="${esc(i.dono)}"></label>
+        <label class="campo"><span class="rotulo">Serviço <span class="opcional">(opcional)</span></span><input name="servico" type="text" list="servicos-e" value="${esc(i.servico)}"></label>
+        ${terminado(t) ? `<fieldset class="campo tempo-editar"><legend class="rotulo">Tempo de trabalho</legend>
+          <div class="tempo-hm"><label><input name="horas" type="number" min="0" max="999" inputmode="numeric" value="${h}"><span>h</span></label>
+          <label><input name="minutos" type="number" min="0" max="59" inputmode="numeric" value="${m}"><span>min</span></label></div></fieldset>` : ''}
+        <datalist id="modelos-e">${[...new Set(st.carros.map(nomeModelo).filter((n) => n !== 'Sem modelo'))].map((x) => `<option value="${esc(x)}">`).join('')}</datalist>
+        <datalist id="servicos-e">${servicosUsados().map((x) => `<option value="${esc(x)}">`).join('')}</datalist>
+      </div>
+      <p class="erro-form" data-erro role="alert" hidden></p>
+      <div class="novo-pe"><button class="btn primario grande" type="submit">${icone('check')}<span>Guardar</span></button></div>
+    </form>`;
+    painel.showModal();
+    const f = $('form', painel);
+    f.matricula.addEventListener('blur', () => { f.matricula.value = matFormatar(f.matricula.value); });
+    f.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const matricula = matFormatar(f.matricula.value), modelo = limpar(f.modelo.value), dono = limpar(f.dono.value);
+      const servico = limpar(f.servico.value) ? nomeServico(limpar(f.servico.value)) : '';
+      const erro = $('[data-erro]', f);
+      const falta = !matricula ? ['Escreva a matrícula.', f.matricula] : !modelo ? ['Escreva o modelo do carro.', f.modelo] : !dono ? ['Escreva o nome do dono.', f.dono] : null;
+      if (falta) { erro.textContent = falta[0]; erro.hidden = false; falta[1].focus(); return; }
+      const c = carroOps(matricula, modelo, dono);
+      const dados = {};
+      if (c.id !== t.carro_id) dados.carro_id = c.id;
+      if (servico !== limpar(t.servico)) dados.servico = servico;
+      if (terminado(t)) {
+        const novo = (Math.max(0, num(f.horas.value)) * 60 + Math.max(0, num(f.minutos.value))) * MIN;
+        if (Math.abs(novo - tempo(t)) >= MIN) dados.pronto = paraTexto(new Date(data(t.inicio).getTime() + novo + num(t.pausa_min) * MIN));
+      }
+      const ops = [...c.ops];
+      if (Object.keys(dados).length) ops.push({ op: 'atualizar', tabela: 'trabalhos', id, dados });
+      painel.close();
+      if (ops.length) gravar(ops, 'Guardado.');
+    });
+  }
+
   function apagar(id) {
     const t = trab(id);
     if (!t) return;
@@ -378,7 +436,7 @@
   const FASES = {
     espera: { nome: 'Por começar', vazio: 'Os carros adicionados ficam aqui até começar.' },
     curso: { nome: 'Em curso', vazio: 'Arraste para aqui um carro para começar a contar.' },
-    pronto: { nome: 'Terminado hoje', vazio: 'Arraste para aqui um carro em curso para terminar.' },
+    pronto: { nome: 'Terminados', vazio: 'Arraste para aqui um carro em curso para terminar.' },
   };
   function vistaAContar() {
     const hoje = new Date();
@@ -386,7 +444,7 @@
     const listas = {
       espera: st.trabalhos.filter(porComecar).sort(por('entrada')),
       curso: st.trabalhos.filter(aContar).sort(por('inicio')),
-      pronto: st.trabalhos.filter((t) => terminado(t) && mesmoDia(data(t.pronto), hoje)).sort((a, b) => String(b.pronto).localeCompare(String(a.pronto))),
+      pronto: st.trabalhos.filter(terminado).sort((a, b) => String(b.pronto).localeCompare(String(a.pronto))),
     };
     const cartao = { espera: cartaoEspera, curso: crono, pronto: cartaoPronto };
     return `<div class="cabeca-pagina">
@@ -395,8 +453,11 @@
     </div>
     <div class="quadro">${Object.keys(FASES).map((f) => `<section class="coluna col-${f}" data-coluna="${f}" aria-labelledby="col-${f}">
       <h2 class="coluna-titulo" id="col-${f}"><i class="ponto-fase" aria-hidden="true"></i>${FASES[f].nome} <span class="conta">${listas[f].length}</span></h2>
-      ${listas[f].length ? `<ol class="cartoes">${listas[f].map((t, i) => cartao[f](t, i + 1)).join('')}</ol>` : `<p class="coluna-vazia">${FASES[f].vazio}</p>`}
-      ${f === 'pronto' ? '<a class="ver-relatorio" href="#relatorio">Ver todos no relatório →</a>' : ''}
+      ${listas[f].length ? `<ol class="cartoes">${(f === 'pronto' ? listas[f].slice(0, st.verProntos) : listas[f]).map((t, i) => cartao[f](t, i + 1)).join('')}</ol>` : `<p class="coluna-vazia">${FASES[f].vazio}</p>`}
+      ${f === 'pronto' && listas.pronto.length > 3 ? `<div class="ver-mais">
+        ${listas.pronto.length > st.verProntos ? `<button class="btn" type="button" data-ver-mais>${icone('arrow-down')}<span>Ver mais (${listas.pronto.length - st.verProntos})</span></button>` : ''}
+        ${st.verProntos > 3 ? `<button class="btn texto" type="button" data-ver-menos>Ver menos</button>` : ''}
+      </div>` : ''}
     </section>`).join('')}</div>`;
   }
 
@@ -407,7 +468,10 @@
           ${i.dono ? `<p class="crono-dono">${icone('user')}${esc(i.dono)}</p>` : ''}
           ${i.servico ? `<p class="crono-dono">${icone('wrench')}${esc(i.servico)}</p>` : ''}
         </div>
-        <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar" title="Apagar">${icone('trash')}</button>
+        <div class="cartao-acoes">
+          <button class="btn-icone" type="button" data-editar="${esc(t.id)}" aria-label="Editar" title="Editar">${icone('pencil-simple')}</button>
+          <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar" title="Apagar">${icone('trash')}</button>
+        </div>
       </div>`;
 
   function cartaoEspera(t, ordem) {
@@ -421,10 +485,11 @@
 
   function cartaoPronto(t) {
     const i = info(t), p = data(t.pronto);
-    return `<li class="crono pronto" data-id="${esc(t.id)}">
+    return `<li class="crono pronto" data-id="${esc(t.id)}" data-arrastar="${esc(t.id)}">
       ${cabecaCartao(t, i)}
       <p class="tempo-final">${icone('check-circle')}<b>${duracao(tempo(t))}</b></p>
-      <p class="crono-info">Terminado às ${hora(p)}.</p>
+      <p class="crono-info">Terminado ${diaTexto(p).toLowerCase()} às ${hora(p)}.</p>
+      <button class="btn" type="button" data-reabrir="${esc(t.id)}">${icone('arrow-counter-clockwise')}<span>Voltar a Em curso</span></button>
     </li>`;
   }
 
@@ -601,6 +666,10 @@
     else if ('abrirLigacao' in d) abrirLigacao();
     else if ('fechar' in d) painel.close();
     else if ('adicionar' in d) abrirNovo();
+    else if (d.editar) abrirEditar(d.editar);
+    else if (d.reabrir) reabrir(d.reabrir);
+    else if ('verMais' in d) { st.verProntos += 10; desenhar(); }
+    else if ('verMenos' in d) { st.verProntos = 3; desenhar(); }
   });
   document.addEventListener('input', (e) => {
     if (e.target.name === 'busca') { st.busca = e.target.value; desenhar(); }
@@ -620,7 +689,8 @@
     const t = trab(id);
     const de = t && faseDe(t);
     if (!t || de === destino) return;
-    if (ORDEM_FASES.indexOf(destino) < ORDEM_FASES.indexOf(de)) { toast('Não dá para voltar a uma fase anterior.'); return; }
+    if (de === 'pronto' && destino === 'curso') { reabrir(id); return; }
+    if (ORDEM_FASES.indexOf(destino) < ORDEM_FASES.indexOf(de)) { toast(de === 'pronto' ? 'Um carro terminado só pode voltar a Em curso.' : 'Não dá para voltar a Por começar.'); return; }
     if (de === 'espera' && destino === 'pronto') { toast('Comece primeiro o carro (Em curso).'); return; }
     if (destino === 'curso') comecar(id);
     else if (destino === 'pronto') terminar(id, false);
