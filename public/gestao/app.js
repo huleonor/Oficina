@@ -269,15 +269,13 @@
     if (st.animando) return; // uma animação a decorrer; redesenha quando acabar
     const foco = document.activeElement && document.activeElement.name;
     const form = $('[data-form="novo"]');
-    const antes = form ? { matricula: form.matricula.value, modelo: form.modelo.value, dono: form.dono.value, servico: form.servico.value } : ler('tp.ultimo2', {});
-    conteudo.innerHTML = st.pagina === 'relatorio' ? vistaRelatorio() : `<div class="duas-colunas">${vistaNovo(antes)}${vistaAContar()}</div>`;
+    conteudo.innerHTML = st.pagina === 'relatorio' ? vistaRelatorio() : vistaAContar();
     $$('[data-pagina]').forEach((el) => el.setAttribute('aria-current', el.dataset.pagina === st.pagina ? 'page' : 'false'));
     if (foco && $(`[name="${foco}"]`)) {
       const el = $(`[name="${foco}"]`);
       el.focus();
       if (el.setSelectionRange && /text|search/.test(el.type)) el.setSelectionRange(el.value.length, el.value.length);
     }
-    if (st.pagina !== 'relatorio') ligarNovo();
     tique();
   }
 
@@ -302,8 +300,9 @@
         </div>`;
     return `<section class="bloco novo" aria-labelledby="t-novo">
       <header class="novo-cabeca">
-        <h1 id="t-novo" class="titulo">Novo carro</h1>
-        <p class="ajuda">Escreva a matrícula, o modelo e o dono (e o serviço, se quiser), e comece a contar.</p>
+        <div><h2 id="t-novo" class="titulo">Adicionar carro</h2>
+        <p class="ajuda">Matrícula, modelo e dono. O serviço é opcional.</p></div>
+        <button class="btn-icone" type="button" data-fechar aria-label="Fechar">${icone('x')}</button>
       </header>
       <form data-form="novo" novalidate autocomplete="off">
         ${campo(1, 'matricula', 'Matrícula', 'tag', v.matricula, 'class="mat" placeholder="AA-00-AA" maxlength="10" autocapitalize="characters" spellcheck="false" enterkeyhint="next"', '<p class="encontrado" data-encontrado hidden></p>')}
@@ -360,26 +359,40 @@
       if (ja) { erro.textContent = `O ${matricula} já está a contar.`; erro.hidden = false; return; }
       guardar('tp.ultimo2', {});
       f.reset();
+      painel.close();
       comecar(matricula, modelo, dono, servico);
     });
   }
 
+  // Os carros a contar, pela ordem em que começaram (o primeiro a entrar primeiro).
   function vistaAContar() {
-    const lista = st.trabalhos.filter(aContar).sort((a, b) => String(b.inicio).localeCompare(String(a.inicio)));
-    return `<section class="bloco a-contar" aria-labelledby="t-contar">
-      <h2 id="t-contar" class="titulo">A contar <span class="conta">${lista.length}</span></h2>
-      ${lista.length ? `<ul class="cronos">${lista.map(crono).join('')}</ul>` : `<div class="vazio-contar">${icone('timer')}<p>Nenhum carro a contar.</p><small>Quando começar um carro, o relógio aparece aqui.</small></div>`}
-    </section>`;
+    const lista = st.trabalhos.filter(aContar).sort((a, b) => String(a.inicio).localeCompare(String(b.inicio)));
+    return `<div class="cabeca-pagina">
+      <h1 class="titulo-pagina">A contar <span class="conta">${lista.length}</span></h1>
+      <button class="btn primario" type="button" data-adicionar>${icone('plus')}<span>Adicionar carro</span></button>
+    </div>
+    ${lista.length
+      ? `<ol class="cronos centro">${lista.map((t, i) => crono(t, i + 1)).join('')}</ol>`
+      : `<div class="vazio-contar grande">${icone('timer')}<p>Nenhum carro a contar.</p><small>Carregue em Adicionar carro para começar.</small>
+          <button class="btn primario grande" type="button" data-adicionar>${icone('plus')}<span>Adicionar carro</span></button></div>`}`;
   }
 
-  function crono(t) {
+  function abrirNovo() {
+    painel.classList.add('painel-novo');
+    painel.innerHTML = vistaNovo(ler('tp.ultimo2', {}));
+    painel.showModal();
+    ligarNovo();
+    painel.querySelector('[name="matricula"]').focus();
+  }
+
+  function crono(t, ordem = 0) {
     const i = info(t);
     const pausa = !!t.pausado_em;
     const ini = data(t.inicio);
     return `<li class="crono${pausa ? ' em-pausa' : ''}" data-id="${esc(t.id)}">
       <div class="crono-cima">
         <div class="crono-carro">
-          ${placa(i.matricula)}
+          <div class="crono-topo">${ordem ? `<span class="ordem" title="Ordem de entrada">${ordem}º</span>` : ''}${placa(i.matricula)}</div>
           <p class="crono-modelo">${esc(i.modelo)}</p>
           ${i.dono ? `<p class="crono-dono">${icone('user')}${esc(i.dono)}</p>` : ''}
           ${i.servico ? `<p class="crono-dono">${icone('wrench')}${esc(i.servico)}</p>` : ''}
@@ -482,6 +495,7 @@
   // ---------------------------------------------------------------- ligação (PIN)
   const painel = $('[data-painel]');
   function abrirLigacao() {
+    painel.classList.remove('painel-novo');
     const l = ler('ig.ligacao', {});
     const url = l.apiUrl || CFG.apiUrl || '';
     painel.innerHTML = `<form class="painel-forma" data-form="ligacao" novalidate>
@@ -542,6 +556,7 @@
     else if (d.apagar) apagar(d.apagar);
     else if ('abrirLigacao' in d) abrirLigacao();
     else if ('fechar' in d) painel.close();
+    else if ('adicionar' in d) abrirNovo();
   });
   document.addEventListener('input', (e) => {
     if (e.target.name === 'busca') { st.busca = e.target.value; desenhar(); }
