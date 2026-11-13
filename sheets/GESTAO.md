@@ -9,24 +9,21 @@ https://huleonor.github.io/Oficina/gestao/ (não aparece no menu nem no sitemap)
 
 ## O que faz
 
-Conta o tempo de cada arranjo, por modelo de carro. Mais nada: sem clientes nem pontos.
+Conta quanto tempo cada carro está em trabalho.
 
-- **Contar um tempo**: escreve-se o modelo (com sugestões dos que já existem), escolhe-se o arranjo e carrega-se
-  em **Começar a contar**. Um arranjo escrito em **Outro** fica guardado e aparece como botão da próxima vez
-  (maiúsculas e acentos não contam: "troca de pneus" junta-se a "Troca de pneus").
-- **A contar**: cada trabalho tem um relógio (h:mm:ss), **Pausar** / **Retomar** e **Terminar**, e mostra a média
-  das vezes anteriores do mesmo modelo e arranjo (ou só do arranjo).
-- Duas páginas no topo: **Contar** e **Relatório**. O serviço escreve-se à mão (com sugestões dos que já existem; "travoes" junta-se a "Travões"); a lista dos nomes fica na aba Gestão Regras (linha `servicos`), igual em todos os aparelhos.
-- **Média por serviço**: quantas vezes e o tempo médio de cada tipo de serviço.
-- **Tempos**: a lista de todos os tempos, por dia (serviço, modelo, horas e duração), com pesquisa e apagar.
+- **Contar**: escreve-se a **matrícula**, o **modelo** e o **nome do dono**, e carrega-se em **Começar a contar**.
+  Uma matrícula que já existe preenche o modelo e o dono. Cada carro a contar tem **Pausar** / **Retomar** e
+  **Terminar**.
+- **Relatório**: carros terminados, tempo total, média por carro e a lista dos tempos por dia (com pesquisa por
+  matrícula, modelo ou dono, e apagar).
 
 O tempo é o do relógio, desde Começar até Terminar, sem as pausas.
 Se a ligação falhar, os tempos ficam guardados no aparelho e seguem quando a sheet voltar a responder.
 
 ## A sheet
 
-A página usa duas abas: **Gestão Carros** (um por modelo, na coluna `modelo`) e **Gestão Trabalhos** (um por tempo:
-`servico` é o arranjo, `inicio` e `pronto` as horas, `pausa_min` os minutos em pausa). As outras abas ficam como estão.
+A página usa três abas: **Gestão Clientes** (o dono, na coluna `nome`), **Gestão Carros** (`matricula`, `modelo`,
+`cliente_id`) e **Gestão Trabalhos** (um por tempo: `inicio`, `pronto`, `pausa_min`). As outras abas ficam como estão.
 
 | Aba | Colunas |
 | --- | --- |

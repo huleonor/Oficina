@@ -1,4 +1,4 @@
-/* INOVACAR Gestão: contar o tempo de cada arranjo, por modelo de carro. A Google Sheet guarda os registos. */
+/* INOVACAR Gestão: contar o tempo de cada carro (matrícula, modelo e dono). A Google Sheet guarda os registos. */
 (() => {
   'use strict';
 
@@ -13,8 +13,16 @@
   const novoId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const sem = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, ' ');
   const num = (v) => { const n = Number(String(v ?? '').replace(',', '.')); return isNaN(n) ? 0 : n; };
+  const limpar = (s) => String(s || '').trim().replace(/\s+/g, ' ');
   const guardar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sem espaço */ } };
   const ler = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+
+  // Matrículas: guardadas como AA-00-AA; comparadas sem hífenes.
+  const matChave = (m) => String(m || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const matFormatar = (m) => { const k = matChave(m); return k.length === 6 ? `${k.slice(0, 2)}-${k.slice(2, 4)}-${k.slice(4)}` : k; };
+  const placa = (m) => (m
+    ? `<span class="placa" aria-label="Matrícula ${esc(m)}"><span class="placa-ue" aria-hidden="true">P</span><span class="placa-txt">${esc(m)}</span></span>`
+    : '<span class="placa vazia"><span class="placa-txt">Sem matrícula</span></span>');
 
   // ---------------------------------------------------------------- datas e tempos
   // Na sheet as datas ficam legíveis, na hora local: "2026-11-12 09:12:30".
@@ -49,16 +57,18 @@
   const relogio = (ms) => { const s = Math.floor(Math.max(0, ms) / 1000); return `${Math.floor(s / 3600)}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}`; };
 
   // ---------------------------------------------------------------- estado
-  // Usa as abas Gestão Carros (um por modelo) e Gestão Trabalhos (um por tempo) da sheet.
-  const TABELAS = ['carros', 'trabalhos', 'regras'];
-  const st = { carros: [], trabalhos: [], regras: [], pagina: 'contar', carregado: false, erro: null, codigoErro: null, pendentes: ler('tp.pendentes', []), enviando: false, lendo: false, busca: '' };
+  // Abas da sheet: Gestão Clientes (o dono), Gestão Carros (matrícula e modelo) e Gestão Trabalhos (um por tempo).
+  const TABELAS = ['clientes', 'carros', 'trabalhos'];
+  const st = { clientes: [], carros: [], trabalhos: [], pagina: 'contar', carregado: false, erro: null, codigoErro: null, pendentes: ler('tp.pendentes', []), enviando: false, lendo: false, busca: '' };
 
   const ligacao = () => { const l = ler('ig.ligacao', {}); return { apiUrl: (l.apiUrl || CFG.apiUrl || '').trim(), pin: l.pin || '' }; };
   const emDemo = () => !ligacao().apiUrl || ler('ig.forcarDemo', false);
 
   const carroDe = (t) => st.carros.find((c) => c.id === t.carro_id);
+  const donoDe = (c) => (c ? st.clientes.find((x) => x.id === c.cliente_id) : null);
   const nomeModelo = (c) => (c ? [c.marca, c.modelo].filter(Boolean).join(' ') : '') || 'Sem modelo';
-  const modeloDe = (t) => nomeModelo(carroDe(t));
+  const carroPorMat = (m) => { const k = matChave(m); return k ? st.carros.find((c) => matChave(c.matricula) === k) : null; };
+  const info = (t) => { const c = carroDe(t), d = donoDe(c); return { matricula: c ? c.matricula : '', modelo: nomeModelo(c), dono: d ? d.nome : '' }; };
   const aContar = (t) => t.estado === 'curso' && t.inicio && !t.pronto;
   const terminado = (t) => !!(t.inicio && t.pronto);
 
@@ -68,16 +78,6 @@
     const fim = data(t.pronto) || agora;
     const pausaAgora = t.pausado_em && !t.pronto ? fim - data(t.pausado_em) : 0;
     return Math.max(0, fim - i - num(t.pausa_min) * MIN - pausaAgora);
-  }
-
-  // Média dos tempos terminados com o mesmo modelo e arranjo (e só do arranjo, se não houver).
-  function media(modelo, arranjo) {
-    const feitos = st.trabalhos.filter(terminado);
-    const de = (l) => (l.length ? { ms: l.reduce((s, t) => s + tempo(t), 0) / l.length, n: l.length } : null);
-    return {
-      igual: de(feitos.filter((t) => sem(modeloDe(t)) === sem(modelo) && sem(t.servico) === sem(arranjo))),
-      arranjo: de(feitos.filter((t) => sem(t.servico) === sem(arranjo))),
-    };
   }
 
   // ---------------------------------------------------------------- sheet (Apps Script) ou demonstração
@@ -110,31 +110,33 @@
   }
 
   const demo = {
-    dados: () => ler('tp.demo', null) || semente(),
+    dados: () => ler('tp.demo3', null) || semente(),
     async chamar(corpo) {
       await new Promise((r) => setTimeout(r, 150));
       const d = this.dados();
-      d.regras = d.regras || [];
       if (corpo.action === 'gravar') aplicar(d, corpo.operacoes || []);
-      guardar('tp.demo', d);
+      guardar('tp.demo3', d);
       return { ok: true, ...JSON.parse(JSON.stringify(d)) };
     },
   };
   function semente() {
-    const S = CFG.servicos || ['Travões'];
-    const modelos = ['Peugeot 208', 'Renault Clio', 'Volkswagen Golf', 'Toyota Yaris'];
-    const carros = modelos.map((m, k) => ({ id: 'm' + k, cliente_id: '', matricula: '', marca: '', modelo: m, criado_em: '' }));
+    const donos = ['Ana Sousa', 'Bruno Martins', 'Jorge Abrantes', 'Marta Pinho'];
+    const clientes = donos.map((nome, k) => ({ id: 'c' + k, nome, telemovel: '', criado_em: '' }));
+    const carros = [['45-QX-12', 'Peugeot 208'], ['AB-12-CD', 'Renault Clio'], ['27-LM-88', 'Volkswagen Golf'], ['BE-04-RT', 'Toyota Yaris']]
+      .map(([matricula, modelo], k) => ({ id: 'm' + k, cliente_id: 'c' + k, matricula, marca: '', modelo, criado_em: '' }));
     const trabalhos = [];
     const agora = new Date();
-    for (let k = 0; k < 14; k++) {
+    for (let k = 0; k < 10; k++) {
       const ini = new Date(agora); ini.setDate(ini.getDate() - 1 - Math.floor(k / 3)); ini.setHours(9 + (k % 3) * 3, 10 * (k % 5), 0, 0);
       const fim = new Date(ini.getTime() + (35 + ((k * 37) % 150)) * MIN);
-      trabalhos.push({ id: 't' + k, carro_id: 'm' + (k % 4), servico: S[k % 4], estado: 'pronto', entrada: paraTexto(ini), inicio: paraTexto(ini), pronto: paraTexto(fim), pausado_em: '', pausa_min: '', criado_em: paraTexto(ini) });
+      trabalhos.push({ id: 't' + k, carro_id: 'm' + (k % 4), servico: '', estado: 'pronto', entrada: paraTexto(ini), inicio: paraTexto(ini), pronto: paraTexto(fim), pausado_em: '', pausa_min: '', criado_em: paraTexto(ini) });
     }
     const ini = new Date(agora.getTime() - 47 * MIN);
-    trabalhos.push({ id: 'tx', carro_id: 'm0', servico: S[0], estado: 'curso', entrada: paraTexto(ini), inicio: paraTexto(ini), pronto: '', pausado_em: '', pausa_min: '', criado_em: paraTexto(ini) });
-    return { carros, trabalhos };
+    trabalhos.push({ id: 'tx', carro_id: 'm0', servico: '', estado: 'curso', entrada: paraTexto(ini), inicio: paraTexto(ini), pronto: '', pausado_em: '', pausa_min: '', criado_em: paraTexto(ini) });
+    return { clientes, carros, trabalhos };
   }
+
+  const cacheAtual = () => ({ url: ligacao().apiUrl, ...Object.fromEntries(TABELAS.map((t) => [t, st[t]])) });
 
   async function carregar() {
     if (st.lendo) return;
@@ -143,10 +145,10 @@
     try {
       if (st.pendentes.length) await enviar();
       const j = await chamar({ action: 'listar' });
-      const base = { carros: j.carros || [], trabalhos: j.trabalhos || [], regras: j.regras || [] };
+      const base = Object.fromEntries(TABELAS.map((t) => [t, j[t] || []]));
       aplicar(base, st.pendentes);
       Object.assign(st, base, { carregado: true, erro: null, codigoErro: null });
-      if (!emDemo()) guardar('tp.cache', { url: ligacao().apiUrl, ...base });
+      if (!emDemo()) guardar('tp.cache', cacheAtual());
     } catch (err) {
       st.erro = err.message || String(err);
       st.codigoErro = err.codigo || 'rede';
@@ -160,7 +162,7 @@
     aplicar(st, ops);
     st.pendentes.push(...ops);
     guardar('tp.pendentes', st.pendentes);
-    if (!emDemo()) guardar('tp.cache', { url: ligacao().apiUrl, carros: st.carros, trabalhos: st.trabalhos, regras: st.regras });
+    if (!emDemo()) guardar('tp.cache', cacheAtual());
     desenhar();
     if (msg) toast(msg);
     enviar();
@@ -191,17 +193,33 @@
   }
 
   // ---------------------------------------------------------------- ações
-  function modeloOps(nome) {
-    const existente = st.carros.find((c) => sem(nomeModelo(c)) === sem(nome));
-    if (existente) return { id: existente.id, ops: [] };
-    const id = novoId();
-    return { id, ops: [{ op: 'criar', tabela: 'carros', id, dados: { cliente_id: '', matricula: '', marca: '', modelo: nome, criado_em: paraTexto(new Date()) } }] };
+  // O carro (pela matrícula) e o dono (pelo nome): usa os que já existem, cria os que faltam.
+  function carroOps(matricula, modelo, dono) {
+    const ops = [];
+    const agora = paraTexto(new Date());
+    let clienteId = '';
+    if (dono) {
+      const c = st.clientes.find((x) => sem(x.nome) === sem(dono));
+      if (c) clienteId = c.id;
+      else { clienteId = novoId(); ops.push({ op: 'criar', tabela: 'clientes', id: clienteId, dados: { nome: dono, criado_em: agora } }); }
+    }
+    const carro = carroPorMat(matricula);
+    if (!carro) {
+      const id = novoId();
+      ops.push({ op: 'criar', tabela: 'carros', id, dados: { cliente_id: clienteId, matricula, marca: '', modelo, criado_em: agora } });
+      return { id, ops };
+    }
+    const dados = {};
+    if (modelo && sem(modelo) !== sem(nomeModelo(carro))) { dados.marca = ''; dados.modelo = modelo; }
+    if (clienteId && clienteId !== carro.cliente_id) dados.cliente_id = clienteId;
+    if (Object.keys(dados).length) ops.push({ op: 'atualizar', tabela: 'carros', id: carro.id, dados });
+    return { id: carro.id, ops };
   }
 
-  function comecar(modelo, arranjo) {
-    const m = modeloOps(modelo);
+  function comecar(matricula, modelo, dono) {
+    const c = carroOps(matricula, modelo, dono);
     const agora = paraTexto(new Date());
-    gravar([...m.ops, { op: 'criar', tabela: 'trabalhos', id: novoId(), dados: { carro_id: m.id, servico: arranjo, estado: 'curso', entrada: agora, inicio: agora, pronto: '', pausado_em: '', pausa_min: '', criado_em: agora } }], 'A contar.');
+    gravar([...c.ops, { op: 'criar', tabela: 'trabalhos', id: novoId(), dados: { carro_id: c.id, servico: '', estado: 'curso', entrada: agora, inicio: agora, pronto: '', pausado_em: '', pausa_min: '', criado_em: agora } }], `${matricula}: a contar.`);
   }
   const trab = (id) => st.trabalhos.find((t) => t.id === id);
   function pausar(id) { gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados: { pausado_em: paraTexto(new Date()) } }], 'Em pausa.'); }
@@ -215,95 +233,60 @@
     const agora = new Date();
     const dados = { estado: 'pronto', pronto: paraTexto(agora) };
     if (t.pausado_em) { dados.pausa_min = (num(t.pausa_min) + (agora - data(t.pausado_em)) / MIN).toFixed(2); dados.pausado_em = ''; }
-    gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados }], `Registado: ${duracao(tempo({ ...t, ...dados }))}.`);
+    gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados }], `Terminado: ${duracao(tempo({ ...t, ...dados }))}.`);
   }
   function apagar(id) {
     const t = trab(id);
-    if (!t || !confirm(`Apagar o tempo de ${modeloDe(t)} (${t.servico || 'sem serviço'})?`)) return;
+    if (!t) return;
+    const i = info(t);
+    if (!confirm(`Apagar o tempo de ${i.matricula || i.modelo}?`)) return;
     gravar([{ op: 'apagar', tabela: 'trabalhos', id }], 'Apagado.');
   }
 
   // ---------------------------------------------------------------- desenho
   const conteudo = $('[data-conteudo]');
-  // A lista de serviços fica na sheet (aba Gestão Regras, linha "servicos"), igual em todos os aparelhos.
-  // Enquanto não houver, usa os serviços do site e os que já se escreveram em "Outro".
-  const ID_SERVICOS = 'servicos';
-  function arranjos() {
-    const r = st.regras.find((x) => x.id === ID_SERVICOS);
-    if (r) { try { const l = JSON.parse(r.valor); if (Array.isArray(l)) return l.filter(Boolean); } catch { /* valor estragado */ } }
-    const base = (CFG.servicos || []).filter((x) => sem(x) !== 'outro');
-    const extra = [];
-    [...ler('tp.arranjos', []), ...st.trabalhos.map((t) => t.servico)].forEach((x) => {
-      x = String(x || '').trim();
-      if (x && ![...base, ...extra].some((y) => sem(y) === sem(x))) extra.push(x);
-    });
-    return [...base, ...extra];
-  }
-  function guardarServicos(lista, msg) {
-    const existe = st.regras.some((x) => x.id === ID_SERVICOS);
-    gravar([{ op: existe ? 'atualizar' : 'criar', tabela: 'regras', id: ID_SERVICOS, dados: { valor: JSON.stringify(lista), nota: 'Lista de serviços da página Tempos' } }], msg);
-  }
-  // O nome como já existe (para "troca de pneus" e "Troca de pneus" contarem juntos).
-  const nomeArranjo = (s) => arranjos().find((a) => sem(a) === sem(s)) || s.charAt(0).toUpperCase() + s.slice(1);
 
   function desenhar() {
     desenharSync();
     desenharAviso();
     const foco = document.activeElement && document.activeElement.name;
     const form = $('[data-form="novo"]');
-    const antes = form ? { modelo: form.modelo.value, servico: form.servico.value } : ler('tp.ultimo', {});
-    conteudo.innerHTML = st.pagina === 'relatorio' ? vistaRegistos() : `<div class="duas-colunas">${vistaNovo(antes)}${vistaAContar()}</div>`;
+    const antes = form ? { matricula: form.matricula.value, modelo: form.modelo.value, dono: form.dono.value } : ler('tp.ultimo2', {});
+    conteudo.innerHTML = st.pagina === 'relatorio' ? vistaRelatorio() : `<div class="duas-colunas">${vistaNovo(antes)}${vistaAContar()}</div>`;
     $$('[data-pagina]').forEach((el) => el.setAttribute('aria-current', el.dataset.pagina === st.pagina ? 'page' : 'false'));
     if (foco && $(`[name="${foco}"]`)) {
       const el = $(`[name="${foco}"]`);
-      if (el.type !== 'radio') { el.focus(); if (el.setSelectionRange && el.type === 'text') el.setSelectionRange(el.value.length, el.value.length); }
+      el.focus();
+      if (el.setSelectionRange && /text|search/.test(el.type)) el.setSelectionRange(el.value.length, el.value.length);
     }
     if (st.pagina !== 'relatorio') ligarNovo();
     tique();
   }
 
-  // Modelos pela ordem em que foram usados (o mais recente primeiro).
-  function modelosRecentes() {
-    const vistos = new Set(), lista = [];
-    st.trabalhos.slice().sort((x, y) => String(y.inicio).localeCompare(String(x.inicio))).forEach((t) => {
-      const m = modeloDe(t);
-      if (m !== 'Sem modelo' && !vistos.has(sem(m))) { vistos.add(sem(m)); lista.push(m); }
-    });
-    return lista;
-  }
-
   function vistaNovo(v = {}) {
-    const lista = arranjos();
-    const todos = [...new Set(st.carros.map(nomeModelo).filter((n) => n !== 'Sem modelo'))].sort((x, y) => x.localeCompare(y, 'pt'));
+    const modelos = [...new Set(st.carros.map(nomeModelo).filter((n) => n !== 'Sem modelo'))].sort((x, y) => x.localeCompare(y, 'pt'));
+    const donos = [...new Set(st.clientes.map((c) => limpar(c.nome)).filter(Boolean))].sort((x, y) => x.localeCompare(y, 'pt'));
+    const campo = (n, nome, rotulo, ic, valor, extra, depois = '') => `<div class="passo">
+          <span class="passo-n" aria-hidden="true">${n}</span>
+          <div class="passo-corpo">
+            <label class="rotulo" for="f-${nome}">${rotulo}</label>
+            <div class="campo-icone">${icone(ic)}<input id="f-${nome}" name="${nome}" type="text" value="${esc(valor || '')}" ${extra}></div>
+            ${depois}
+          </div>
+        </div>`;
     return `<section class="bloco novo" aria-labelledby="t-novo">
       <header class="novo-cabeca">
-        <h1 id="t-novo" class="titulo">Novo trabalho</h1>
-        <p class="ajuda">Escolha o carro e o serviço, e comece a contar.</p>
+        <h1 id="t-novo" class="titulo">Novo carro</h1>
+        <p class="ajuda">Escreva a matrícula, o modelo e o dono, e comece a contar.</p>
       </header>
       <form data-form="novo" novalidate autocomplete="off">
-        <div class="passo">
-          <span class="passo-n" aria-hidden="true">1</span>
-          <div class="passo-corpo">
-            <label class="rotulo" for="f-modelo">Modelo do carro</label>
-            <div class="campo-icone">${icone('car-profile')}
-              <input id="f-modelo" name="modelo" type="text" list="modelos" placeholder="Escreva o modelo, ex.: Peugeot 208" value="${esc(v.modelo || '')}" enterkeyhint="next" autocapitalize="words">
-            </div>
-            <datalist id="modelos">${todos.map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
-          </div>
-        </div>
-        <div class="passo">
-          <span class="passo-n" aria-hidden="true">2</span>
-          <div class="passo-corpo">
-            <label class="rotulo" for="f-servico">Serviço</label>
-            <div class="campo-icone">${icone('wrench')}
-              <input id="f-servico" name="servico" type="text" list="servicos-lista" placeholder="Escreva o serviço, ex.: Travões" value="${esc(v.servico || '')}" enterkeyhint="go" autocapitalize="sentences">
-            </div>
-            <datalist id="servicos-lista">${lista.map((x) => `<option value="${esc(x)}">`).join('')}</datalist>
-          </div>
-        </div>
+        ${campo(1, 'matricula', 'Matrícula', 'tag', v.matricula, 'class="mat" placeholder="AA-00-AA" maxlength="10" autocapitalize="characters" spellcheck="false" enterkeyhint="next"', '<p class="encontrado" data-encontrado hidden></p>')}
+        ${campo(2, 'modelo', 'Modelo do carro', 'car-profile', v.modelo, 'list="modelos" placeholder="Ex.: Peugeot 208" autocapitalize="words" enterkeyhint="next"')}
+        ${campo(3, 'dono', 'Nome do dono', 'user', v.dono, 'list="donos" placeholder="Ex.: Ana Sousa" autocapitalize="words" enterkeyhint="go"')}
+        <datalist id="modelos">${modelos.map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
+        <datalist id="donos">${donos.map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
         <p class="erro-form" data-erro role="alert" hidden></p>
         <div class="novo-pe">
-          <p class="resumo-novo" data-resumo></p>
           <button class="btn primario grande" type="submit">${icone('play')}<span>Começar a contar</span></button>
         </div>
       </form>
@@ -312,40 +295,43 @@
 
   function ligarNovo() {
     const f = $('[data-form="novo"]');
-    const resumo = $('[data-resumo]', f);
-    const atualizarResumo = () => {
-      const serv = f.servico.value.trim();
-      const mod = f.modelo.value.trim();
-      resumo.innerHTML = mod && serv ? `${icone('check-circle')}<span><b>${esc(mod)}</b> · ${esc(serv)}</span>`
-        : `<span>${!mod && !serv ? 'Falta o modelo e o serviço.' : !mod ? 'Falta o modelo do carro.' : 'Falta o serviço.'}</span>`;
-      resumo.classList.toggle('pronto', !!(mod && serv));
-      $$('[data-modelo]', f).forEach((b) => b.classList.toggle('ativo', sem(b.dataset.modelo) === sem(mod)));
+    const encontrado = $('[data-encontrado]', f);
+    // Uma matrícula conhecida preenche o modelo e o dono.
+    const verMatricula = (preencher) => {
+      const c = carroPorMat(f.matricula.value);
+      if (!c || matChave(f.matricula.value).length < 6) { encontrado.hidden = true; return; }
+      const d = donoDe(c);
+      if (preencher) {
+        if (!f.modelo.value.trim() && nomeModelo(c) !== 'Sem modelo') f.modelo.value = nomeModelo(c);
+        if (!f.dono.value.trim() && d) f.dono.value = d.nome;
+      }
+      encontrado.innerHTML = `${icone('check-circle')}<span>Carro já conhecido: modelo e dono preenchidos.</span>`;
+      encontrado.hidden = false;
     };
-    atualizarResumo();
-    f.addEventListener('input', atualizarResumo);
-    f.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-modelo]');
-      if (!b) return;
-      f.modelo.value = b.dataset.modelo;
-      atualizarResumo();
-      f.servico.focus();
+    verMatricula(false);
+    f.matricula.addEventListener('input', () => {
+      const k = matChave(f.matricula.value);
+      if (k.length === 6) f.matricula.value = matFormatar(k);
+      verMatricula(true);
     });
-    // Enter no modelo passa para o serviço.
-    f.modelo.addEventListener('keydown', (e) => { if (e.key === 'Enter' && f.modelo.value.trim()) { e.preventDefault(); f.servico.focus(); } });
+    f.matricula.addEventListener('blur', () => { f.matricula.value = matFormatar(f.matricula.value); });
+    // Enter passa ao campo seguinte; no último, começa.
+    [['matricula', 'modelo'], ['modelo', 'dono']].forEach(([de, para]) => f[de].addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && f[de].value.trim()) { e.preventDefault(); f[para].focus(); }
+    }));
     f.addEventListener('submit', (e) => {
       e.preventDefault();
-      const modelo = f.modelo.value.trim().replace(/\s+/g, ' ');
-      const servico = f.servico.value.trim().replace(/\s+/g, ' ');
+      const matricula = matFormatar(f.matricula.value);
+      const modelo = limpar(f.modelo.value);
+      const dono = limpar(f.dono.value);
       const erro = $('[data-erro]', f);
-      const falta = !modelo ? 'Escreva o modelo do carro.' : !servico ? 'Escreva o serviço.' : '';
-      if (falta) { erro.textContent = falta; erro.hidden = false; (!modelo ? f.modelo : f.servico).focus(); return; }
-      // O mesmo nome de sempre ("travoes" conta como "Travões"), para as médias juntarem.
-      const nome = nomeArranjo(servico);
-      const lista = arranjos();
-      if (!lista.some((g) => sem(g) === sem(nome))) guardarServicos([...lista, nome]);
-      guardar('tp.ultimo', {});
+      const falta = !matricula ? ['Escreva a matrícula.', f.matricula] : !modelo ? ['Escreva o modelo do carro.', f.modelo] : !dono ? ['Escreva o nome do dono.', f.dono] : null;
+      if (falta) { erro.textContent = falta[0]; erro.hidden = false; falta[1].focus(); return; }
+      const ja = st.trabalhos.find((t) => aContar(t) && matChave(info(t).matricula) === matChave(matricula));
+      if (ja) { erro.textContent = `O ${matricula} já está a contar.`; erro.hidden = false; return; }
+      guardar('tp.ultimo2', {});
       f.reset();
-      comecar(modelo, nome);
+      comecar(matricula, modelo, dono);
     });
   }
 
@@ -353,27 +339,25 @@
     const lista = st.trabalhos.filter(aContar).sort((a, b) => String(b.inicio).localeCompare(String(a.inicio)));
     return `<section class="bloco a-contar" aria-labelledby="t-contar">
       <h2 id="t-contar" class="titulo">A contar <span class="conta">${lista.length}</span></h2>
-      ${lista.length ? `<ul class="cronos">${lista.map(crono).join('')}</ul>` : `<div class="vazio-contar">${icone('timer')}<p>Nenhum carro a contar.</p><small>Quando começar um trabalho, o relógio aparece aqui.</small></div>`}
+      ${lista.length ? `<ul class="cronos">${lista.map(crono).join('')}</ul>` : `<div class="vazio-contar">${icone('timer')}<p>Nenhum carro a contar.</p><small>Quando começar um carro, o relógio aparece aqui.</small></div>`}
     </section>`;
   }
 
   function crono(t) {
-    const modelo = modeloDe(t);
-    const ref = media(modelo, t.servico).arranjo;
-    const refTxt = ref ? `Média deste serviço: <b>${duracao(ref.ms)}</b> (${ref.n} ${ref.n === 1 ? 'vez' : 'vezes'})` : 'Primeira vez deste serviço.';
+    const i = info(t);
     const pausa = !!t.pausado_em;
     const ini = data(t.inicio);
     return `<li class="crono${pausa ? ' em-pausa' : ''}" data-id="${esc(t.id)}">
       <div class="crono-cima">
-        <div>
-          <p class="crono-modelo">${esc(modelo)}</p>
-          <p class="crono-arranjo">${esc(t.servico || 'Sem serviço')}</p>
+        <div class="crono-carro">
+          ${placa(i.matricula)}
+          <p class="crono-modelo">${esc(i.modelo)}</p>
+          ${i.dono ? `<p class="crono-dono">${icone('user')}${esc(i.dono)}</p>` : ''}
         </div>
         <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar este tempo" title="Apagar">${icone('trash')}</button>
       </div>
       <p class="relogio" data-relogio="${esc(t.id)}" aria-live="off">${relogio(tempo(t))}</p>
-      <p class="crono-info">${pausa ? '<span class="selo-pausa">Em pausa</span> ' : ''}Começou ${diaTexto(ini).toLowerCase()} às ${hora(ini)}. ${refTxt}</p>
-      ${ref ? `<div class="barra" aria-hidden="true"><span data-barra="${esc(t.id)}" data-ref="${ref.ms}"></span></div>` : ''}
+      <p class="crono-info">${pausa ? '<span class="selo-pausa">Em pausa</span> ' : ''}Começou ${diaTexto(ini).toLowerCase()} às ${hora(ini)}.</p>
       <div class="crono-acoes">
         ${pausa
           ? `<button class="btn" type="button" data-retomar="${esc(t.id)}">${icone('play')}<span>Retomar</span></button>`
@@ -383,73 +367,46 @@
     </li>`;
   }
 
-  function vistaRegistos() {
-    const q = sem(st.busca);
+  function vistaRelatorio() {
+    const q = sem(st.busca), qm = matChave(st.busca);
     const todos = st.trabalhos.filter(terminado).sort((a, b) => String(b.pronto).localeCompare(String(a.pronto)));
-    const lista = q ? todos.filter((t) => sem(`${modeloDe(t)} ${t.servico}`).includes(q)) : todos;
-    // Média por tipo de serviço.
-    const porServico = new Map();
-    lista.forEach((t) => {
-      const k = sem(t.servico);
-      const g = porServico.get(k) || { servico: t.servico || 'Sem serviço', soma: 0, n: 0 };
-      g.soma += tempo(t); g.n++;
-      porServico.set(k, g);
-    });
-    const medias = [...porServico.values()].sort((a, b) => b.n - a.n || a.servico.localeCompare(b.servico, 'pt'));
-    // A lista dos tempos, por dia.
+    const lista = q ? todos.filter((t) => { const i = info(t); return sem(`${i.modelo} ${i.dono}`).includes(q) || (qm && matChave(i.matricula).includes(qm)); }) : todos;
+    const total = lista.reduce((x, t) => x + tempo(t), 0);
     const dias = [];
     lista.slice(0, 300).forEach((t) => {
       const d = diaTexto(data(t.pronto));
       if (!dias.length || dias[dias.length - 1].dia !== d) dias.push({ dia: d, itens: [] });
       dias[dias.length - 1].itens.push(t);
     });
-    const vazio = !todos.length
-      ? '<p class="vazio">Ainda não há tempos registados. Escolha o modelo e o serviço e carregue em Começar a contar.</p>'
-      : !lista.length ? '<p class="vazio">Nada encontrado.</p>' : '';
-    const total = lista.reduce((x, t) => x + tempo(t), 0);
-    const maior = Math.max(1, ...medias.map((g) => g.soma / g.n));
     return `<div class="cabeca-pagina">
       <h1 class="titulo-pagina">Relatório</h1>
-      ${todos.length ? `<label class="busca">${icone('magnifying-glass')}<input name="busca" type="search" placeholder="Filtrar por modelo ou serviço" value="${esc(st.busca)}" aria-label="Filtrar"></label>` : ''}
+      ${todos.length ? `<label class="busca">${icone('magnifying-glass')}<input name="busca" type="search" placeholder="Procurar matrícula, modelo ou dono" value="${esc(st.busca)}" aria-label="Procurar"></label>` : ''}
     </div>
     ${lista.length ? `<div class="resumo">
-      <div class="numero"><small>Tempos registados</small><b>${lista.length}</b></div>
+      <div class="numero"><small>Carros terminados</small><b>${lista.length}</b></div>
       <div class="numero"><small>Tempo total</small><b>${duracao(total)}</b></div>
-      <div class="numero"><small>Média geral</small><b>${duracao(total / lista.length)}</b></div>
+      <div class="numero"><small>Média por carro</small><b>${duracao(total / lista.length)}</b></div>
     </div>` : ''}
-    <section class="bloco" aria-labelledby="t-media">
-      <h2 id="t-media" class="titulo">Média por serviço</h2>
-      ${vazio}
-      ${medias.length ? `<table class="tabela">
-        <thead><tr><th scope="col">Serviço</th><th scope="col" class="n">Vezes</th><th scope="col" class="n">Média</th></tr></thead>
-        <tbody>${medias.map((g) => `<tr><td>${esc(g.servico)}<div class="barra-media" aria-hidden="true"><span style="width:${Math.round((g.soma / g.n) / maior * 100)}%"></span></div></td><td class="n">${g.n}</td><td class="n forte">${duracao(g.soma / g.n)}</td></tr>`).join('')}</tbody>
-      </table>` : ''}
-    </section>
-    ${dias.length ? `<section class="bloco" aria-labelledby="t-tempos">
+    <section class="bloco" aria-labelledby="t-tempos">
       <h2 id="t-tempos" class="titulo">Tempos <span class="conta">${lista.length}</span></h2>
+      ${!todos.length ? '<p class="vazio">Ainda não há carros terminados.</p>' : !lista.length ? '<p class="vazio">Nada encontrado.</p>' : ''}
       ${dias.map((d) => `<h3 class="dia">${esc(d.dia)}</h3>
         <ul class="registos">${d.itens.map((t) => {
-          const i = data(t.inicio), p = data(t.pronto);
+          const i = info(t), a = data(t.inicio), p = data(t.pronto);
           return `<li class="registo">
-            <div class="registo-texto"><b>${esc(t.servico || 'Sem serviço')}</b> <span>${esc(modeloDe(t))}</span><small>${hora(i)} – ${hora(p)}${num(t.pausa_min) >= 1 ? ` · ${duracao(num(t.pausa_min) * MIN)} em pausa` : ''}</small></div>
+            ${placa(i.matricula)}
+            <div class="registo-texto"><b>${esc(i.modelo)}</b>${i.dono ? ` <span>· ${esc(i.dono)}</span>` : ''}<small>${hora(a)} – ${hora(p)}${num(t.pausa_min) >= 1 ? ` · ${duracao(num(t.pausa_min) * MIN)} em pausa` : ''}</small></div>
             <span class="registo-tempo">${duracao(tempo(t))}</span>
             <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar" title="Apagar">${icone('trash')}</button>
           </li>`;
         }).join('')}</ul>`).join('')}
-    </section>` : ''}`;
+    </section>`;
   }
 
-  // O relógio e a barra avançam sem redesenhar a página.
+  // O relógio avança sem redesenhar a página.
   function tique() {
     const agora = new Date();
     $$('[data-relogio]').forEach((el) => { const t = trab(el.dataset.relogio); if (t) el.textContent = relogio(tempo(t, agora)); });
-    $$('[data-barra]').forEach((el) => {
-      const t = trab(el.dataset.barra);
-      if (!t) return;
-      const r = tempo(t, agora) / num(el.dataset.ref);
-      el.style.width = `${Math.min(100, r * 100)}%`;
-      el.classList.toggle('passou', r > 1);
-    });
   }
   setInterval(tique, 1000);
 
@@ -491,7 +448,7 @@
       <header class="painel-cabeca"><h2 id="painel-titulo">Ligação à Google Sheet</h2>
         <button class="btn-icone" type="button" data-fechar aria-label="Fechar">${icone('x')}</button></header>
       <div class="painel-corpo">
-        <p>Os tempos ficam na aba <b>Gestão Trabalhos</b> da sheet INOVACAR (e os modelos em <b>Gestão Carros</b>). Cada aparelho escreve o PIN uma vez.</p>
+        <p>Os tempos ficam na sheet INOVACAR: abas <b>Gestão Trabalhos</b>, <b>Gestão Carros</b> e <b>Gestão Clientes</b>. Cada aparelho escreve o PIN uma vez.</p>
         <label class="campo"><span class="rotulo">PIN da gestão</span><input name="pin" type="password" value="${esc(l.pin || '')}" autocomplete="current-password"></label>
         <details><summary>URL do script</summary>
           <label class="campo"><span class="rotulo">URL da aplicação web</span><input name="apiUrl" type="url" value="${esc(url)}" placeholder="https://script.google.com/macros/s/.../exec"></label>
@@ -534,46 +491,6 @@
     });
   }
 
-  function abrirServicos() {
-    const desenha = () => {
-      const lista = arranjos();
-      painel.innerHTML = `<div class="painel-forma">
-        <header class="painel-cabeca"><h2 id="painel-titulo">Serviços</h2>
-          <button class="btn-icone" type="button" data-fechar aria-label="Fechar">${icone('x')}</button></header>
-        <div class="painel-corpo">
-          <p class="ajuda">Os serviços que aparecem para escolher. Eliminar um serviço não apaga os tempos já registados.</p>
-          <ul class="lista-servicos">${lista.map((x, i) => {
-            const n = st.trabalhos.filter((t) => terminado(t) && sem(t.servico) === sem(x)).length;
-            return `<li><span class="nome">${esc(x)}</span><span class="n-usos">${n} ${n === 1 ? 'tempo' : 'tempos'}</span>
-              <button class="btn-icone perigo" type="button" data-eliminar="${i}" aria-label="Eliminar ${esc(x)}" title="Eliminar">${icone('trash')}</button></li>`;
-          }).join('') || '<li class="vazio">Sem serviços.</li>'}</ul>
-          <form class="adicionar" data-form="servico" novalidate autocomplete="off">
-            <input name="nome" type="text" placeholder="Novo serviço" aria-label="Nome do novo serviço">
-            <button class="btn primario" type="submit">${icone('plus')}<span>Adicionar</span></button>
-          </form>
-        </div>
-      </div>`;
-      const f = $('[data-form="servico"]', painel);
-      f.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const nome = f.nome.value.trim().replace(/\s+/g, ' ');
-        if (!nome) { f.nome.focus(); return; }
-        if (lista.some((x) => sem(x) === sem(nome))) { toast('Esse serviço já existe.'); return; }
-        guardarServicos([...lista, nome.charAt(0).toUpperCase() + nome.slice(1)], 'Serviço adicionado.');
-        desenha();
-        $('[name="nome"]', painel).focus();
-      });
-      $$('[data-eliminar]', painel).forEach((btn) => btn.addEventListener('click', () => {
-        const i = +btn.dataset.eliminar;
-        if (!confirm(`Eliminar o serviço "${lista[i]}"?`)) return;
-        guardarServicos(lista.filter((_, k) => k !== i), 'Serviço eliminado.');
-        desenha();
-      }));
-    };
-    desenha();
-    if (!painel.open) painel.showModal();
-  }
-
   // ---------------------------------------------------------------- eventos
   document.addEventListener('click', (e) => {
     const b = e.target.closest('button');
@@ -585,13 +502,12 @@
     else if (d.apagar) apagar(d.apagar);
     else if ('abrirLigacao' in d) abrirLigacao();
     else if ('fechar' in d) painel.close();
-    else if ('gerir' in d) abrirServicos();
   });
   document.addEventListener('input', (e) => {
     if (e.target.name === 'busca') { st.busca = e.target.value; desenhar(); }
-    if (e.target.closest('[data-form="novo"]')) {
-      const f = e.target.form;
-      guardar('tp.ultimo', { modelo: f.modelo.value, servico: f.servico.value });
+    const f = e.target.closest('[data-form="novo"]');
+    if (f) {
+      guardar('tp.ultimo2', { matricula: f.matricula.value, modelo: f.modelo.value, dono: f.dono.value });
       $('[data-erro]', f).hidden = true;
     }
   });
@@ -605,7 +521,7 @@
   $$('[data-icone]').forEach((el) => { el.outerHTML = icone(el.dataset.icone); });
   const cache = ler('tp.cache', null);
   if (!emDemo() && cache && cache.url === ligacao().apiUrl) {
-    st.carros = cache.carros || []; st.trabalhos = cache.trabalhos || []; st.regras = cache.regras || [];
+    TABELAS.forEach((t) => { st[t] = cache[t] || []; });
     aplicar(st, st.pendentes);
   }
   desenhar();

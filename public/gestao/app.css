@@ -259,3 +259,25 @@ input::-webkit-calendar-picker-indicator { display: none !important; opacity: 0;
   .servico-cartao { padding: 10px 30px 10px 12px; }
   .servico-nome { font-size: .92rem; }
 }
+
+/* ---------- Matrícula, dono ---------- */
+.placa { display: inline-flex; align-items: stretch; border: 1.5px solid #1f2233; border-radius: 5px; background: #fff; overflow: hidden; line-height: 1; height: 26px; flex: none; width: max-content; }
+.placa-ue { background: #1d4fa3; color: #fff; font-size: .62rem; font-weight: 700; padding: 0 4px; display: grid; place-items: end center; padding-bottom: 3px; }
+.placa-txt { font-family: var(--num); font-weight: 600; font-size: .98rem; letter-spacing: .06em; padding: 0 8px; display: grid; place-items: center; color: #1f2233; }
+.placa.vazia { border-style: dashed; border-color: var(--linha); }
+.placa.vazia .placa-txt { font-family: var(--font); font-size: .8rem; letter-spacing: 0; color: var(--tinta-fraca); font-weight: 500; }
+input.mat { text-transform: uppercase; font-family: var(--num); font-weight: 600; letter-spacing: .08em; font-size: 1.15rem; }
+input.mat::placeholder { letter-spacing: .08em; font-weight: 500; }
+.encontrado { display: flex; align-items: center; gap: 6px; font-size: .9rem; color: var(--turquesa-tinta); }
+.crono-carro { display: grid; gap: 4px; justify-items: start; }
+.crono-dono { display: flex; align-items: center; gap: 6px; color: var(--tinta-suave); font-size: .95rem; }
+.crono-dono .ico { width: 1em; height: 1em; color: var(--tinta-fraca); }
+.registo .placa { height: 24px; }
+.registo .placa-txt { font-size: .88rem; padding: 0 6px; }
+@media (max-width: 520px) {
+  .registo { display: grid; grid-template-columns: 1fr auto auto; column-gap: 8px; row-gap: 4px; }
+  .registo .placa { grid-column: 1; grid-row: 1; }
+  .registo-tempo { grid-column: 2; grid-row: 1; }
+  .registo .btn-icone { grid-column: 3; grid-row: 1 / span 2; }
+  .registo-texto { grid-column: 1 / 3; grid-row: 2; }
+}
