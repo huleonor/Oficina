@@ -15,9 +15,12 @@ Conta quanto tempo cada carro está em trabalho, num quadro com três fases:
   O carro fica aqui, sem contar. Uma matrícula que já existe preenche o modelo e o dono.
 - **Em curso**: o relógio começa quando se carrega em **Começar** ou se arrasta o cartão para esta fase
   (no telemóvel: carregar e segurar, e arrastar). Tem **Pausar** / **Retomar**.
-- **Terminado hoje**: **Terminar** (ou arrastar para aqui) para o relógio e guarda o tempo.
+- **Terminados**: **Terminar** (ou arrastar para aqui) para o relógio e guarda o tempo. Mostra os 3 mais
+  recentes; **Ver mais** mostra outros 10. **Voltar a Em curso** (ou arrastar) reabre o carro e o relógio continua
+  de onde parou.
 
-Não se volta a uma fase anterior. O **Relatório** tem todos os tempos (carros terminados, tempo total, média por
+O lápis de cada cartão edita a matrícula, o modelo, o dono, o serviço e, num carro terminado, o tempo.
+Não se volta a Por começar. O **Relatório** tem todos os tempos (carros terminados, tempo total, média por
 carro, média por serviço e a lista por dia).
 
 O tempo é o do relógio, desde Começar até Terminar, sem as pausas.
