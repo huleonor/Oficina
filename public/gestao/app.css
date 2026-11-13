@@ -310,3 +310,20 @@ input.mat::placeholder { letter-spacing: .08em; font-weight: 500; }
 
 .opcional { font-weight: 500; color: var(--tinta-fraca); font-size: .9rem; }
 .registo-servico { display: inline-block; font-size: .8rem; font-weight: 650; color: var(--turquesa-tinta); background: var(--turquesa-suave); border-radius: 999px; padding: 1px 8px; margin-left: 4px; }
+
+/* ---------- Página Contar: os carros no meio, o formulário numa janela ---------- */
+.cronos.centro { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+.crono-topo { display: flex; align-items: center; gap: 8px; }
+.ordem { font-family: var(--num); font-weight: 600; font-size: .85rem; color: var(--tinta-suave); background: var(--fundo); border-radius: 6px; padding: 2px 7px; }
+.vazio-contar.grande { background: var(--cartao); border: 1.5px dashed var(--linha); padding: 56px 16px; gap: 6px; margin-top: 0; }
+.vazio-contar.grande .ico { width: 44px; height: 44px; }
+.vazio-contar.grande .btn { margin-top: 14px; padding: 0 28px; }
+.cabeca-pagina .btn.primario { min-height: 48px; padding: 8px 20px; }
+.painel.painel-novo { width: min(560px, calc(100% - 24px)); max-height: calc(100dvh - 24px); }
+.painel-novo .bloco.novo { box-shadow: none; border-radius: 0; }
+.painel-novo .novo-cabeca { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.painel-novo .novo-cabeca .btn-icone { margin: -6px -8px 0 0; }
+@media (max-width: 520px) {
+  .painel.painel-novo { width: 100%; max-width: 100%; max-height: 100dvh; height: 100dvh; margin: 0; border-radius: 0; }
+  .cronos.centro { grid-template-columns: 1fr; }
+}
