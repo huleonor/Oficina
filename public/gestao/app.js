@@ -251,7 +251,7 @@
     desenharAviso();
     const foco = document.activeElement && document.activeElement.name;
     const form = $('[data-form="novo"]');
-    const antes = form ? { modelo: form.modelo.value, arranjo: (form.querySelector('input[name="arranjo"]:checked') || {}).value, outro: form.outro.value } : ler('tp.ultimo', {});
+    const antes = form ? { modelo: form.modelo.value, servico: form.servico.value } : ler('tp.ultimo', {});
     conteudo.innerHTML = st.pagina === 'relatorio' ? vistaRegistos() : `<div class="duas-colunas">${vistaNovo(antes)}${vistaAContar()}</div>`;
     $$('[data-pagina]').forEach((el) => el.setAttribute('aria-current', el.dataset.pagina === st.pagina ? 'page' : 'false'));
     if (foco && $(`[name="${foco}"]`)) {
@@ -274,7 +274,6 @@
 
   function vistaNovo(v = {}) {
     const lista = arranjos();
-    const ehOutro = v.arranjo === '__outro';
     const recentes = modelosRecentes();
     const todos = [...new Set(st.carros.map(nomeModelo).filter((n) => n !== 'Sem modelo'))].sort((x, y) => x.localeCompare(y, 'pt'));
     return `<section class="bloco novo" aria-labelledby="t-novo">
@@ -294,26 +293,16 @@
             ${recentes.length ? `<div class="recentes"><span class="recentes-rotulo">Recentes</span>${recentes.slice(0, 6).map((m) => `<button type="button" class="recente${sem(m) === sem(v.modelo) ? ' ativo' : ''}" data-modelo="${esc(m)}">${esc(m)}</button>`).join('')}</div>` : ''}
           </div>
         </div>
-        <fieldset class="passo" aria-labelledby="l-serv">
+        <div class="passo">
           <span class="passo-n" aria-hidden="true">2</span>
           <div class="passo-corpo">
-            <div class="linha-rotulo"><span class="rotulo" id="l-serv">Serviço</span>
-              <button class="btn texto pequeno" type="button" data-gerir>${icone('pencil-simple')}<span>Gerir serviços</span></button></div>
-            <div class="servicos">
-              ${lista.map((x) => {
-                const m = media('', x).arranjo;
-                return `<label class="servico"><input type="radio" name="arranjo" value="${esc(x)}"${v.arranjo === x ? ' checked' : ''}>
-                  <span class="servico-cartao"><span class="servico-nome">${esc(x)}</span>
-                  <span class="servico-media">${m ? `${icone('clock')}média ${duracao(m.ms)}` : 'Ainda sem tempos'}</span>
-                  <span class="servico-check">${icone('check')}</span></span></label>`;
-              }).join('')}
-              <label class="servico outro-cartao"><input type="radio" name="arranjo" value="__outro"${ehOutro ? ' checked' : ''}>
-                <span class="servico-cartao"><span class="servico-nome">${icone('plus')} Outro serviço</span><span class="servico-media">Escrever um novo</span>
-                <span class="servico-check">${icone('check')}</span></span></label>
+            <label class="rotulo" for="f-servico">Serviço</label>
+            <div class="campo-icone">${icone('wrench')}
+              <input id="f-servico" name="servico" type="text" list="servicos-lista" placeholder="Escreva o serviço, ex.: Travões" value="${esc(v.servico || '')}" enterkeyhint="go" autocapitalize="sentences">
             </div>
-            <input name="outro" type="text" class="outro" placeholder="Nome do serviço, ex.: Troca de pneus" value="${esc(v.outro || '')}"${ehOutro ? '' : ' hidden'} aria-label="Outro serviço">
+            <datalist id="servicos-lista">${lista.map((x) => `<option value="${esc(x)}">`).join('')}</datalist>
           </div>
-        </fieldset>
+        </div>
         <p class="erro-form" data-erro role="alert" hidden></p>
         <div class="novo-pe">
           <p class="resumo-novo" data-resumo></p>
@@ -325,40 +314,35 @@
 
   function ligarNovo() {
     const f = $('[data-form="novo"]');
-    const outro = f.outro;
     const resumo = $('[data-resumo]', f);
     const atualizarResumo = () => {
-      const r = f.querySelector('input[name="arranjo"]:checked');
-      const serv = r ? (r.value === '__outro' ? outro.value.trim() : r.value) : '';
+      const serv = f.servico.value.trim();
       const mod = f.modelo.value.trim();
       resumo.innerHTML = mod && serv ? `${icone('check-circle')}<span><b>${esc(mod)}</b> · ${esc(serv)}</span>`
-        : `<span>${!mod && !serv ? 'Falta escolher o modelo e o serviço.' : !mod ? 'Falta o modelo do carro.' : 'Falta escolher o serviço.'}</span>`;
+        : `<span>${!mod && !serv ? 'Falta o modelo e o serviço.' : !mod ? 'Falta o modelo do carro.' : 'Falta o serviço.'}</span>`;
       resumo.classList.toggle('pronto', !!(mod && serv));
       $$('[data-modelo]', f).forEach((b) => b.classList.toggle('ativo', sem(b.dataset.modelo) === sem(mod)));
     };
     atualizarResumo();
     f.addEventListener('input', atualizarResumo);
-    f.addEventListener('change', (e) => {
-      if (e.target.name === 'arranjo') { outro.hidden = e.target.value !== '__outro'; if (!outro.hidden) outro.focus(); }
-      atualizarResumo();
-    });
     f.addEventListener('click', (e) => {
       const b = e.target.closest('[data-modelo]');
       if (!b) return;
       f.modelo.value = b.dataset.modelo;
-      f.modelo.dispatchEvent(new Event('input', { bubbles: true }));
-      const r = f.querySelector('input[name="arranjo"]:checked') || f.querySelector('input[name="arranjo"]');
-      if (r) r.focus();
+      atualizarResumo();
+      f.servico.focus();
     });
+    // Enter no modelo passa para o serviço.
+    f.modelo.addEventListener('keydown', (e) => { if (e.key === 'Enter' && f.modelo.value.trim()) { e.preventDefault(); f.servico.focus(); } });
     f.addEventListener('submit', (e) => {
       e.preventDefault();
       const modelo = f.modelo.value.trim().replace(/\s+/g, ' ');
-      const r = f.querySelector('input[name="arranjo"]:checked');
-      const arranjo = r ? (r.value === '__outro' ? outro.value.trim() : r.value) : '';
+      const servico = f.servico.value.trim().replace(/\s+/g, ' ');
       const erro = $('[data-erro]', f);
-      const falta = !modelo ? 'Escreva o modelo do carro.' : !arranjo ? (r ? 'Escreva o serviço.' : 'Escolha o serviço.') : '';
-      if (falta) { erro.textContent = falta; erro.hidden = false; (!modelo ? f.modelo : r ? outro : f.querySelector('input[name="arranjo"]')).focus(); return; }
-      const nome = nomeArranjo(arranjo);
+      const falta = !modelo ? 'Escreva o modelo do carro.' : !servico ? 'Escreva o serviço.' : '';
+      if (falta) { erro.textContent = falta; erro.hidden = false; (!modelo ? f.modelo : f.servico).focus(); return; }
+      // O mesmo nome de sempre ("travoes" conta como "Travões"), para as médias juntarem.
+      const nome = nomeArranjo(servico);
       const lista = arranjos();
       if (!lista.some((g) => sem(g) === sem(nome))) guardarServicos([...lista, nome]);
       guardar('tp.ultimo', {});
@@ -609,8 +593,7 @@
     if (e.target.name === 'busca') { st.busca = e.target.value; desenhar(); }
     if (e.target.closest('[data-form="novo"]')) {
       const f = e.target.form;
-      const r = f.querySelector('input[name="arranjo"]:checked');
-      guardar('tp.ultimo', { modelo: f.modelo.value, arranjo: r && r.value, outro: f.outro.value });
+      guardar('tp.ultimo', { modelo: f.modelo.value, servico: f.servico.value });
       $('[data-erro]', f).hidden = true;
     }
   });

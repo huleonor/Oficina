@@ -16,7 +16,7 @@ Conta o tempo de cada arranjo, por modelo de carro. Mais nada: sem clientes nem 
   (maiúsculas e acentos não contam: "troca de pneus" junta-se a "Troca de pneus").
 - **A contar**: cada trabalho tem um relógio (h:mm:ss), **Pausar** / **Retomar** e **Terminar**, e mostra a média
   das vezes anteriores do mesmo modelo e arranjo (ou só do arranjo).
-- Duas páginas no topo: **Contar** e **Relatório**. **Gerir serviços** (ao lado de Serviço) adiciona e elimina serviços; a lista fica na aba Gestão Regras (linha `servicos`), igual em todos os aparelhos.
+- Duas páginas no topo: **Contar** e **Relatório**. O serviço escreve-se à mão (com sugestões dos que já existem; "travoes" junta-se a "Travões"); a lista dos nomes fica na aba Gestão Regras (linha `servicos`), igual em todos os aparelhos.
 - **Média por serviço**: quantas vezes e o tempo médio de cada tipo de serviço.
 - **Tempos**: a lista de todos os tempos, por dia (serviço, modelo, horas e duração), com pesquisa e apagar.
 
