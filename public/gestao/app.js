@@ -59,7 +59,7 @@
   // ---------------------------------------------------------------- estado
   // Abas da sheet: Gestão Clientes (o dono), Gestão Carros (matrícula e modelo) e Gestão Trabalhos (um por tempo).
   const TABELAS = ['clientes', 'carros', 'trabalhos'];
-  const st = { clientes: [], carros: [], trabalhos: [], pagina: 'contar', carregado: false, erro: null, codigoErro: null, pendentes: ler('tp.pendentes', []), enviando: false, lendo: false, busca: '' };
+  const st = { animando: 0, clientes: [], carros: [], trabalhos: [], pagina: 'contar', carregado: false, erro: null, codigoErro: null, pendentes: ler('tp.pendentes', []), enviando: false, lendo: false, busca: '' };
 
   const ligacao = () => { const l = ler('ig.ligacao', {}); return { apiUrl: (l.apiUrl || CFG.apiUrl || '').trim(), pin: l.pin || '' }; };
   const emDemo = () => !ligacao().apiUrl || ler('ig.forcarDemo', false);
@@ -158,12 +158,12 @@
     }
   }
 
-  function gravar(ops, msg) {
+  function gravar(ops, msg, adiar = 0) {
     aplicar(st, ops);
     st.pendentes.push(...ops);
     guardar('tp.pendentes', st.pendentes);
     if (!emDemo()) guardar('tp.cache', cacheAtual());
-    desenhar();
+    if (adiar) { st.animando++; setTimeout(() => { st.animando--; desenhar(); }, adiar); } else desenhar();
     if (msg) toast(msg);
     enviar();
   }
@@ -233,7 +233,24 @@
     const agora = new Date();
     const dados = { estado: 'pronto', pronto: paraTexto(agora) };
     if (t.pausado_em) { dados.pausa_min = (num(t.pausa_min) + (agora - data(t.pausado_em)) / MIN).toFixed(2); dados.pausado_em = ''; }
-    gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados }], `Terminado: ${duracao(tempo({ ...t, ...dados }))}.`);
+    const fim = duracao(tempo({ ...t, ...dados }));
+    const card = $(`.crono[data-id="${CSS.escape(id)}"]`);
+    const anima = card && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (anima) animarFim(card, fim);
+    gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados }], `Terminado: ${fim}.`, anima ? 2100 : 0);
+  }
+
+  // O cartão fica verde, aparece o visto com o tempo, o carro sai pela direita e o cartão fecha.
+  function animarFim(card, fim) {
+    card.classList.add('terminando');
+    card.style.height = `${card.offsetHeight}px`;
+    card.insertAdjacentHTML('beforeend', `<div class="fim" aria-hidden="true">
+      <span class="fim-visto">${icone('check')}${Array.from({ length: 10 }, (_, k) => `<i class="fim-ponto" style="--a:${k * 36}deg;--d:${(k % 3) * 40}ms"></i>`).join('')}</span>
+      <span class="fim-txt">Terminado</span>
+      <span class="fim-tempo">${esc(fim)}</span>
+      <span class="fim-estrada"><span class="fim-carro">${icone('car-profile-fill')}</span></span>
+    </div>`);
+    setTimeout(() => card.classList.add('a-sair'), 1500);
   }
   function apagar(id) {
     const t = trab(id);
@@ -249,6 +266,7 @@
   function desenhar() {
     desenharSync();
     desenharAviso();
+    if (st.animando) return; // uma animação a decorrer; redesenha quando acabar
     const foco = document.activeElement && document.activeElement.name;
     const form = $('[data-form="novo"]');
     const antes = form ? { matricula: form.matricula.value, modelo: form.modelo.value, dono: form.dono.value } : ler('tp.ultimo2', {});
