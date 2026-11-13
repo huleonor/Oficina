@@ -530,7 +530,7 @@
       dias[dias.length - 1].itens.push(t);
     });
     return `<div class="cabeca-pagina">
-      <h1 class="titulo-pagina">Relatório</h1>
+      <h1 class="titulo-pagina">Tempos</h1>
       ${todos.length ? `<label class="busca">${icone('magnifying-glass')}<input name="busca" type="search" placeholder="Procurar matrícula, dono, serviço…" value="${esc(st.busca)}" aria-label="Procurar"></label>` : ''}
     </div>
     ${lista.length ? `<div class="resumo">
