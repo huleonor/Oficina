@@ -252,7 +252,7 @@
     const foco = document.activeElement && document.activeElement.name;
     const form = $('[data-form="novo"]');
     const antes = form ? { modelo: form.modelo.value, arranjo: (form.querySelector('input[name="arranjo"]:checked') || {}).value, outro: form.outro.value } : ler('tp.ultimo', {});
-    conteudo.innerHTML = st.pagina === 'relatorio' ? vistaRegistos() : `${vistaNovo(antes)}${vistaAContar()}`;
+    conteudo.innerHTML = st.pagina === 'relatorio' ? vistaRegistos() : `<div class="duas-colunas">${vistaNovo(antes)}${vistaAContar()}</div>`;
     $$('[data-pagina]').forEach((el) => el.setAttribute('aria-current', el.dataset.pagina === st.pagina ? 'page' : 'false'));
     if (foco && $(`[name="${foco}"]`)) {
       const el = $(`[name="${foco}"]`);
@@ -262,26 +262,63 @@
     tique();
   }
 
+  // Modelos pela ordem em que foram usados (o mais recente primeiro).
+  function modelosRecentes() {
+    const vistos = new Set(), lista = [];
+    st.trabalhos.slice().sort((x, y) => String(y.inicio).localeCompare(String(x.inicio))).forEach((t) => {
+      const m = modeloDe(t);
+      if (m !== 'Sem modelo' && !vistos.has(sem(m))) { vistos.add(sem(m)); lista.push(m); }
+    });
+    return lista;
+  }
+
   function vistaNovo(v = {}) {
     const lista = arranjos();
     const ehOutro = v.arranjo === '__outro';
-    const modelos = [...new Set(st.carros.map(nomeModelo).filter((n) => n !== 'Sem modelo'))].sort((a, b) => a.localeCompare(b, 'pt'));
+    const recentes = modelosRecentes();
+    const todos = [...new Set(st.carros.map(nomeModelo).filter((n) => n !== 'Sem modelo'))].sort((x, y) => x.localeCompare(y, 'pt'));
     return `<section class="bloco novo" aria-labelledby="t-novo">
-      <h1 id="t-novo" class="titulo">Contar um tempo</h1>
+      <header class="novo-cabeca">
+        <h1 id="t-novo" class="titulo">Novo trabalho</h1>
+        <p class="ajuda">Escolha o carro e o serviço, e comece a contar.</p>
+      </header>
       <form data-form="novo" novalidate autocomplete="off">
-        <label class="campo"><span class="rotulo">Modelo do carro</span>
-          <input name="modelo" type="text" list="modelos" placeholder="Ex.: Peugeot 208" value="${esc(v.modelo || '')}" enterkeyhint="next">
-          <datalist id="modelos">${modelos.map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
-        </label>
-        <fieldset class="campo"><div class="linha-rotulo"><legend class="rotulo">Serviço</legend><button class="btn texto pequeno" type="button" data-gerir>${icone('pencil-simple')}<span>Gerir serviços</span></button></div>
-          <div class="chips">
-            ${lista.map((s) => `<label class="chip"><input type="radio" name="arranjo" value="${esc(s)}"${v.arranjo === s ? ' checked' : ''}><span>${esc(s)}</span></label>`).join('')}
-            <label class="chip"><input type="radio" name="arranjo" value="__outro"${ehOutro ? ' checked' : ''}><span>Outro</span></label>
+        <div class="passo">
+          <span class="passo-n" aria-hidden="true">1</span>
+          <div class="passo-corpo">
+            <label class="rotulo" for="f-modelo">Modelo do carro</label>
+            <div class="campo-icone">${icone('car-profile')}
+              <input id="f-modelo" name="modelo" type="text" list="modelos" placeholder="Escreva o modelo, ex.: Peugeot 208" value="${esc(v.modelo || '')}" enterkeyhint="next" autocapitalize="words">
+            </div>
+            <datalist id="modelos">${todos.map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
+            ${recentes.length ? `<div class="recentes"><span class="recentes-rotulo">Recentes</span>${recentes.slice(0, 6).map((m) => `<button type="button" class="recente${sem(m) === sem(v.modelo) ? ' ativo' : ''}" data-modelo="${esc(m)}">${esc(m)}</button>`).join('')}</div>` : ''}
           </div>
-          <input name="outro" type="text" class="outro" placeholder="Que serviço?" value="${esc(v.outro || '')}"${ehOutro ? '' : ' hidden'} aria-label="Outro serviço">
+        </div>
+        <fieldset class="passo" aria-labelledby="l-serv">
+          <span class="passo-n" aria-hidden="true">2</span>
+          <div class="passo-corpo">
+            <div class="linha-rotulo"><span class="rotulo" id="l-serv">Serviço</span>
+              <button class="btn texto pequeno" type="button" data-gerir>${icone('pencil-simple')}<span>Gerir serviços</span></button></div>
+            <div class="servicos">
+              ${lista.map((x) => {
+                const m = media('', x).arranjo;
+                return `<label class="servico"><input type="radio" name="arranjo" value="${esc(x)}"${v.arranjo === x ? ' checked' : ''}>
+                  <span class="servico-cartao"><span class="servico-nome">${esc(x)}</span>
+                  <span class="servico-media">${m ? `${icone('clock')}média ${duracao(m.ms)}` : 'Ainda sem tempos'}</span>
+                  <span class="servico-check">${icone('check')}</span></span></label>`;
+              }).join('')}
+              <label class="servico outro-cartao"><input type="radio" name="arranjo" value="__outro"${ehOutro ? ' checked' : ''}>
+                <span class="servico-cartao"><span class="servico-nome">${icone('plus')} Outro serviço</span><span class="servico-media">Escrever um novo</span>
+                <span class="servico-check">${icone('check')}</span></span></label>
+            </div>
+            <input name="outro" type="text" class="outro" placeholder="Nome do serviço, ex.: Troca de pneus" value="${esc(v.outro || '')}"${ehOutro ? '' : ' hidden'} aria-label="Outro serviço">
+          </div>
         </fieldset>
-        <p class="erro-form" data-erro hidden></p>
-        <button class="btn primario grande" type="submit">${icone('play')}<span>Começar a contar</span></button>
+        <p class="erro-form" data-erro role="alert" hidden></p>
+        <div class="novo-pe">
+          <p class="resumo-novo" data-resumo></p>
+          <button class="btn primario grande" type="submit">${icone('play')}<span>Começar a contar</span></button>
+        </div>
       </form>
     </section>`;
   }
@@ -289,8 +326,29 @@
   function ligarNovo() {
     const f = $('[data-form="novo"]');
     const outro = f.outro;
+    const resumo = $('[data-resumo]', f);
+    const atualizarResumo = () => {
+      const r = f.querySelector('input[name="arranjo"]:checked');
+      const serv = r ? (r.value === '__outro' ? outro.value.trim() : r.value) : '';
+      const mod = f.modelo.value.trim();
+      resumo.innerHTML = mod && serv ? `${icone('check-circle')}<span><b>${esc(mod)}</b> · ${esc(serv)}</span>`
+        : `<span>${!mod && !serv ? 'Falta escolher o modelo e o serviço.' : !mod ? 'Falta o modelo do carro.' : 'Falta escolher o serviço.'}</span>`;
+      resumo.classList.toggle('pronto', !!(mod && serv));
+      $$('[data-modelo]', f).forEach((b) => b.classList.toggle('ativo', sem(b.dataset.modelo) === sem(mod)));
+    };
+    atualizarResumo();
+    f.addEventListener('input', atualizarResumo);
     f.addEventListener('change', (e) => {
       if (e.target.name === 'arranjo') { outro.hidden = e.target.value !== '__outro'; if (!outro.hidden) outro.focus(); }
+      atualizarResumo();
+    });
+    f.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-modelo]');
+      if (!b) return;
+      f.modelo.value = b.dataset.modelo;
+      f.modelo.dispatchEvent(new Event('input', { bubbles: true }));
+      const r = f.querySelector('input[name="arranjo"]:checked') || f.querySelector('input[name="arranjo"]');
+      if (r) r.focus();
     });
     f.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -311,10 +369,9 @@
 
   function vistaAContar() {
     const lista = st.trabalhos.filter(aContar).sort((a, b) => String(b.inicio).localeCompare(String(a.inicio)));
-    if (!lista.length) return '';
-    return `<section class="bloco" aria-labelledby="t-contar">
+    return `<section class="bloco a-contar" aria-labelledby="t-contar">
       <h2 id="t-contar" class="titulo">A contar <span class="conta">${lista.length}</span></h2>
-      <ul class="cronos">${lista.map(crono).join('')}</ul>
+      ${lista.length ? `<ul class="cronos">${lista.map(crono).join('')}</ul>` : `<div class="vazio-contar">${icone('timer')}<p>Nenhum carro a contar.</p><small>Quando começar um trabalho, o relógio aparece aqui.</small></div>`}
     </section>`;
   }
 
