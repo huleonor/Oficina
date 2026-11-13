@@ -9,13 +9,16 @@ https://huleonor.github.io/Oficina/gestao/ (não aparece no menu nem no sitemap)
 
 ## O que faz
 
-Conta quanto tempo cada carro está em trabalho.
+Conta quanto tempo cada carro está em trabalho, num quadro com três fases:
 
-- **Contar**: os carros a contar ficam no meio, pela ordem em que entraram. **Adicionar carro** (no canto) abre a janela onde se escreve a **matrícula**, o **modelo**, o **nome do dono** e, se se quiser, o **serviço**, e carrega-se em **Começar a contar**.
-  Uma matrícula que já existe preenche o modelo e o dono. Cada carro a contar tem **Pausar** / **Retomar** e
-  **Terminar**.
-- **Relatório**: carros terminados, tempo total, média por carro e a lista dos tempos por dia (com pesquisa por
-  matrícula, modelo ou dono, e apagar).
+- **Por começar**: **Adicionar carro** (no canto) pede a matrícula, o modelo, o dono e, se se quiser, o serviço.
+  O carro fica aqui, sem contar. Uma matrícula que já existe preenche o modelo e o dono.
+- **Em curso**: o relógio começa quando se carrega em **Começar** ou se arrasta o cartão para esta fase
+  (no telemóvel: carregar e segurar, e arrastar). Tem **Pausar** / **Retomar**.
+- **Terminado hoje**: **Terminar** (ou arrastar para aqui) para o relógio e guarda o tempo.
+
+Não se volta a uma fase anterior. O **Relatório** tem todos os tempos (carros terminados, tempo total, média por
+carro, média por serviço e a lista por dia).
 
 O tempo é o do relógio, desde Começar até Terminar, sem as pausas.
 Se a ligação falhar, os tempos ficam guardados no aparelho e seguem quando a sheet voltar a responder.
