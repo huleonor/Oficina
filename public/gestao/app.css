@@ -161,3 +161,38 @@ button:focus-visible { outline: 3px solid var(--turquesa); outline-offset: 2px; 
   .cronos { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Páginas */
+.topo-dentro { flex-wrap: wrap; }
+.paginas { display: flex; gap: 4px; background: rgba(255,255,255,.08); padding: 4px; border-radius: 12px; }
+.paginas a { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 9px; color: #c9cdd8; text-decoration: none; font-weight: 650; font-size: .95rem; }
+.paginas a:hover { color: #fff; }
+.paginas a[aria-current="page"] { background: #fff; color: var(--escuro); }
+.paginas a:focus-visible { outline: 3px solid var(--turquesa); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .paginas { order: 3; flex-basis: 100%; }
+  .paginas a { flex: 1; justify-content: center; }
+}
+.cabeca-pagina { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.titulo-pagina { font-size: 1.6rem; font-weight: 800; }
+.resumo { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.numero { background: var(--cartao); border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(31,34,51,.06); display: grid; gap: 2px; }
+.numero small { color: var(--tinta-fraca); font-size: .82rem; }
+.numero b { font-family: var(--num); font-weight: 600; font-size: 1.5rem; color: var(--tinta); white-space: nowrap; }
+@media (max-width: 520px) { .resumo { gap: 8px; } .numero { padding: 12px; } .numero b { font-size: 1.15rem; } }
+.barra-media { height: 4px; background: var(--fundo); border-radius: 999px; margin-top: 6px; overflow: hidden; }
+.barra-media span { display: block; height: 100%; background: var(--turquesa); border-radius: inherit; }
+
+/* Serviços */
+.linha-rotulo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.btn.texto.pequeno { display: inline-flex; gap: 6px; text-decoration: none; font-size: .9rem; min-height: 32px; }
+.ajuda { color: var(--tinta-suave); font-size: .95rem; }
+.lista-servicos { list-style: none; margin: 0; padding: 0; border: 1px solid var(--linha); border-radius: 10px; max-height: 50vh; overflow: auto; }
+.lista-servicos li { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 14px; border-bottom: 1px solid var(--linha); }
+.lista-servicos li:last-child { border-bottom: 0; }
+.lista-servicos .nome { flex: 1; }
+.n-usos { font-size: .82rem; color: var(--tinta-fraca); white-space: nowrap; }
+.btn-icone.perigo:hover { background: var(--erro-suave); color: var(--erro); }
+.adicionar { display: flex; gap: 8px; }
+.adicionar input { flex: 1; }
+@media (max-width: 520px) { .cabeca-pagina .busca { max-width: none; flex-basis: 100%; } }
