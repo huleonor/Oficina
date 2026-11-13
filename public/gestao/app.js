@@ -68,7 +68,7 @@
   const donoDe = (c) => (c ? st.clientes.find((x) => x.id === c.cliente_id) : null);
   const nomeModelo = (c) => (c ? [c.marca, c.modelo].filter(Boolean).join(' ') : '') || 'Sem modelo';
   const carroPorMat = (m) => { const k = matChave(m); return k ? st.carros.find((c) => matChave(c.matricula) === k) : null; };
-  const info = (t) => { const c = carroDe(t), d = donoDe(c); return { matricula: c ? c.matricula : '', modelo: nomeModelo(c), dono: d ? d.nome : '' }; };
+  const info = (t) => { const c = carroDe(t), d = donoDe(c); return { matricula: c ? c.matricula : '', modelo: nomeModelo(c), dono: d ? d.nome : '', servico: limpar(t.servico) }; };
   const aContar = (t) => t.estado === 'curso' && t.inicio && !t.pronto;
   const terminado = (t) => !!(t.inicio && t.pronto);
 
@@ -129,7 +129,7 @@
     for (let k = 0; k < 10; k++) {
       const ini = new Date(agora); ini.setDate(ini.getDate() - 1 - Math.floor(k / 3)); ini.setHours(9 + (k % 3) * 3, 10 * (k % 5), 0, 0);
       const fim = new Date(ini.getTime() + (35 + ((k * 37) % 150)) * MIN);
-      trabalhos.push({ id: 't' + k, carro_id: 'm' + (k % 4), servico: '', estado: 'pronto', entrada: paraTexto(ini), inicio: paraTexto(ini), pronto: paraTexto(fim), pausado_em: '', pausa_min: '', criado_em: paraTexto(ini) });
+      trabalhos.push({ id: 't' + k, carro_id: 'm' + (k % 4), servico: ['Travões', 'Mudança de óleo', ''][k % 3], estado: 'pronto', entrada: paraTexto(ini), inicio: paraTexto(ini), pronto: paraTexto(fim), pausado_em: '', pausa_min: '', criado_em: paraTexto(ini) });
     }
     const ini = new Date(agora.getTime() - 47 * MIN);
     trabalhos.push({ id: 'tx', carro_id: 'm0', servico: '', estado: 'curso', entrada: paraTexto(ini), inicio: paraTexto(ini), pronto: '', pausado_em: '', pausa_min: '', criado_em: paraTexto(ini) });
@@ -216,10 +216,10 @@
     return { id: carro.id, ops };
   }
 
-  function comecar(matricula, modelo, dono) {
+  function comecar(matricula, modelo, dono, servico) {
     const c = carroOps(matricula, modelo, dono);
     const agora = paraTexto(new Date());
-    gravar([...c.ops, { op: 'criar', tabela: 'trabalhos', id: novoId(), dados: { carro_id: c.id, servico: '', estado: 'curso', entrada: agora, inicio: agora, pronto: '', pausado_em: '', pausa_min: '', criado_em: agora } }], `${matricula}: a contar.`);
+    gravar([...c.ops, { op: 'criar', tabela: 'trabalhos', id: novoId(), dados: { carro_id: c.id, servico, estado: 'curso', entrada: agora, inicio: agora, pronto: '', pausado_em: '', pausa_min: '', criado_em: agora } }], `${matricula}: a contar.`);
   }
   const trab = (id) => st.trabalhos.find((t) => t.id === id);
   function pausar(id) { gravar([{ op: 'atualizar', tabela: 'trabalhos', id, dados: { pausado_em: paraTexto(new Date()) } }], 'Em pausa.'); }
@@ -269,7 +269,7 @@
     if (st.animando) return; // uma animação a decorrer; redesenha quando acabar
     const foco = document.activeElement && document.activeElement.name;
     const form = $('[data-form="novo"]');
-    const antes = form ? { matricula: form.matricula.value, modelo: form.modelo.value, dono: form.dono.value } : ler('tp.ultimo2', {});
+    const antes = form ? { matricula: form.matricula.value, modelo: form.modelo.value, dono: form.dono.value, servico: form.servico.value } : ler('tp.ultimo2', {});
     conteudo.innerHTML = st.pagina === 'relatorio' ? vistaRelatorio() : `<div class="duas-colunas">${vistaNovo(antes)}${vistaAContar()}</div>`;
     $$('[data-pagina]').forEach((el) => el.setAttribute('aria-current', el.dataset.pagina === st.pagina ? 'page' : 'false'));
     if (foco && $(`[name="${foco}"]`)) {
@@ -280,6 +280,14 @@
     if (st.pagina !== 'relatorio') ligarNovo();
     tique();
   }
+
+  // Os serviços já usados (o mais usado primeiro), para sugerir e para escrever sempre igual.
+  function servicosUsados() {
+    const n = new Map();
+    st.trabalhos.forEach((t) => { const x = limpar(t.servico); if (x) { const k = sem(x); const u = n.get(k) || { nome: x, n: 0 }; u.n++; n.set(k, u); } });
+    return [...n.values()].sort((a, b) => b.n - a.n).map((u) => u.nome);
+  }
+  const nomeServico = (x) => servicosUsados().find((s) => sem(s) === sem(x)) || (x.charAt(0).toUpperCase() + x.slice(1));
 
   function vistaNovo(v = {}) {
     const modelos = [...new Set(st.carros.map(nomeModelo).filter((n) => n !== 'Sem modelo'))].sort((x, y) => x.localeCompare(y, 'pt'));
@@ -295,13 +303,15 @@
     return `<section class="bloco novo" aria-labelledby="t-novo">
       <header class="novo-cabeca">
         <h1 id="t-novo" class="titulo">Novo carro</h1>
-        <p class="ajuda">Escreva a matrícula, o modelo e o dono, e comece a contar.</p>
+        <p class="ajuda">Escreva a matrícula, o modelo e o dono (e o serviço, se quiser), e comece a contar.</p>
       </header>
       <form data-form="novo" novalidate autocomplete="off">
         ${campo(1, 'matricula', 'Matrícula', 'tag', v.matricula, 'class="mat" placeholder="AA-00-AA" maxlength="10" autocapitalize="characters" spellcheck="false" enterkeyhint="next"', '<p class="encontrado" data-encontrado hidden></p>')}
         ${campo(2, 'modelo', 'Modelo do carro', 'car-profile', v.modelo, 'list="modelos" placeholder="Ex.: Peugeot 208" autocapitalize="words" enterkeyhint="next"')}
-        ${campo(3, 'dono', 'Nome do dono', 'user', v.dono, 'list="donos" placeholder="Ex.: Ana Sousa" autocapitalize="words" enterkeyhint="go"')}
+        ${campo(3, 'dono', 'Nome do dono', 'user', v.dono, 'list="donos" placeholder="Ex.: Ana Sousa" autocapitalize="words" enterkeyhint="next"')}
+        ${campo(4, 'servico', 'Serviço <span class="opcional">(opcional)</span>', 'wrench', v.servico, 'list="servicos" placeholder="Ex.: Travões" autocapitalize="sentences" enterkeyhint="go"')}
         <datalist id="modelos">${modelos.map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
+        <datalist id="servicos">${[...new Set([...servicosUsados(), ...(CFG.servicos || []).filter((x) => sem(x) !== 'outro')].map(limpar))].map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
         <datalist id="donos">${donos.map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
         <p class="erro-form" data-erro role="alert" hidden></p>
         <div class="novo-pe">
@@ -334,7 +344,7 @@
     });
     f.matricula.addEventListener('blur', () => { f.matricula.value = matFormatar(f.matricula.value); });
     // Enter passa ao campo seguinte; no último, começa.
-    [['matricula', 'modelo'], ['modelo', 'dono']].forEach(([de, para]) => f[de].addEventListener('keydown', (e) => {
+    [['matricula', 'modelo'], ['modelo', 'dono'], ['dono', 'servico']].forEach(([de, para]) => f[de].addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && f[de].value.trim()) { e.preventDefault(); f[para].focus(); }
     }));
     f.addEventListener('submit', (e) => {
@@ -342,6 +352,7 @@
       const matricula = matFormatar(f.matricula.value);
       const modelo = limpar(f.modelo.value);
       const dono = limpar(f.dono.value);
+      const servico = limpar(f.servico.value) ? nomeServico(limpar(f.servico.value)) : '';
       const erro = $('[data-erro]', f);
       const falta = !matricula ? ['Escreva a matrícula.', f.matricula] : !modelo ? ['Escreva o modelo do carro.', f.modelo] : !dono ? ['Escreva o nome do dono.', f.dono] : null;
       if (falta) { erro.textContent = falta[0]; erro.hidden = false; falta[1].focus(); return; }
@@ -349,7 +360,7 @@
       if (ja) { erro.textContent = `O ${matricula} já está a contar.`; erro.hidden = false; return; }
       guardar('tp.ultimo2', {});
       f.reset();
-      comecar(matricula, modelo, dono);
+      comecar(matricula, modelo, dono, servico);
     });
   }
 
@@ -371,6 +382,7 @@
           ${placa(i.matricula)}
           <p class="crono-modelo">${esc(i.modelo)}</p>
           ${i.dono ? `<p class="crono-dono">${icone('user')}${esc(i.dono)}</p>` : ''}
+          ${i.servico ? `<p class="crono-dono">${icone('wrench')}${esc(i.servico)}</p>` : ''}
         </div>
         <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar este tempo" title="Apagar">${icone('trash')}</button>
       </div>
@@ -388,7 +400,7 @@
   function vistaRelatorio() {
     const q = sem(st.busca), qm = matChave(st.busca);
     const todos = st.trabalhos.filter(terminado).sort((a, b) => String(b.pronto).localeCompare(String(a.pronto)));
-    const lista = q ? todos.filter((t) => { const i = info(t); return sem(`${i.modelo} ${i.dono}`).includes(q) || (qm && matChave(i.matricula).includes(qm)); }) : todos;
+    const lista = q ? todos.filter((t) => { const i = info(t); return sem(`${i.modelo} ${i.dono} ${i.servico}`).includes(q) || (qm && matChave(i.matricula).includes(qm)); }) : todos;
     const total = lista.reduce((x, t) => x + tempo(t), 0);
     const dias = [];
     lista.slice(0, 300).forEach((t) => {
@@ -398,13 +410,23 @@
     });
     return `<div class="cabeca-pagina">
       <h1 class="titulo-pagina">Relatório</h1>
-      ${todos.length ? `<label class="busca">${icone('magnifying-glass')}<input name="busca" type="search" placeholder="Procurar matrícula, modelo ou dono" value="${esc(st.busca)}" aria-label="Procurar"></label>` : ''}
+      ${todos.length ? `<label class="busca">${icone('magnifying-glass')}<input name="busca" type="search" placeholder="Procurar matrícula, dono, serviço…" value="${esc(st.busca)}" aria-label="Procurar"></label>` : ''}
     </div>
     ${lista.length ? `<div class="resumo">
       <div class="numero"><small>Carros terminados</small><b>${lista.length}</b></div>
       <div class="numero"><small>Tempo total</small><b>${duracao(total)}</b></div>
       <div class="numero"><small>Média por carro</small><b>${duracao(total / lista.length)}</b></div>
     </div>` : ''}
+    ${(() => {
+      const g = new Map();
+      lista.forEach((t) => { const x = limpar(t.servico); if (!x) return; const k = sem(x); const u = g.get(k) || { nome: x, soma: 0, n: 0 }; u.soma += tempo(t); u.n++; g.set(k, u); });
+      const m = [...g.values()].sort((a, b) => b.n - a.n);
+      return m.length ? `<section class="bloco" aria-labelledby="t-media">
+        <h2 id="t-media" class="titulo">Média por serviço</h2>
+        <table class="tabela"><thead><tr><th scope="col">Serviço</th><th scope="col" class="n">Vezes</th><th scope="col" class="n">Média</th></tr></thead>
+        <tbody>${m.map((u) => `<tr><td>${esc(u.nome)}</td><td class="n">${u.n}</td><td class="n forte">${duracao(u.soma / u.n)}</td></tr>`).join('')}</tbody></table>
+      </section>` : '';
+    })()}
     <section class="bloco" aria-labelledby="t-tempos">
       <h2 id="t-tempos" class="titulo">Tempos <span class="conta">${lista.length}</span></h2>
       ${!todos.length ? '<p class="vazio">Ainda não há carros terminados.</p>' : !lista.length ? '<p class="vazio">Nada encontrado.</p>' : ''}
@@ -413,7 +435,7 @@
           const i = info(t), a = data(t.inicio), p = data(t.pronto);
           return `<li class="registo">
             ${placa(i.matricula)}
-            <div class="registo-texto"><b>${esc(i.modelo)}</b>${i.dono ? ` <span>· ${esc(i.dono)}</span>` : ''}<small>${hora(a)} – ${hora(p)}${num(t.pausa_min) >= 1 ? ` · ${duracao(num(t.pausa_min) * MIN)} em pausa` : ''}</small></div>
+            <div class="registo-texto"><b>${esc(i.modelo)}</b>${i.dono ? ` <span>· ${esc(i.dono)}</span>` : ''}${i.servico ? ` <span class="registo-servico">${esc(i.servico)}</span>` : ''}<small>${hora(a)} – ${hora(p)}${num(t.pausa_min) >= 1 ? ` · ${duracao(num(t.pausa_min) * MIN)} em pausa` : ''}</small></div>
             <span class="registo-tempo">${duracao(tempo(t))}</span>
             <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar" title="Apagar">${icone('trash')}</button>
           </li>`;
@@ -525,7 +547,7 @@
     if (e.target.name === 'busca') { st.busca = e.target.value; desenhar(); }
     const f = e.target.closest('[data-form="novo"]');
     if (f) {
-      guardar('tp.ultimo2', { matricula: f.matricula.value, modelo: f.modelo.value, dono: f.dono.value });
+      guardar('tp.ultimo2', { matricula: f.matricula.value, modelo: f.modelo.value, dono: f.dono.value, servico: f.servico.value });
       $('[data-erro]', f).hidden = true;
     }
   });
