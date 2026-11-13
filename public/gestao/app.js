@@ -274,7 +274,6 @@
 
   function vistaNovo(v = {}) {
     const lista = arranjos();
-    const recentes = modelosRecentes();
     const todos = [...new Set(st.carros.map(nomeModelo).filter((n) => n !== 'Sem modelo'))].sort((x, y) => x.localeCompare(y, 'pt'));
     return `<section class="bloco novo" aria-labelledby="t-novo">
       <header class="novo-cabeca">
@@ -290,7 +289,6 @@
               <input id="f-modelo" name="modelo" type="text" list="modelos" placeholder="Escreva o modelo, ex.: Peugeot 208" value="${esc(v.modelo || '')}" enterkeyhint="next" autocapitalize="words">
             </div>
             <datalist id="modelos">${todos.map((m) => `<option value="${esc(m)}">`).join('')}</datalist>
-            ${recentes.length ? `<div class="recentes"><span class="recentes-rotulo">Recentes</span>${recentes.slice(0, 6).map((m) => `<button type="button" class="recente${sem(m) === sem(v.modelo) ? ' ativo' : ''}" data-modelo="${esc(m)}">${esc(m)}</button>`).join('')}</div>` : ''}
           </div>
         </div>
         <div class="passo">
