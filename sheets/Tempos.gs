@@ -4,7 +4,8 @@
  * A página de gestão (/gestao/) pede { action: 'listar' } e { action: 'gravar', operacoes: [...] }
  * e o script lê e escreve três abas, criadas sozinhas na primeira vez:
  *   Trabalhos, Carros e Clientes (as mesmas colunas do Excel do modo local).
- * Cria também a aba Tempos, só para ler: matrícula, modelo, dono, serviço, estado e o tempo.
+ * Escreve também a aba Tempos, só para ler: matrícula, modelo, dono, serviço, estado e o tempo
+ * (refeita depois de cada gravação; corrija os dados na página, não nesta aba).
  *
  * Sem PIN: quem tiver o URL /exec lê e grava. Instalação em sheets/TEMPOS-SHEET.md.
  */
@@ -43,7 +44,7 @@ function json_(obj) {
 // Corra uma vez no editor (botão Executar) para criar as abas e dar as autorizações.
 function configurar() {
   Object.keys(TABELAS).forEach(function (t) { aba_(t); });
-  abaTempos_();
+  atualizarTempos_();
 }
 
 function aba_(nome) {
@@ -131,32 +132,48 @@ function gravar_(operacoes) {
         if (col > 0 && c !== 'id') sh.getRange(linha, col).setNumberFormat('@').setValue(texto_(dados[c]));
       });
     });
+    try { atualizarTempos_(); } catch (err) { /* a aba de ler não pode estragar a gravação */ }
     return { ok: true };
   } finally {
     lock.releaseLock();
   }
 }
 
-// A aba Tempos: fórmulas que leem as outras três (escritas na sintaxe inglesa, como o Apps Script pede).
-function abaTempos_() {
+// A aba Tempos, para ler: o script escreve-a de novo depois de cada gravação. São valores, não
+// fórmulas, para funcionar em qualquer idioma da sheet (as fórmulas mudam de separador com o idioma).
+function atualizarTempos_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  if (ss.getSheetByName('Tempos')) return;
-  var sh = ss.insertSheet('Tempos', 0);
-  var T = 'Trabalhos!', C = 'Carros!', K = 'Clientes!';
-  var vazio = T + 'A2:A=""';
-  sh.getRange(1, 1, 1, 8).setValues([['Matrícula', 'Modelo', 'Dono', 'Serviço', 'Estado', 'Começou', 'Terminou', 'Tempo (h:mm)']]).setFontWeight('bold');
-  sh.getRange(2, 1, 1, 8).setFormulas([[
-    '=ARRAYFORMULA(IF(' + vazio + ',"",IFERROR(VLOOKUP(' + T + 'B2:B,{' + C + 'A2:A,' + C + 'C2:C},2,FALSE),"")))',
-    '=ARRAYFORMULA(IF(' + vazio + ',"",IFERROR(VLOOKUP(' + T + 'B2:B,{' + C + 'A2:A,' + C + 'E2:E},2,FALSE),"")))',
-    '=ARRAYFORMULA(IF(' + vazio + ',"",IFERROR(VLOOKUP(VLOOKUP(' + T + 'B2:B,{' + C + 'A2:A,' + C + 'B2:B},2,FALSE),{' + K + 'A2:A,' + K + 'B2:B},2,FALSE),"")))',
-    '=ARRAYFORMULA(IF(' + vazio + ',"",' + T + 'C2:C))',
-    '=ARRAYFORMULA(IF(' + vazio + ',"",IF((' + T + 'E2:E="curso")*(' + T + 'K2:K<>""),"Em pausa",IF(' + T + 'E2:E="curso","Em curso",IF((' + T + 'E2:E="pronto")+(' + T + 'E2:E="entregue"),"Terminado","Por começar")))))',
-    '=ARRAYFORMULA(IF(' + T + 'G2:G="","",IFERROR(VALUE(' + T + 'G2:G),"")))',
-    '=ARRAYFORMULA(IF(' + T + 'H2:H="","",IFERROR(VALUE(' + T + 'H2:H),"")))',
-    '=ARRAYFORMULA(IF((' + T + 'G2:G="")+(' + T + 'H2:H=""),"",IFERROR(VALUE(' + T + 'H2:H)-VALUE(' + T + 'G2:G)-IFERROR(VALUE(' + T + 'L2:L),0)/1440,"")))',
-  ]]);
-  sh.getRange('F2:G').setNumberFormat('dd/mm/yyyy hh:mm');
-  sh.getRange('H2:H').setNumberFormat('[h]:mm');
-  sh.setFrozenRows(1);
-  sh.getRange(1, 1, 1, 8).setBackground('#26293c').setFontColor('#ffffff');
+  var sh = ss.getSheetByName('Tempos');
+  if (!sh) {
+    sh = ss.insertSheet('Tempos', 0);
+    sh.setFrozenRows(1);
+  }
+  var cab = ['Matrícula', 'Modelo', 'Dono', 'Serviço', 'Estado', 'Começou', 'Terminou', 'Tempo (h:mm)'];
+  sh.getRange(1, 1, 1, cab.length).setValues([cab]).setFontWeight('bold').setBackground('#26293c').setFontColor('#ffffff');
+
+  var carros = {}, clientes = {};
+  linhas_('carros').forEach(function (c) { carros[c.id] = c; });
+  linhas_('clientes').forEach(function (c) { clientes[c.id] = c; });
+  var data = function (s) {
+    var m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+    return m ? { txt: m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5], ms: Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)) } : null;
+  };
+  var trab = linhas_('trabalhos').sort(function (a, b) {
+    return String(b.inicio || b.entrada || '').localeCompare(String(a.inicio || a.entrada || ''));
+  });
+  var linhas = trab.map(function (t) {
+    var c = carros[t.carro_id] || {}, k = clientes[c.cliente_id] || {};
+    var ini = data(t.inicio), fim = data(t.pronto);
+    var estado = t.estado === 'curso' ? (t.pausado_em ? 'Em pausa' : 'Em curso') : (t.estado === 'pronto' || t.estado === 'entregue') ? 'Terminado' : 'Por começar';
+    // Tempo em dias (o formato [h]:mm mostra horas e minutos), sem as pausas.
+    var tempo = ini && fim ? Math.max(0, (fim.ms - ini.ms) / 86400000 - (Number(t.pausa_min) || 0) / 1440) : '';
+    return [c.matricula || '', c.modelo || '', k.nome || '', t.servico || '', estado, ini ? ini.txt : '', fim ? fim.txt : '', tempo];
+  });
+
+  var max = Math.max(sh.getLastRow() - 1, 0);
+  if (max) sh.getRange(2, 1, max, cab.length).clearContent();
+  if (linhas.length) {
+    sh.getRange(2, 1, linhas.length, cab.length - 1).setNumberFormat('@').setValues(linhas.map(function (l) { return l.slice(0, -1); }));
+    sh.getRange(2, cab.length, linhas.length, 1).setNumberFormat('[h]:mm').setValues(linhas.map(function (l) { return [l[l.length - 1]]; }));
+  }
 }
