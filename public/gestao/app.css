@@ -390,6 +390,9 @@ body.arrastando, body.arrastando * { cursor: grabbing !important; }
 .painel.painel-semana { width: min(640px, calc(100% - 24px)); max-height: calc(100dvh - 24px); }
 .painel-semana .painel-corpo { padding-bottom: 20px; overflow: auto; }
 .semana-resumo .numero { background: var(--fundo); box-shadow: none; }
+.semana-resumo { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.semana-resumo .numero { min-width: 0; }
+@media (max-width: 380px) { .painel-semana .painel-corpo { padding: 12px 14px 16px; } .semana-resumo { gap: 6px; } .semana-resumo .numero { padding: 10px; } .semana-resumo .numero b { font-size: 1rem; white-space: normal; } .painel-semana .painel-cabeca { padding: 14px 10px 0 14px; } }
 .semana-dia { display: flex; justify-content: space-between; margin-top: 6px; }
 .semana-dia span:last-child { font-family: var(--num); font-weight: 600; color: var(--tinta-fraca); }
 .painel-semana .registo { padding: 6px 0; }
@@ -401,3 +404,19 @@ body.arrastando, body.arrastando * { cursor: grabbing !important; }
 .semana-horas { display: grid; justify-items: end; font-family: var(--num); font-weight: 600; font-size: 1.15rem; font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 80px; }
 .semana-horas small { font-family: var(--font); }
 @media (max-width: 520px) { .semana { grid-template-columns: 1fr auto 16px; gap: 6px 12px; } .semana-barra { grid-column: 1 / -1; grid-row: 2; height: 8px; } .mes-total b { font-size: 2rem; } .painel-semana .registo { grid-template-columns: 1fr auto auto auto; } .painel-semana .registo-tempo { grid-column: 2; } .painel-semana .registo [data-editar] { grid-column: 3; grid-row: 1; } .painel-semana .registo [data-apagar] { grid-column: 4; grid-row: 1; } .painel-semana .registo-texto { grid-column: 1 / -1; grid-row: 2; } }
+
+/* Telemóveis pequenos (320 px): nada se corta dentro dos cartões nem da janela da semana */
+.crono { grid-template-columns: minmax(0, 1fr); }
+.crono-acoes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.crono-acoes .btn { min-width: 0; }
+.crono-modelo, .crono-dono, .registo-texto { overflow-wrap: anywhere; }
+.painel-semana .painel-corpo { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 360px) {
+  .crono { padding: 14px 12px; }
+  .crono-acoes .btn { padding-left: 8px; padding-right: 8px; gap: 6px; }
+}
+@media (max-width: 380px) {
+  .painel-semana .registo { column-gap: 2px; }
+  .painel-semana .registo .btn-icone { width: 34px; height: 34px; }
+  .painel-semana .registo-tempo { font-size: 1rem; margin-right: 4px; }
+}
