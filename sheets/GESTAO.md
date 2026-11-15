@@ -40,6 +40,10 @@ A página usa três abas: **Gestão Clientes** (o dono, na coluna `nome`), **Ges
 | Gestão Prémios | id, nome, pontos, custo_eur, stock, descricao, comprar, nota, ativo, criado_em |
 | Gestão Regras | id, valor, nota |
 
+A aba **Tempos** é para ler: mostra cada trabalho com a matrícula, o modelo, o dono, o serviço, o estado,
+quando começou e terminou, e o tempo (h:mm, sem as pausas). São fórmulas que leem da Gestão Trabalhos,
+Gestão Carros e Gestão Clientes, por isso enche-se sozinha. Para mudar um tempo, use o lápis do cartão na página.
+
 O saldo de um cliente é a soma dos seus movimentos. A aba **Pontos** (a que o site lia) passa a ser atualizada
 sozinha com esse saldo; não a edite à mão. Os clientes que estavam nela foram passados para a gestão com um
 movimento "Saldo de antes".
