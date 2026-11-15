@@ -280,6 +280,8 @@
   // Editar um cartão: matrícula, modelo, dono, serviço e, se já terminou, o tempo.
   function abrirEditar(id) {
     const t = trab(id);
+    painel.classList.remove('painel-semana');
+    delete painel.dataset.vista;
     if (!t) return;
     const i = info(t);
     const ms = terminado(t) ? tempo(t) : 0;
@@ -304,7 +306,7 @@
       <p class="erro-form" data-erro role="alert" hidden></p>
       <div class="novo-pe"><button class="btn primario grande" type="submit">${icone('check')}<span>Guardar</span></button></div>
     </form>`;
-    painel.showModal();
+    if (!painel.open) painel.showModal();
     const f = $('form', painel);
     f.matricula.addEventListener('blur', () => { f.matricula.value = matFormatar(f.matricula.value); });
     f.addEventListener('submit', (e) => {
@@ -326,6 +328,7 @@
       if (Object.keys(dados).length) ops.push({ op: 'atualizar', tabela: 'trabalhos', id, dados });
       painel.close();
       if (ops.length) gravar(ops, 'Guardado.');
+      if (st.semanaAberta) abrirSemana();
     });
   }
 
@@ -335,6 +338,7 @@
     const i = info(t);
     if (!confirm(`Apagar ${i.matricula || i.modelo}${t.inicio ? ' e o seu tempo' : ''}?`)) return;
     gravar([{ op: 'apagar', tabela: 'trabalhos', id }], 'Apagado.');
+    if (painel.open && painel.dataset.vista === 'semana') abrirSemana();
   }
 
   // ---------------------------------------------------------------- desenho
@@ -541,7 +545,7 @@
       const de = s < ini ? ini : s, ate = e > fim ? fim : e;
       const ts = doMes.filter((t) => { const p = data(t.pronto); return p >= de && p < ate; });
       const ultimo = new Date(ate.getTime() - 1);
-      semanas.push({ de, ultimo, n: ts.length, ms: ts.reduce((x, t) => x + tempo(t), 0), agora: hoje >= s && hoje < e });
+      semanas.push({ de, ate, ultimo, n: ts.length, ms: ts.reduce((x, t) => x + tempo(t), 0), agora: hoje >= s && hoje < e });
       s = e;
     }
     const total = semanas.reduce((x, w) => x + w.ms, 0);
@@ -562,13 +566,53 @@
         <b>${total ? duracao(total) : '0 h'}</b>
         <span>${doMes.length ? `${doMes.length} ${doMes.length === 1 ? 'carro terminado' : 'carros terminados'}${atual ? ' até hoje' : ''}` : atual ? 'Ainda sem carros terminados este mês.' : 'Sem carros terminados neste mês.'}</span>
       </div>
-      <ol class="semanas">${semanas.map((w, i) => `<li class="semana${w.agora && atual ? ' agora' : ''}">
+      <ol class="semanas">${semanas.map((w, i) => `<li><button class="semana${w.agora && atual ? ' agora' : ''}" type="button" data-semana="${w.de.getTime()}|${w.ate.getTime()}|${esc(`Semana ${i + 1} · ${intervalo(w)}`)}" aria-label="Ver os carros da semana ${i + 1}, ${esc(intervalo(w))}">
           <span class="semana-nome">Semana ${i + 1}<small>${intervalo(w)}${w.agora && atual ? ' · esta semana' : ''}</small></span>
           <span class="semana-barra" aria-hidden="true"><i style="width:${w.ms ? Math.max(3, (w.ms / max) * 100) : 0}%"></i></span>
           <span class="semana-horas">${w.ms ? duracao(w.ms) : '-'}<small>${w.n ? `${w.n} ${w.n === 1 ? 'carro' : 'carros'}` : ''}</small></span>
-        </li>`).join('')}</ol>
+          <span class="semana-seta" aria-hidden="true">${icone('caret-right')}</span>
+        </button></li>`).join('')}</ol>
     </section>`;
   }
+
+  // A janela de uma semana: os carros terminados, por dia, com o lápis para corrigir e o caixote para apagar.
+  function abrirSemana(s = st.semanaAberta) {
+    if (!s) return;
+    st.semanaAberta = s;
+    const de = new Date(s.de), ate = new Date(s.ate);
+    const ts = st.trabalhos.filter(terminado).filter((t) => { const p = data(t.pronto); return p >= de && p < ate; })
+      .sort((a, b) => String(a.pronto).localeCompare(String(b.pronto)));
+    const total = ts.reduce((x, t) => x + tempo(t), 0);
+    const dias = [];
+    ts.forEach((t) => { const p = data(t.pronto); const k = `${DIAS_SEMANA[p.getDay()]}, ${p.getDate()} ${MESES[p.getMonth()]}`; if (!dias.length || dias[dias.length - 1].dia !== k) dias.push({ dia: k, itens: [], ms: 0 }); const g = dias[dias.length - 1]; g.itens.push(t); g.ms += tempo(t); });
+    painel.classList.remove('painel-novo');
+    painel.classList.add('painel-semana');
+    painel.dataset.vista = 'semana';
+    painel.innerHTML = `<div class="painel-forma">
+      <header class="painel-cabeca"><h2 id="painel-titulo">${esc(s.titulo)}</h2>
+        <button class="btn-icone" type="button" data-fechar aria-label="Fechar">${icone('x')}</button></header>
+      <div class="painel-corpo">
+        <div class="resumo semana-resumo">
+          <div class="numero"><small>Horas</small><b>${ts.length ? duracao(total) : '0 h'}</b></div>
+          <div class="numero"><small>Carros</small><b>${ts.length}</b></div>
+          <div class="numero"><small>Média</small><b>${ts.length ? duracao(total / ts.length) : '-'}</b></div>
+        </div>
+        ${!ts.length ? '<p class="vazio">Sem carros terminados nesta semana.</p>' : dias.map((d) => `<h3 class="dia semana-dia"><span>${esc(d.dia)}</span><span>${duracao(d.ms)}</span></h3>
+          <ul class="registos">${d.itens.map((t) => {
+            const i = info(t), a = data(t.inicio), p = data(t.pronto);
+            return `<li class="registo">
+              ${placa(i.matricula)}
+              <div class="registo-texto"><b>${esc(i.modelo)}</b>${i.dono ? ` <span>· ${esc(i.dono)}</span>` : ''}${i.servico ? ` <span class="registo-servico">${esc(i.servico)}</span>` : ''}<small>${hora(a)} – ${hora(p)}${num(t.pausa_min) >= 1 ? ` · ${duracao(num(t.pausa_min) * MIN)} em pausa` : ''}</small></div>
+              <span class="registo-tempo">${duracao(tempo(t))}</span>
+              <button class="btn-icone" type="button" data-editar="${esc(t.id)}" aria-label="Editar" title="Editar">${icone('pencil-simple')}</button>
+              <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar" title="Apagar">${icone('trash')}</button>
+            </li>`;
+          }).join('')}</ul>`).join('')}
+      </div>
+    </div>`;
+    if (!painel.open) painel.showModal();
+  }
+  const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
   function vistaRelatorio() {
     const q = sem(st.busca), qm = matChave(st.busca);
@@ -654,6 +698,9 @@
 
   // ---------------------------------------------------------------- ligação à sheet
   const painel = $('[data-painel]');
+  // Esc ou clicar fora fecha: esquece a semana aberta e a classe da janela.
+  painel.addEventListener('close', () => { if (!painel.open) { painel.classList.remove('painel-semana'); delete painel.dataset.vista; } });
+  painel.addEventListener('cancel', () => { st.semanaAberta = null; });
   function abrirLigacao() {
     if (LOCAL) {
       painel.classList.remove('painel-novo');
@@ -726,7 +773,8 @@
     else if (d.terminar) terminar(d.terminar);
     else if (d.apagar) apagar(d.apagar);
     else if ('abrirLigacao' in d) abrirLigacao();
-    else if ('fechar' in d) painel.close();
+    else if ('fechar' in d) { st.semanaAberta = null; painel.close(); }
+    else if (d.semana) { const [de, ate, titulo] = d.semana.split('|'); abrirSemana({ de: +de, ate: +ate, titulo }); }
     else if ('adicionar' in d) abrirNovo();
     else if (d.editar) abrirEditar(d.editar);
     else if (d.mes) { st.mes = Math.min(0, st.mes + Number(d.mes)); desenhar(); }
