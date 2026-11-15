@@ -48,6 +48,10 @@ O saldo de um cliente é a soma dos seus movimentos. A aba **Pontos** (a que o s
 sozinha com esse saldo; não a edite à mão. Os clientes que estavam nela foram passados para a gestão com um
 movimento "Saldo de antes".
 
+## Sheet simples, sem PIN
+
+A página também funciona com uma Google Sheet só para os tempos, sem PIN: ver [TEMPOS-SHEET.md](TEMPOS-SHEET.md).
+
 ## Ligar (uma vez)
 
 O script é o mesmo do site dos pontos, com o mesmo URL (já está em `public/gestao/config.js`).

@@ -63,7 +63,7 @@
 
   const LOCAL = !!CFG.local;
   const BASE = LOCAL ? 'o Excel' : 'a sheet';
-  const ligacao = () => { if (LOCAL) return { apiUrl: CFG.apiUrl, pin: '' }; const l = ler('ig.ligacao', {}); return { apiUrl: (l.apiUrl || CFG.apiUrl || '').trim(), pin: l.pin || '' }; };
+  const ligacao = () => { if (LOCAL) return { apiUrl: CFG.apiUrl }; const l = ler('ig.ligacao', {}); return { apiUrl: (l.apiUrl || CFG.apiUrl || '').trim() }; };
   const emDemo = () => !LOCAL && (!ligacao().apiUrl || ler('ig.forcarDemo', false));
 
   const carroDe = (t) => st.carros.find((c) => c.id === t.carro_id);
@@ -87,12 +87,12 @@
   // ---------------------------------------------------------------- sheet (Apps Script) ou demonstração
   async function chamar(corpo) {
     if (emDemo()) return demo.chamar(corpo);
-    const { apiUrl, pin } = ligacao();
+    const { apiUrl } = ligacao();
     const r = await fetch(apiUrl, {
       method: 'POST',
       // text/plain evita o pedido prévio de CORS, que o Apps Script não atende.
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ ...corpo, pin }),
+      body: JSON.stringify(corpo),
       redirect: 'follow',
     });
     if (!r.ok) throw Object.assign(new Error(`A sheet respondeu ${r.status}.`), { codigo: 'rede' });
@@ -587,9 +587,8 @@
   const elAviso = $('[data-aviso]');
   function desenharAviso() {
     if (!st.erro) { elAviso.hidden = true; return; }
-    const pin = ['pin', 'sem-pin'].includes(st.codigoErro);
-    elAviso.innerHTML = `${icone('warning')}<span>${pin ? (ligacao().pin ? 'PIN errado.' : 'Falta o PIN para ligar à Google Sheet.') : `Sem ligação a ${BASE}. Os tempos ficam neste aparelho e seguem depois. <small>(${esc(st.erro)})</small>`}</span>
-      <button class="btn pequeno" type="button" data-abrir-ligacao>${pin ? 'Escrever o PIN' : 'Ligação'}</button>`;
+    elAviso.innerHTML = `${icone('warning')}<span>Sem ligação a ${BASE}. Os tempos ficam neste aparelho e seguem depois. <small>(${esc(st.erro)})</small></span>
+      <button class="btn pequeno" type="button" data-abrir-ligacao>Ligação</button>`;
     elAviso.hidden = false;
   }
 
@@ -602,7 +601,7 @@
     toastTempo = setTimeout(() => { el.hidden = true; }, 3000);
   }
 
-  // ---------------------------------------------------------------- ligação (PIN)
+  // ---------------------------------------------------------------- ligação à sheet
   const painel = $('[data-painel]');
   function abrirLigacao() {
     if (LOCAL) {
@@ -626,11 +625,8 @@
       <header class="painel-cabeca"><h2 id="painel-titulo">Ligação à Google Sheet</h2>
         <button class="btn-icone" type="button" data-fechar aria-label="Fechar">${icone('x')}</button></header>
       <div class="painel-corpo">
-        <p>Os tempos ficam na sheet INOVACAR: abas <b>Gestão Trabalhos</b>, <b>Gestão Carros</b> e <b>Gestão Clientes</b>. Cada aparelho escreve o PIN uma vez.</p>
-        <label class="campo"><span class="rotulo">PIN da gestão</span><input name="pin" type="password" value="${esc(l.pin || '')}" autocomplete="current-password"></label>
-        <details><summary>URL do script</summary>
-          <label class="campo"><span class="rotulo">URL da aplicação web</span><input name="apiUrl" type="url" value="${esc(url)}" placeholder="https://script.google.com/macros/s/.../exec"></label>
-        </details>
+        <p>Os tempos ficam numa Google Sheet, nas abas <b>Trabalhos</b>, <b>Carros</b> e <b>Clientes</b>, e a aba <b>Tempos</b> mostra-os prontos a ler.</p>
+        <label class="campo"><span class="rotulo">URL da aplicação web</span><input name="apiUrl" type="url" value="${esc(url)}" placeholder="https://script.google.com/macros/s/.../exec"></label>
         <p class="estado-ligacao" data-estado hidden></p>
         <p><button class="btn texto" type="button" data-demo>${emDemo() ? 'Continuar na demonstração' : 'Ver a demonstração (dados só neste aparelho)'}</button></p>
       </div>
@@ -638,16 +634,15 @@
     </form>`;
     painel.showModal();
     const f = $('form', painel);
-    f.pin.focus();
+    f.apiUrl.focus();
     const estado = $('[data-estado]', f);
     const mostra = (txt, cls = '') => { estado.textContent = txt; estado.className = 'estado-ligacao ' + cls; estado.hidden = false; };
     f.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const apiUrl = f.apiUrl.value.trim(), pin = f.pin.value;
+      const apiUrl = f.apiUrl.value.trim();
       if (!/^https:\/\/script\.google(usercontent)?\.com\/.+/.test(apiUrl)) return mostra('O URL deve começar por https://script.google.com/macros/s/ e acabar em /exec.', 'erro');
-      if (!pin) return mostra('Escreva o PIN.', 'erro');
       const antes = ler('ig.ligacao', {}), demoAntes = ler('ig.forcarDemo', false);
-      guardar('ig.ligacao', { apiUrl: apiUrl === CFG.apiUrl ? '' : apiUrl, pin });
+      guardar('ig.ligacao', { apiUrl: apiUrl === CFG.apiUrl ? '' : apiUrl });
       guardar('ig.forcarDemo', false);
       mostra('A testar…');
       try {
@@ -657,7 +652,7 @@
         setTimeout(() => { painel.close(); carregar(); }, 600);
       } catch (err) {
         guardar('ig.ligacao', antes); guardar('ig.forcarDemo', demoAntes);
-        mostra(err.codigo === 'pin' ? 'PIN errado. Confirme o PIN definido na sheet (menu INOVACAR).' : err.message || 'Não foi possível ligar.', 'erro');
+        mostra(err.message || 'Não foi possível ligar.', 'erro');
       }
     });
     $('[data-demo]', f).addEventListener('click', () => {
