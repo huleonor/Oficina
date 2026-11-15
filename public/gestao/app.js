@@ -533,43 +533,69 @@
 
   // Horas de um mês, semana a semana (segunda a domingo). Conta o tempo de cada carro no dia em que terminou.
   const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  // Horas para ler num relatório: "0 h", "< 1 min", "2 h 15 min".
+  const horas = (ms) => (ms <= 0 ? '0 h' : ms < MIN ? '< 1 min' : duracao(ms));
+  const somaTempo = (ts) => ts.reduce((x, t) => x + tempo(t), 0);
+  const carros = (n) => `${n} ${n === 1 ? 'carro' : 'carros'}`;
+
+  // Horas por mês: o mês escolhido em destaque, os últimos meses num gráfico de colunas (clicar escolhe o mês)
+  // e as semanas desse mês (segunda a domingo). O tempo de cada carro conta no dia em que terminou.
   function vistaMes(todos) {
     const hoje = new Date();
-    const ini = new Date(hoje.getFullYear(), hoje.getMonth() + st.mes, 1);
-    const fim = new Date(ini.getFullYear(), ini.getMonth() + 1, 1);
-    const doMes = todos.filter((t) => { const p = data(t.pronto); return p >= ini && p < fim; });
+    const mesDe = (k) => new Date(hoje.getFullYear(), hoje.getMonth() + k, 1);
+    const doMes = (k) => { const a = mesDe(k), b = mesDe(k + 1); return todos.filter((t) => { const p = data(t.pronto); return p >= a && p < b; }); };
+    const primeiro = todos.reduce((m, t) => { const p = data(t.pronto); return p && p < m ? p : m; }, hoje);
+    const atras = Math.min(11, Math.max(5, (hoje.getFullYear() - primeiro.getFullYear()) * 12 + hoje.getMonth() - primeiro.getMonth()));
+    st.mesMin = -atras;
+    st.mes = Math.max(st.mes, -atras);
+    const meses = [];
+    for (let k = -atras; k <= 0; k++) { const ts = doMes(k); meses.push({ k, ini: mesDe(k), ms: somaTempo(ts), n: ts.length }); }
+    const sel = meses.find((m) => m.k === st.mes);
+    const ini = sel.ini, fim = mesDe(st.mes + 1);
+    const atual = st.mes === 0;
+    const nomeMes = (d) => `${MESES_LONGOS[d.getMonth()]}${d.getFullYear() !== hoje.getFullYear() ? ' ' + d.getFullYear() : ''}`;
+    const antes = somaTempo(doMes(st.mes - 1));
+    const dif = sel.ms - antes;
+    const maxMes = Math.max(...meses.map((m) => m.ms), 1);
+
+    const ts = todos.filter((t) => { const p = data(t.pronto); return p >= ini && p < fim; });
     const semanas = [];
     let s = new Date(ini); s.setDate(s.getDate() - ((s.getDay() + 6) % 7)); // a segunda-feira dessa semana
-    while (s < fim && (st.mes < 0 || s <= hoje)) { // no mês atual, só até esta semana
+    while (s < fim && (!atual || s <= hoje)) { // no mês atual, só até esta semana
       const e = new Date(s); e.setDate(e.getDate() + 7);
       const de = s < ini ? ini : s, ate = e > fim ? fim : e;
-      const ts = doMes.filter((t) => { const p = data(t.pronto); return p >= de && p < ate; });
-      const ultimo = new Date(ate.getTime() - 1);
-      semanas.push({ de, ate, ultimo, n: ts.length, ms: ts.reduce((x, t) => x + tempo(t), 0), agora: hoje >= s && hoje < e });
+      const dela = ts.filter((t) => { const p = data(t.pronto); return p >= de && p < ate; });
+      semanas.push({ de, ate, ultimo: new Date(ate.getTime() - 1), n: dela.length, ms: somaTempo(dela), agora: hoje >= s && hoje < e });
       s = e;
     }
-    const total = semanas.reduce((x, w) => x + w.ms, 0);
-    const max = Math.max(...semanas.map((w) => w.ms), 1);
-    const nome = `${MESES_LONGOS[ini.getMonth()]}${ini.getFullYear() !== hoje.getFullYear() ? ' ' + ini.getFullYear() : ''}`;
-    const atual = st.mes === 0;
-    const anterior = todos.some((t) => data(t.pronto) < ini);
-    const intervalo = (w) => w.de.getMonth() === w.ultimo.getMonth() && w.de.getDate() === w.ultimo.getDate() ? `${w.de.getDate()} ${MESES[w.de.getMonth()]}` : `${w.de.getDate()}–${w.ultimo.getDate()} ${MESES[w.ultimo.getMonth()]}`;
+    const maxSem = Math.max(...semanas.map((w) => w.ms), 1);
+    const intervalo = (w) => w.de.getDate() === w.ultimo.getDate() ? `${w.de.getDate()} ${MESES[w.de.getMonth()]}` : `${w.de.getDate()}–${w.ultimo.getDate()} ${MESES[w.ultimo.getMonth()]}`;
+
     return `<section class="bloco mes" aria-labelledby="t-mes">
       <header class="mes-cabeca">
-        <h2 id="t-mes" class="titulo">Horas de ${esc(nome)}</h2>
+        <h2 id="t-mes" class="titulo">Horas por mês</h2>
         <div class="mes-nav">
-          <button class="btn-icone" type="button" data-mes="-1" aria-label="Mês anterior" title="Mês anterior"${anterior ? '' : ' disabled'}><span class="virar">${icone('caret-right')}</span></button>
+          <button class="btn-icone" type="button" data-mes="-1" aria-label="Mês anterior" title="Mês anterior"${st.mes > -atras ? '' : ' disabled'}><span class="virar">${icone('caret-right')}</span></button>
           <button class="btn-icone" type="button" data-mes="1" aria-label="Mês seguinte" title="Mês seguinte"${atual ? ' disabled' : ''}>${icone('caret-right')}</button>
         </div>
       </header>
-      <div class="mes-total">
-        <b>${total ? duracao(total) : '0 h'}</b>
-        <span>${doMes.length ? `${doMes.length} ${doMes.length === 1 ? 'carro terminado' : 'carros terminados'}${atual ? ' até hoje' : ''}` : atual ? 'Ainda sem carros terminados este mês.' : 'Sem carros terminados neste mês.'}</span>
+      <div class="mes-destaque">
+        <p class="mes-nome">${esc(nomeMes(ini).charAt(0).toUpperCase() + nomeMes(ini).slice(1))}${atual ? ' <span>até hoje</span>' : ''}</p>
+        <p class="mes-total"><b>${horas(sel.ms)}</b><span>${sel.n ? carros(sel.n) : 'nenhum carro terminado'}</span></p>
+        ${antes || sel.ms ? `<p class="mes-dif">${antes ? `${icone(dif >= 0 ? 'arrow-up' : 'arrow-down')}<span>${dif >= 0 ? '+' : '−'}${horas(Math.abs(dif))} face a ${MESES_LONGOS[mesDe(st.mes - 1).getMonth()]}</span>` : `<span>${MESES_LONGOS[mesDe(st.mes - 1).getMonth()]} sem horas</span>`}</p>` : ''}
       </div>
-      <ol class="semanas">${semanas.map((w, i) => `<li><button class="semana${w.agora && atual ? ' agora' : ''}" type="button" data-semana="${w.de.getTime()}|${w.ate.getTime()}|${esc(`Semana ${i + 1} · ${intervalo(w)}`)}" aria-label="Ver os carros da semana ${i + 1}, ${esc(intervalo(w))}">
+      <div class="meses-grafico" role="group" aria-label="Horas de cada mês">
+        ${meses.map((m) => `<button class="mes-col${m.k === st.mes ? ' escolhido' : ''}" type="button" data-ir-mes="${m.k}" aria-pressed="${m.k === st.mes}" aria-label="${esc(nomeMes(m.ini))}: ${horas(m.ms)}, ${carros(m.n)}">
+          <span class="mes-col-area"><i style="height:${m.ms ? Math.max(3, (m.ms / maxMes) * 100) : 0}%"></i></span>
+          <span class="mes-col-nome">${MESES[m.ini.getMonth()]}</span>
+          <span class="mes-dica" aria-hidden="true"><b>${horas(m.ms)}</b>${esc(nomeMes(m.ini))} · ${carros(m.n)}</span>
+        </button>`).join('')}
+      </div>
+      <h3 class="subtitulo">Semanas de ${esc(MESES_LONGOS[ini.getMonth()])}</h3>
+      <ol class="semanas">${semanas.map((w, i) => `<li><button class="semana${w.agora && atual ? ' agora' : ''}${w.ms ? '' : ' vazia'}" type="button" data-semana="${w.de.getTime()}|${w.ate.getTime()}|${esc(`Semana ${i + 1} · ${intervalo(w)}`)}" aria-label="Ver os carros da semana ${i + 1}, ${esc(intervalo(w))}">
           <span class="semana-nome">Semana ${i + 1}<small>${intervalo(w)}${w.agora && atual ? ' · esta semana' : ''}</small></span>
-          <span class="semana-barra" aria-hidden="true"><i style="width:${w.ms ? Math.max(3, (w.ms / max) * 100) : 0}%"></i></span>
-          <span class="semana-horas">${w.ms ? duracao(w.ms) : '-'}<small>${w.n ? `${w.n} ${w.n === 1 ? 'carro' : 'carros'}` : ''}</small></span>
+          <span class="semana-barra" aria-hidden="true"><i style="width:${w.ms ? Math.max(2, (w.ms / maxSem) * 100) : 0}%"></i></span>
+          <span class="semana-horas">${horas(w.ms)}<small>${w.n ? carros(w.n) : ''}</small></span>
           <span class="semana-seta" aria-hidden="true">${icone('caret-right')}</span>
         </button></li>`).join('')}</ol>
     </section>`;
@@ -593,17 +619,17 @@
         <button class="btn-icone" type="button" data-fechar aria-label="Fechar">${icone('x')}</button></header>
       <div class="painel-corpo">
         <div class="resumo semana-resumo">
-          <div class="numero"><small>Horas</small><b>${ts.length ? duracao(total) : '0 h'}</b></div>
+          <div class="numero"><small>Horas</small><b>${horas(total)}</b></div>
           <div class="numero"><small>Carros</small><b>${ts.length}</b></div>
-          <div class="numero"><small>Média</small><b>${ts.length ? duracao(total / ts.length) : '-'}</b></div>
+          <div class="numero"><small>Média</small><b>${ts.length ? horas(total / ts.length) : '-'}</b></div>
         </div>
-        ${!ts.length ? '<p class="vazio">Sem carros terminados nesta semana.</p>' : dias.map((d) => `<h3 class="dia semana-dia"><span>${esc(d.dia)}</span><span>${duracao(d.ms)}</span></h3>
+        ${!ts.length ? '<p class="vazio">Sem carros terminados nesta semana.</p>' : dias.map((d) => `<h3 class="dia semana-dia"><span>${esc(d.dia)}</span><span>${horas(d.ms)}</span></h3>
           <ul class="registos">${d.itens.map((t) => {
             const i = info(t), a = data(t.inicio), p = data(t.pronto);
             return `<li class="registo">
               ${placa(i.matricula)}
               <div class="registo-texto"><b>${esc(i.modelo)}</b>${i.dono ? ` <span>· ${esc(i.dono)}</span>` : ''}${i.servico ? ` <span class="registo-servico">${esc(i.servico)}</span>` : ''}<small>${hora(a)} – ${hora(p)}${num(t.pausa_min) >= 1 ? ` · ${duracao(num(t.pausa_min) * MIN)} em pausa` : ''}</small></div>
-              <span class="registo-tempo">${duracao(tempo(t))}</span>
+              <span class="registo-tempo">${horas(tempo(t))}</span>
               <button class="btn-icone" type="button" data-editar="${esc(t.id)}" aria-label="Editar" title="Editar">${icone('pencil-simple')}</button>
               <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar" title="Apagar">${icone('trash')}</button>
             </li>`;
@@ -629,12 +655,7 @@
       <h1 class="titulo-pagina">Tempos</h1>
       ${todos.length ? `<label class="busca">${icone('magnifying-glass')}<input name="busca" type="search" placeholder="Procurar matrícula, dono, serviço…" value="${esc(st.busca)}" aria-label="Procurar"></label>` : ''}
     </div>
-    ${lista.length ? `<div class="resumo">
-      <div class="numero"><small>Carros terminados</small><b>${lista.length}</b></div>
-      <div class="numero"><small>Tempo total</small><b>${duracao(total)}</b></div>
-      <div class="numero"><small>Média por carro</small><b>${duracao(total / lista.length)}</b></div>
-    </div>` : ''}
-    ${todos.length ? vistaMes(todos) : ''}
+    ${todos.length ? vistaMes(todos) : '<section class="bloco"><p class="vazio">Ainda não há carros terminados. As horas por mês aparecem aqui quando terminar o primeiro.</p></section>'}
     ${(() => {
       const g = new Map();
       lista.forEach((t) => { const x = limpar(t.servico); if (!x) return; const k = sem(x); const u = g.get(k) || { nome: x, soma: 0, n: 0 }; u.soma += tempo(t); u.n++; g.set(k, u); });
@@ -642,11 +663,12 @@
       return m.length ? `<section class="bloco" aria-labelledby="t-media">
         <h2 id="t-media" class="titulo">Média por serviço</h2>
         <table class="tabela"><thead><tr><th scope="col">Serviço</th><th scope="col" class="n">Vezes</th><th scope="col" class="n">Média</th></tr></thead>
-        <tbody>${m.map((u) => `<tr><td>${esc(u.nome)}</td><td class="n">${u.n}</td><td class="n forte">${duracao(u.soma / u.n)}</td></tr>`).join('')}</tbody></table>
+        <tbody>${m.map((u) => `<tr><td>${esc(u.nome)}</td><td class="n">${u.n}</td><td class="n forte">${horas(u.soma / u.n)}</td></tr>`).join('')}</tbody></table>
       </section>` : '';
     })()}
     <section class="bloco" aria-labelledby="t-tempos">
       <h2 id="t-tempos" class="titulo">Tempos <span class="conta">${lista.length}</span></h2>
+      ${lista.length ? `<p class="tempos-total">${q ? 'Encontrados: ' : 'No total: '}<b>${horas(total)}</b> · média de <b>${horas(total / lista.length)}</b> por carro</p>` : ''}
       ${!todos.length ? '<p class="vazio">Ainda não há carros terminados.</p>' : !lista.length ? '<p class="vazio">Nada encontrado.</p>' : ''}
       ${dias.map((d) => `<h3 class="dia">${esc(d.dia)}</h3>
         <ul class="registos">${d.itens.map((t) => {
@@ -654,7 +676,7 @@
           return `<li class="registo">
             ${placa(i.matricula)}
             <div class="registo-texto"><b>${esc(i.modelo)}</b>${i.dono ? ` <span>· ${esc(i.dono)}</span>` : ''}${i.servico ? ` <span class="registo-servico">${esc(i.servico)}</span>` : ''}<small>${hora(a)} – ${hora(p)}${num(t.pausa_min) >= 1 ? ` · ${duracao(num(t.pausa_min) * MIN)} em pausa` : ''}</small></div>
-            <span class="registo-tempo">${duracao(tempo(t))}</span>
+            <span class="registo-tempo">${horas(tempo(t))}</span>
             <button class="btn-icone" type="button" data-apagar="${esc(t.id)}" aria-label="Apagar" title="Apagar">${icone('trash')}</button>
           </li>`;
         }).join('')}</ul>`).join('')}
@@ -777,7 +799,8 @@
     else if (d.semana) { const [de, ate, titulo] = d.semana.split('|'); abrirSemana({ de: +de, ate: +ate, titulo }); }
     else if ('adicionar' in d) abrirNovo();
     else if (d.editar) abrirEditar(d.editar);
-    else if (d.mes) { st.mes = Math.min(0, st.mes + Number(d.mes)); desenhar(); }
+    else if (d.mes) { st.mes = Math.max(st.mesMin ?? -11, Math.min(0, st.mes + Number(d.mes))); desenhar(); }
+    else if (d.irMes) { st.mes = Number(d.irMes); desenhar(); }
     else if (d.reabrir) reabrir(d.reabrir);
     else if ('verMais' in d) { st.verProntos += 10; desenhar(); }
     else if ('verMenos' in d) { st.verProntos = 3; desenhar(); }

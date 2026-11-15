@@ -371,16 +371,43 @@ body.arrastando, body.arrastando * { cursor: grabbing !important; }
 .tempo-hm span { color: var(--tinta-suave); font-weight: 600; }
 .painel-novo form.bloco.novo { padding: 24px; }
 
-/* Horas do mês, semana a semana (página Tempos) */
-.mes { display: grid; gap: 14px; }
+/* Horas por mês (página Tempos) */
+.mes { display: grid; gap: 16px; }
 .mes-cabeca { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .mes-nav { display: flex; gap: 4px; }
 .mes-nav .btn-icone:disabled { opacity: .3; cursor: default; }
 .virar { display: inline-flex; transform: scaleX(-1); }
+.mes-destaque { display: grid; gap: 2px; }
+.mes-nome { font-weight: 650; color: var(--tinta-suave); }
+.mes-nome span { font-weight: 500; color: var(--tinta-fraca); }
 .mes-total { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.mes-total b { font-family: var(--num); font-weight: 600; font-size: 2.4rem; line-height: 1; color: var(--turquesa-tinta); font-variant-numeric: tabular-nums; }
+.mes-total b { font-family: var(--num); font-weight: 600; font-size: 2.6rem; line-height: 1.05; color: var(--tinta); font-variant-numeric: tabular-nums; }
 .mes-total span { color: var(--tinta-fraca); }
+.mes-dif { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; color: var(--tinta-suave); }
+.mes-dif .ico { width: 14px; height: 14px; color: var(--turquesa-tinta); }
+/* O gráfico: uma coluna por mês, uma só cor; o mês escolhido mais escuro. */
+.meses-grafico { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; align-items: end; height: 150px; padding-top: 8px; border-bottom: 1px solid var(--linha); }
+.mes-col { position: relative; height: 100%; display: grid; grid-template-rows: 1fr auto; justify-items: center; gap: 6px; padding: 0 0 6px; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; border-radius: 8px; }
+.mes-col-area { width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.mes-col-area i { display: block; width: min(28px, 70%); border-radius: 4px 4px 0 0; background: var(--turquesa-hover); transition: background .15s ease-out, height .3s cubic-bezier(.2, .8, .2, 1); }
+.mes-col:hover .mes-col-area i { background: #1f8a86; }
+.mes-col.escolhido .mes-col-area i { background: var(--turquesa-tinta); }
+.mes-col-nome { font-size: .78rem; color: var(--tinta-fraca); }
+.mes-col.escolhido .mes-col-nome { color: var(--tinta); font-weight: 700; }
+.mes-col:focus-visible { outline: 2px solid var(--turquesa); outline-offset: 2px; }
+.mes-dica { position: absolute; bottom: calc(100% - 4px); left: 50%; transform: translate(-50%, 4px); z-index: 3; display: grid; gap: 1px; padding: 6px 10px; border-radius: 8px; background: var(--escuro); color: #fff; font-size: .78rem; white-space: nowrap; text-align: center; pointer-events: none; opacity: 0; transition: opacity .12s ease-out, transform .12s ease-out; }
+.mes-dica b { font-family: var(--num); font-weight: 600; font-size: .95rem; }
+.mes-col:hover .mes-dica, .mes-col:focus-visible .mes-dica { opacity: 1; transform: translate(-50%, 0); }
+.mes-col:first-child .mes-dica { left: 0; transform: translate(0, 4px); }
+.mes-col:first-child:hover .mes-dica, .mes-col:first-child:focus-visible .mes-dica { transform: none; }
+.mes-col:last-child .mes-dica { left: auto; right: 0; transform: translate(0, 4px); }
+.mes-col:last-child:hover .mes-dica, .mes-col:last-child:focus-visible .mes-dica { transform: none; }
+@media (hover: none) { .mes-dica { display: none; } }
+@media (prefers-reduced-motion: reduce) { .mes-col-area i, .mes-dica { transition: none; } }
+.mes .subtitulo { margin: 4px 0 -8px; }
 .semanas { list-style: none; margin: 0; padding: 0; display: grid; }
+.tempos-total { color: var(--tinta-fraca); font-size: .92rem; margin-top: 4px; }
+.tempos-total b { font-family: var(--num); font-weight: 600; color: var(--tinta); }
 .semanas > li { border-top: 1px solid var(--linha); }
 .semana { width: 100%; display: grid; grid-template-columns: minmax(110px, 150px) 1fr auto 20px; align-items: center; gap: 14px; padding: 10px 8px; margin: 0 -8px; width: calc(100% + 16px); border: 0; border-radius: 10px; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; transition: background .15s ease-out; }
 .semana:hover { background: var(--fundo); }
@@ -398,12 +425,13 @@ body.arrastando, body.arrastando * { cursor: grabbing !important; }
 .painel-semana .registo { padding: 6px 0; }
 .semana-nome { display: grid; font-weight: 650; }
 .semana-nome small, .semana-horas small { font-weight: 500; color: var(--tinta-fraca); font-size: .82rem; }
-.semana-barra { height: 10px; }
-.semana-barra i { display: block; height: 100%; border-radius: 999px; background: var(--turquesa); }
+.semana-barra { height: 8px; border-radius: 999px; background: var(--fundo); overflow: hidden; }
+.semana-barra i { display: block; height: 100%; border-radius: 999px; background: var(--turquesa-hover); }
+.semana.vazia .semana-horas { color: var(--tinta-fraca); font-weight: 500; }
 .semana.agora .semana-nome { color: var(--turquesa-tinta); }
 .semana-horas { display: grid; justify-items: end; font-family: var(--num); font-weight: 600; font-size: 1.15rem; font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 80px; }
 .semana-horas small { font-family: var(--font); }
-@media (max-width: 520px) { .semana { grid-template-columns: 1fr auto 16px; gap: 6px 12px; } .semana-barra { grid-column: 1 / -1; grid-row: 2; height: 8px; } .mes-total b { font-size: 2rem; } .painel-semana .registo { grid-template-columns: 1fr auto auto auto; } .painel-semana .registo-tempo { grid-column: 2; } .painel-semana .registo [data-editar] { grid-column: 3; grid-row: 1; } .painel-semana .registo [data-apagar] { grid-column: 4; grid-row: 1; } .painel-semana .registo-texto { grid-column: 1 / -1; grid-row: 2; } }
+@media (max-width: 520px) { .semana { grid-template-columns: 1fr auto 16px; gap: 6px 12px; } .semana-barra { grid-column: 1 / -1; grid-row: 2; height: 6px; } .mes-total b { font-size: 2.1rem; } .meses-grafico { height: 120px; gap: 2px; } .mes-col-nome { font-size: .7rem; } .painel-semana .registo { grid-template-columns: 1fr auto auto auto; } .painel-semana .registo-tempo { grid-column: 2; } .painel-semana .registo [data-editar] { grid-column: 3; grid-row: 1; } .painel-semana .registo [data-apagar] { grid-column: 4; grid-row: 1; } .painel-semana .registo-texto { grid-column: 1 / -1; grid-row: 2; } }
 
 /* Telemóveis pequenos (320 px): nada se corta dentro dos cartões nem da janela da semana */
 .crono { grid-template-columns: minmax(0, 1fr); }

@@ -21,7 +21,7 @@ Conta quanto tempo cada carro está em trabalho, num quadro com três fases:
 
 O lápis de cada cartão edita a matrícula, o modelo, o dono, o serviço e, num carro terminado, o tempo.
 Não se volta a Por começar. A página **Tempos** tem todos os tempos (carros terminados, tempo total, média por
-carro, as **horas de cada mês semana a semana** (com setas para os meses anteriores), média por serviço e a lista por dia).
+carro, as **horas por mês** num gráfico dos últimos meses (clicar num mês escolhe-o) e as semanas desse mês (clicar numa semana abre os carros, para corrigir ou apagar), média por serviço e a lista por dia).
 
 O tempo é o do relógio, desde Começar até Terminar, sem as pausas.
 Se a ligação falhar, os tempos ficam guardados no aparelho e seguem quando a sheet voltar a responder.
