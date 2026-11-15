@@ -65,6 +65,13 @@
   const BASE = LOCAL ? 'o Excel' : 'a sheet';
   const ligacao = () => { if (LOCAL) return { apiUrl: CFG.apiUrl }; const l = ler('ig.ligacao', {}); return { apiUrl: (l.apiUrl || CFG.apiUrl || '').trim() }; };
   const emDemo = () => !LOCAL && (!ligacao().apiUrl || ler('ig.forcarDemo', false));
+  // O URL da sheet mudou no config.js: esquece ligações e a demonstração escolhidas antes neste aparelho.
+  if (!LOCAL && ler('ig.cfgUrl', null) !== (CFG.apiUrl || '')) {
+    if (ler('ig.forcarDemo', false)) { st.pendentes = []; guardar('tp.pendentes', []); }
+    guardar('ig.ligacao', {});
+    guardar('ig.forcarDemo', false);
+    guardar('ig.cfgUrl', CFG.apiUrl || '');
+  }
 
   const carroDe = (t) => st.carros.find((c) => c.id === t.carro_id);
   const donoDe = (c) => (c ? st.clientes.find((x) => x.id === c.cliente_id) : null);

@@ -6,7 +6,7 @@ editar e reabrir.
 
 | Aba | O que tem |
 | --- | --- |
-| **Tempos** | para ler: matrícula, modelo, dono, serviço, estado, começou, terminou, tempo (h:mm, sem pausas) |
+| **Tempos** | para ler: matrícula, modelo, dono, serviço, estado, começou, terminou, tempo (h:mm, sem pausas). O script reescreve-a depois de cada gravação (valores, não fórmulas, para servir em qualquer idioma) |
 | Trabalhos | um por carro na oficina: `inicio`, `pronto`, `pausa_min`... (a página escreve aqui) |
 | Carros | matrícula e modelo |
 | Clientes | o nome do dono |
