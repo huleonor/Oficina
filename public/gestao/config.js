@@ -1,8 +1,8 @@
 /*
  * Configuração da gestão da INOVACAR.
  *
- * apiUrl: o URL /exec do Apps Script da sheet (sheets/Codigo.gs no repositório), o mesmo que o site
- *   usa para os pontos. O PIN nunca fica neste ficheiro: cada aparelho escreve-o uma vez.
+ * apiUrl: o URL /exec do Apps Script da sheet dos tempos (sheets/Tempos.gs, ver sheets/TEMPOS-SHEET.md).
+ *   Sem PIN: a página liga-se sozinha.
  *   Vazio: a página abre em modo de demonstração, com dados só neste navegador.
  */
 window.GESTAO = {
