@@ -370,3 +370,23 @@ body.arrastando, body.arrastando * { cursor: grabbing !important; }
 .tempo-hm input:focus-visible { outline: none; border-color: var(--turquesa); box-shadow: 0 0 0 3px var(--turquesa-suave); }
 .tempo-hm span { color: var(--tinta-suave); font-weight: 600; }
 .painel-novo form.bloco.novo { padding: 24px; }
+
+/* Horas do mês, semana a semana (página Tempos) */
+.mes { display: grid; gap: 14px; }
+.mes-cabeca { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.mes-nav { display: flex; gap: 4px; }
+.mes-nav .btn-icone:disabled { opacity: .3; cursor: default; }
+.virar { display: inline-flex; transform: scaleX(-1); }
+.mes-total { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.mes-total b { font-family: var(--num); font-weight: 600; font-size: 2.4rem; line-height: 1; color: var(--turquesa-tinta); font-variant-numeric: tabular-nums; }
+.mes-total span { color: var(--tinta-fraca); }
+.semanas { list-style: none; margin: 0; padding: 0; display: grid; }
+.semana { display: grid; grid-template-columns: minmax(110px, 150px) 1fr auto; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid var(--linha); }
+.semana-nome { display: grid; font-weight: 650; }
+.semana-nome small, .semana-horas small { font-weight: 500; color: var(--tinta-fraca); font-size: .82rem; }
+.semana-barra { height: 10px; }
+.semana-barra i { display: block; height: 100%; border-radius: 999px; background: var(--turquesa); }
+.semana.agora .semana-nome { color: var(--turquesa-tinta); }
+.semana-horas { display: grid; justify-items: end; font-family: var(--num); font-weight: 600; font-size: 1.15rem; font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 80px; }
+.semana-horas small { font-family: var(--font); }
+@media (max-width: 520px) { .semana { grid-template-columns: 1fr auto; gap: 6px 12px; } .semana-barra { grid-column: 1 / -1; grid-row: 2; height: 8px; } .mes-total b { font-size: 2rem; } }

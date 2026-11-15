@@ -59,7 +59,7 @@
   // ---------------------------------------------------------------- estado
   // Abas da sheet: Gestão Clientes (o dono), Gestão Carros (matrícula e modelo) e Gestão Trabalhos (um por tempo).
   const TABELAS = ['clientes', 'carros', 'trabalhos'];
-  const st = { animando: 0, verProntos: 3, clientes: [], carros: [], trabalhos: [], pagina: 'contar', carregado: false, erro: null, codigoErro: null, pendentes: ler('tp.pendentes', []), enviando: false, lendo: false, busca: '' };
+  const st = { animando: 0, verProntos: 3, clientes: [], carros: [], trabalhos: [], pagina: 'contar', mes: 0, carregado: false, erro: null, codigoErro: null, pendentes: ler('tp.pendentes', []), enviando: false, lendo: false, busca: '' };
 
   const LOCAL = !!CFG.local;
   const BASE = LOCAL ? 'o Excel' : 'a sheet';
@@ -527,6 +527,49 @@
     </li>`;
   }
 
+  // Horas de um mês, semana a semana (segunda a domingo). Conta o tempo de cada carro no dia em que terminou.
+  const MESES_LONGOS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+  function vistaMes(todos) {
+    const hoje = new Date();
+    const ini = new Date(hoje.getFullYear(), hoje.getMonth() + st.mes, 1);
+    const fim = new Date(ini.getFullYear(), ini.getMonth() + 1, 1);
+    const doMes = todos.filter((t) => { const p = data(t.pronto); return p >= ini && p < fim; });
+    const semanas = [];
+    let s = new Date(ini); s.setDate(s.getDate() - ((s.getDay() + 6) % 7)); // a segunda-feira dessa semana
+    while (s < fim && (st.mes < 0 || s <= hoje)) { // no mês atual, só até esta semana
+      const e = new Date(s); e.setDate(e.getDate() + 7);
+      const de = s < ini ? ini : s, ate = e > fim ? fim : e;
+      const ts = doMes.filter((t) => { const p = data(t.pronto); return p >= de && p < ate; });
+      const ultimo = new Date(ate.getTime() - 1);
+      semanas.push({ de, ultimo, n: ts.length, ms: ts.reduce((x, t) => x + tempo(t), 0), agora: hoje >= s && hoje < e });
+      s = e;
+    }
+    const total = semanas.reduce((x, w) => x + w.ms, 0);
+    const max = Math.max(...semanas.map((w) => w.ms), 1);
+    const nome = `${MESES_LONGOS[ini.getMonth()]}${ini.getFullYear() !== hoje.getFullYear() ? ' ' + ini.getFullYear() : ''}`;
+    const atual = st.mes === 0;
+    const anterior = todos.some((t) => data(t.pronto) < ini);
+    const intervalo = (w) => w.de.getMonth() === w.ultimo.getMonth() && w.de.getDate() === w.ultimo.getDate() ? `${w.de.getDate()} ${MESES[w.de.getMonth()]}` : `${w.de.getDate()}–${w.ultimo.getDate()} ${MESES[w.ultimo.getMonth()]}`;
+    return `<section class="bloco mes" aria-labelledby="t-mes">
+      <header class="mes-cabeca">
+        <h2 id="t-mes" class="titulo">Horas de ${esc(nome)}</h2>
+        <div class="mes-nav">
+          <button class="btn-icone" type="button" data-mes="-1" aria-label="Mês anterior" title="Mês anterior"${anterior ? '' : ' disabled'}><span class="virar">${icone('caret-right')}</span></button>
+          <button class="btn-icone" type="button" data-mes="1" aria-label="Mês seguinte" title="Mês seguinte"${atual ? ' disabled' : ''}>${icone('caret-right')}</button>
+        </div>
+      </header>
+      <div class="mes-total">
+        <b>${total ? duracao(total) : '0 h'}</b>
+        <span>${doMes.length ? `${doMes.length} ${doMes.length === 1 ? 'carro terminado' : 'carros terminados'}${atual ? ' até hoje' : ''}` : atual ? 'Ainda sem carros terminados este mês.' : 'Sem carros terminados neste mês.'}</span>
+      </div>
+      <ol class="semanas">${semanas.map((w, i) => `<li class="semana${w.agora && atual ? ' agora' : ''}">
+          <span class="semana-nome">Semana ${i + 1}<small>${intervalo(w)}${w.agora && atual ? ' · esta semana' : ''}</small></span>
+          <span class="semana-barra" aria-hidden="true"><i style="width:${w.ms ? Math.max(3, (w.ms / max) * 100) : 0}%"></i></span>
+          <span class="semana-horas">${w.ms ? duracao(w.ms) : '-'}<small>${w.n ? `${w.n} ${w.n === 1 ? 'carro' : 'carros'}` : ''}</small></span>
+        </li>`).join('')}</ol>
+    </section>`;
+  }
+
   function vistaRelatorio() {
     const q = sem(st.busca), qm = matChave(st.busca);
     const todos = st.trabalhos.filter(terminado).sort((a, b) => String(b.pronto).localeCompare(String(a.pronto)));
@@ -547,6 +590,7 @@
       <div class="numero"><small>Tempo total</small><b>${duracao(total)}</b></div>
       <div class="numero"><small>Média por carro</small><b>${duracao(total / lista.length)}</b></div>
     </div>` : ''}
+    ${todos.length ? vistaMes(todos) : ''}
     ${(() => {
       const g = new Map();
       lista.forEach((t) => { const x = limpar(t.servico); if (!x) return; const k = sem(x); const u = g.get(k) || { nome: x, soma: 0, n: 0 }; u.soma += tempo(t); u.n++; g.set(k, u); });
@@ -685,6 +729,7 @@
     else if ('fechar' in d) painel.close();
     else if ('adicionar' in d) abrirNovo();
     else if (d.editar) abrirEditar(d.editar);
+    else if (d.mes) { st.mes = Math.min(0, st.mes + Number(d.mes)); desenhar(); }
     else if (d.reabrir) reabrir(d.reabrir);
     else if ('verMais' in d) { st.verProntos += 10; desenhar(); }
     else if ('verMenos' in d) { st.verProntos = 3; desenhar(); }
