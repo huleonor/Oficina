@@ -151,9 +151,11 @@ goto arrancar
 "@ | Set-Content -Encoding ASCII $cmd
 
 $acao = New-ScheduledTaskAction -Execute 'cmd.exe' -Argument "/c `"$cmd`"" -WorkingDirectory $Pasta
-$quando = New-ScheduledTaskTrigger -AtStartup
+# Arranca com o Windows e, como reserva, sempre que alguem entra (se ja estiver a correr, nao abre outro).
+$quando = @((New-ScheduledTaskTrigger -AtStartup), (New-ScheduledTaskTrigger -AtLogOn))
+$quando[0].Delay = 'PT30S'  # dar tempo a rede e aos discos depois de ligar
 $quem = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
-$regras = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -StartWhenAvailable
+$regras = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero) -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -StartWhenAvailable -MultipleInstances IgnoreNew
 Register-ScheduledTask -TaskName $Tarefa -Action $acao -Trigger $quando -Principal $quem -Settings $regras -Description "Pagina de gestao da INOVACAR com o Excel $excel" | Out-Null
 Start-ScheduledTask -TaskName $Tarefa
 Feito "Tarefa '$Tarefa' criada e iniciada (porta $Porta)."
