@@ -5,3 +5,5 @@ dist/
 .env
 .env.*
 !.env.example
+local/servico.cmd
+local/tempos.xlsx
