@@ -1,6 +1,4 @@
-from pathlib import Path
-
-content = r'''# INOVACAR Tempos: instala a página de gestão para correr sempre neste computador Windows.
+# INOVACAR Tempos: instala a página de gestão para correr sempre neste computador Windows.
 #
 # Corre com o botão direito > "Executar com o PowerShell" como administrador (ou pelo INSTALAR.bat).
 # O que faz:
@@ -224,7 +222,3 @@ if ($mudar) { Write-Host "`nO nome $Nome só fica ativo depois de reiniciar o co
 Feito 'Instalação concluída.'
 try { Stop-Transcript | Out-Null } catch {}
 Read-Host "`nEnter para fechar"
-'''
-path = Path("/mnt/data/instalar-windows-com-logs.ps1")
-path.write_text(content, encoding="utf-8-sig")
-print(path)
