@@ -23,12 +23,55 @@ const PORTA = Number(process.env.PORTA) || 3000;
 const EXCEL = path.resolve(process.env.EXCEL || path.join(__dirname, 'tempos.xlsx'));
 const PUBLICO = path.resolve(__dirname, '..', 'public');
 
-// As mesmas colunas que a Google Sheet usava (sheets/Codigo.gs).
+// Colunas do Excel. As visíveis vêm primeiro, com nomes legíveis; as técnicas (ids e pausas), que a
+// página precisa para ligar os dados, ficam escondidas no fim. "derivada" = só para ler no Excel
+// (o nome do dono, a matrícula...), calculada a cada gravação e ignorada ao ler.
 const TABELAS = {
-  trabalhos: { aba: 'Trabalhos', campos: ['id', 'carro_id', 'servico', 'descricao', 'estado', 'entrada', 'inicio', 'pronto', 'entregue', 'previsto', 'pausado_em', 'pausa_min', 'pausa_motivo', 'valor', 'notas', 'criado_em'] },
-  carros: { aba: 'Carros', campos: ['id', 'cliente_id', 'matricula', 'marca', 'modelo', 'ano', 'km', 'notas', 'criado_em'] },
-  clientes: { aba: 'Clientes', campos: ['id', 'nome', 'telemovel', 'email', 'nif', 'notas', 'criado_em'] },
+  trabalhos: {
+    aba: 'Trabalhos',
+    colunas: [
+      { campo: 'matricula', titulo: 'Matrícula', largura: 12, derivada: true },
+      { campo: 'modelo', titulo: 'Modelo', largura: 20, derivada: true },
+      { campo: 'dono', titulo: 'Dono', largura: 24, derivada: true },
+      { campo: 'servico', titulo: 'Serviço', largura: 28 },
+      { campo: 'estado', titulo: 'Estado', largura: 13 },
+      { campo: 'entrada', titulo: 'Entrada', largura: 19 },
+      { campo: 'inicio', titulo: 'Início', largura: 19 },
+      { campo: 'pronto', titulo: 'Pronto', largura: 19 },
+      { campo: 'tempo', titulo: 'Tempo', largura: 10, derivada: true },
+      { campo: 'id', oculta: true },
+      { campo: 'carro_id', oculta: true },
+      { campo: 'pausado_em', oculta: true },
+      { campo: 'pausa_min', oculta: true },
+      { campo: 'criado_em', oculta: true },
+    ],
+  },
+  carros: {
+    aba: 'Carros',
+    colunas: [
+      { campo: 'matricula', titulo: 'Matrícula', largura: 12 },
+      { campo: 'modelo', titulo: 'Modelo', largura: 20 },
+      { campo: 'dono', titulo: 'Dono', largura: 24, derivada: true },
+      { campo: 'id', oculta: true },
+      { campo: 'cliente_id', oculta: true },
+      { campo: 'marca', oculta: true },
+      { campo: 'criado_em', oculta: true },
+    ],
+  },
+  clientes: {
+    aba: 'Clientes',
+    colunas: [
+      { campo: 'nome', titulo: 'Nome', largura: 28 },
+      { campo: 'carros', titulo: 'Carros', largura: 30, derivada: true },
+      { campo: 'id', oculta: true },
+      { campo: 'criado_em', oculta: true },
+    ],
+  },
 };
+
+// O estado aparece em português no Excel e volta ao código que a página usa.
+const ESTADOS = { espera: 'Por começar', curso: 'Em curso', pronto: 'Pronto' };
+const ESTADO_CODIGO = Object.fromEntries(Object.entries(ESTADOS).map(([k, v]) => [v.toLowerCase(), k]));
 
 // ------------------------------------------------------------------ Excel
 const texto = (v) => {
@@ -40,47 +83,77 @@ const texto = (v) => {
   if (typeof v === 'object') return String(v.text ?? v.result ?? (v.richText ? v.richText.map((r) => r.text).join('') : ''));
   return String(v);
 };
+const semAcento = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
-async function abrir() {
+// Lê o ficheiro para { trabalhos: [...], carros: [...], clientes: [...] }.
+// Aceita o formato novo (títulos legíveis) e o antigo (nomes técnicos nas colunas).
+async function lerDados() {
+  const r = { trabalhos: [], carros: [], clientes: [] };
+  if (!fs.existsSync(EXCEL)) return r;
   const wb = new ExcelJS.Workbook();
-  if (fs.existsSync(EXCEL)) await wb.xlsx.readFile(EXCEL);
-  for (const t of Object.values(TABELAS)) {
-    let ws = wb.getWorksheet(t.aba);
-    if (!ws) {
-      ws = wb.addWorksheet(t.aba, { views: [{ state: 'frozen', ySplit: 1 }] });
-      ws.addRow(t.campos);
-      ws.getRow(1).font = { bold: true };
-      ws.columns.forEach((c) => { c.width = 18; });
-    }
-    // Colunas que faltem (ficheiro antigo ou editado à mão) vão para o fim.
-    const cab = cabecalho(ws);
-    t.campos.filter((c) => !cab.includes(c)).forEach((c) => {
-      const col = ws.getRow(1).cellCount + 1;
-      ws.getRow(1).getCell(col).value = c;
-      ws.getRow(1).getCell(col).font = { bold: true };
+  await wb.xlsx.readFile(EXCEL);
+  for (const [nome, t] of Object.entries(TABELAS)) {
+    const ws = wb.getWorksheet(t.aba);
+    if (!ws) continue;
+    const porTitulo = {};
+    t.colunas.filter((c) => !c.derivada).forEach((c) => { porTitulo[semAcento(c.titulo || c.campo)] = c.campo; porTitulo[c.campo] = c.campo; });
+    const cab = [];
+    ws.getRow(1).eachCell({ includeEmpty: true }, (c, i) => { cab[i] = porTitulo[semAcento(texto(c.value))] || porTitulo[texto(c.value).trim()]; });
+    ws.eachRow((row, n) => {
+      if (n === 1) return;
+      const o = {};
+      cab.forEach((campo, i) => { if (campo) o[campo] = texto(row.getCell(i).value).trim(); });
+      if (!o.id) return;
+      if (nome === 'trabalhos' && o.estado) o.estado = ESTADO_CODIGO[o.estado.toLowerCase()] || o.estado;
+      r[nome].push(o);
     });
   }
-  return wb;
+  return r;
 }
-const cabecalho = (ws) => { const r = []; ws.getRow(1).eachCell({ includeEmpty: true }, (c, i) => { r[i - 1] = texto(c.value).trim(); }); return r; };
 
-function linhas(ws) {
-  const cab = cabecalho(ws);
-  const out = [];
-  ws.eachRow((row, n) => {
-    if (n === 1) return;
-    const o = {};
-    cab.forEach((c, i) => { if (c) o[c] = texto(row.getCell(i + 1).value); });
-    if (o.id) out.push(o);
-  });
-  return out;
+const dataDe = (s) => {
+  const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)) : null;
+};
+function tempoTexto(t) {
+  const i = dataDe(t.inicio), f = dataDe(t.pronto);
+  if (!i || !f) return '';
+  const min = Math.max(0, Math.round((f - i) / 60000 - (Number(t.pausa_min) || 0)));
+  return `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}m`;
+}
+
+// Escreve o ficheiro inteiro outra vez, já arrumado, com os nomes preenchidos.
+async function escreverDados(d) {
+  const clientes = new Map(d.clientes.map((c) => [c.id, c]));
+  const carros = new Map(d.carros.map((c) => [c.id, c]));
+  const derivadas = {
+    trabalhos: (t) => {
+      const carro = carros.get(t.carro_id) || {};
+      const dono = clientes.get(carro.cliente_id) || {};
+      return { matricula: carro.matricula, modelo: [carro.marca, carro.modelo].filter(Boolean).join(' '), dono: dono.nome, tempo: tempoTexto(t), estado: ESTADOS[t.estado] || t.estado };
+    },
+    carros: (c) => ({ dono: (clientes.get(c.cliente_id) || {}).nome }),
+    clientes: (c) => ({ carros: d.carros.filter((x) => x.cliente_id === c.id).map((x) => x.matricula).filter(Boolean).join(', ') }),
+  };
+  const wb = new ExcelJS.Workbook();
+  for (const [nome, t] of Object.entries(TABELAS)) {
+    const ws = wb.addWorksheet(t.aba, { views: [{ state: 'frozen', ySplit: 1 }] });
+    ws.columns = t.colunas.map((c) => ({ header: c.titulo || c.campo, key: c.campo, width: c.largura || 14, hidden: !!c.oculta }));
+    const cab = ws.getRow(1);
+    cab.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    cab.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F3A5F' } };
+    for (const o of d[nome]) {
+      const extra = derivadas[nome](o);
+      ws.addRow(Object.fromEntries(t.colunas.map((c) => [c.campo, String((c.campo in extra ? extra[c.campo] : o[c.campo]) ?? '')])));
+    }
+    const visiveis = t.colunas.filter((c) => !c.oculta).length;
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: visiveis } };
+  }
+  await wb.xlsx.writeFile(EXCEL);
 }
 
 async function listar() {
-  const wb = await abrir();
-  const r = { ok: true };
-  for (const [nome, t] of Object.entries(TABELAS)) r[nome] = linhas(wb.getWorksheet(t.aba));
-  return r;
+  return { ok: true, ...(await lerDados()) };
 }
 
 // Uma escrita de cada vez, para dois pedidos não se atropelarem no ficheiro.
@@ -89,30 +162,21 @@ const emFila = (fn) => { const p = fila.then(fn, fn); fila = p.catch(() => {}); 
 
 function gravar(operacoes) {
   return emFila(async () => {
-    const wb = await abrir();
+    const d = await lerDados();
     for (const o of operacoes) {
-      const t = TABELAS[o.tabela];
-      if (!t) continue; // tabelas que só existiam na Google Sheet (regras, prémios...)
-      const ws = wb.getWorksheet(t.aba);
-      const cab = cabecalho(ws);
-      const colId = cab.indexOf('id') + 1;
+      const lista = d[o.tabela];
+      if (!lista) continue; // tabelas que só existiam na Google Sheet (regras, prémios...)
       const id = String(o.id || '');
       if (!id) throw new Error('Operação sem id.');
-      let linha = null;
-      ws.eachRow((row, n) => { if (n > 1 && !linha && texto(row.getCell(colId).value) === id) linha = n; });
-      if (o.op === 'apagar') { if (linha) ws.spliceRows(linha, 1); continue; }
-      const dados = o.dados || {};
-      if (o.op === 'criar' && !linha) {
-        ws.addRow(cab.map((c) => (c === 'id' ? id : dados[c] != null ? String(dados[c]) : '')));
-        continue;
-      }
-      if (!linha) continue; // apagado entretanto
-      const row = ws.getRow(linha);
-      Object.keys(dados).forEach((c) => { const i = cab.indexOf(c); if (i >= 0 && c !== 'id') row.getCell(i + 1).value = String(dados[c] ?? ''); });
-      row.commit();
+      const i = lista.findIndex((r) => r.id === id);
+      if (o.op === 'apagar') { if (i >= 0) lista.splice(i, 1); continue; }
+      const dados = {};
+      Object.entries(o.dados || {}).forEach(([k, v]) => { if (k !== 'id') dados[k] = v == null ? '' : String(v); });
+      if (o.op === 'criar' && i < 0) { lista.push({ ...dados, id }); continue; }
+      if (i >= 0) lista[i] = { ...lista[i], ...dados, id };
     }
     try {
-      await wb.xlsx.writeFile(EXCEL);
+      await escreverDados(d);
     } catch (err) {
       if (['EBUSY', 'EPERM', 'EACCES'].includes(err.code)) {
         throw Object.assign(new Error('O ficheiro Excel está aberto noutro programa. Feche-o no Excel; a página volta a tentar sozinha.'), { codigo: 'ocupado' });
@@ -122,7 +186,6 @@ function gravar(operacoes) {
     return { ok: true };
   });
 }
-
 // ------------------------------------------------------------------ servidor
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.ico': 'image/x-icon', '.json': 'application/json' };
 
@@ -161,7 +224,9 @@ const servidor = http.createServer(async (req, res) => {
 });
 
 servidor.listen(PORTA, '0.0.0.0', async () => {
-  await emFila(async () => { if (!fs.existsSync(EXCEL)) await (await abrir()).xlsx.writeFile(EXCEL); });
+  // Cria o ficheiro na primeira vez e arruma um ficheiro antigo (colunas novas, nomes preenchidos).
+  if (fs.existsSync(EXCEL)) { try { fs.copyFileSync(EXCEL, EXCEL.replace(/\.xlsx$/i, '') + '-copia.xlsx'); } catch {} }
+  await emFila(async () => escreverDados(await lerDados())).catch((err) => console.error('[erro] Excel:', err.message));
   const ips = Object.values(os.networkInterfaces()).flat().filter((i) => i && i.family === 'IPv4' && !i.internal).map((i) => i.address);
   console.log('\n  INOVACAR Tempos a correr.\n');
   console.log(`  Neste computador:   http://localhost:${PORTA}/gestao/`);
