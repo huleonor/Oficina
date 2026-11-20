@@ -12,10 +12,14 @@ Excel como base de dados. Não precisa de internet nem da Google Sheet.
 
 Para a página estar sempre ligada, mesmo depois de reiniciar e sem ninguém abrir nada:
 
-1. Instale o **Node.js** (LTS) de https://nodejs.org.
-2. Ponha a pasta do repositório em `C:\INOVACAR\Oficina` (no GitHub: **Code > Download ZIP**, descompactar).
-3. Na pasta `local`, dois cliques em **`INSTALAR.bat`** e aceite o pedido de administrador.
-   Quando perguntar, deixe mudar o nome do computador para **INOVACAR** e reinicie.
+1. Copie **um só ficheiro** para o computador da oficina:
+   [`INOVACAR-INSTALAR.bat`](https://github.com/huleonor/Oficina/raw/main/local/INOVACAR-INSTALAR.bat)
+   (por pen USB, email ou descarregado nesse computador).
+2. Dois cliques nele e aceite o pedido de administrador. Precisa de internet nesse momento: descarrega o código
+   para `C:\INOVACAR\Oficina`, instala o **Node.js** se faltar e prepara tudo.
+3. Quando perguntar, deixe mudar o nome do computador para **INOVACAR** e reinicie.
+
+(Com a pasta do código já no computador, `local\INSTALAR.bat` faz o mesmo sem descarregar.)
 
 Fica assim:
 
