@@ -8,7 +8,32 @@ Excel como base de dados. Não precisa de internet nem da Google Sheet.
 1. Instale o **Node.js** (versão LTS): https://nodejs.org
 2. Descarregue o repositório (no GitHub: **Code > Download ZIP**) e descompacte-o.
 
-## Abrir
+## Sempre a correr (Windows, recomendado)
+
+Para a página estar sempre ligada, mesmo depois de reiniciar e sem ninguém abrir nada:
+
+1. Instale o **Node.js** (LTS) de https://nodejs.org.
+2. Ponha a pasta do repositório em `C:\INOVACAR\Oficina` (no GitHub: **Code > Download ZIP**, descompactar).
+3. Na pasta `local`, dois cliques em **`INSTALAR.bat`** e aceite o pedido de administrador.
+   Quando perguntar, deixe mudar o nome do computador para **INOVACAR** e reinicie.
+
+Fica assim:
+
+| Onde | Endereço |
+| --- | --- |
+| Neste computador | http://localhost/gestao/ |
+| Outros computadores Windows na mesma rede | http://inovacar/gestao/ |
+| Telemóveis, tablets e Mac na mesma rede | http://inovacar.local/gestao/ |
+| Se o nome não abrir | o endereço com o IP que o instalador mostra |
+
+- O Excel fica em **`C:\INOVACAR\dados\tempos.xlsx`** e o registo do servidor em `C:\INOVACAR\dados\servidor.log`.
+- A tarefa **INOVACAR Tempos** (Agendador de Tarefas) arranca com o Windows e volta a ligar o servidor se ele parar.
+- O computador tem de estar ligado e na mesma rede que os telemóveis. Desative a suspensão
+  (**Definições > Sistema > Energia > Suspender: Nunca**), senão a página deixa de responder quando ele adormece.
+- Para tirar: `desinstalar-windows.ps1` (botão direito > Executar com o PowerShell). O Excel fica.
+- Para atualizar o código: substitua a pasta e corra o `INSTALAR.bat` outra vez.
+
+## Abrir à mão
 
 - **Windows**: na pasta `local`, dê dois cliques em **`iniciar.bat`**.
 - **Mac**: na pasta `local`, dê dois cliques em **`iniciar.command`**.
