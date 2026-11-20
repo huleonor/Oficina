@@ -31,8 +31,24 @@ if (-not $admin) {
 }
 
 Passo 'Node.js'
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $node = (Get-Command node -ErrorAction SilentlyContinue).Source
-if (-not $node) { Write-Host 'Falta o Node.js. Instale a versão LTS de https://nodejs.org e corra este ficheiro outra vez.' -ForegroundColor Red; Read-Host 'Enter para sair'; exit 1 }
+if (-not $node -and (Test-Path "$env:ProgramFiles\nodejs\node.exe")) { $node = "$env:ProgramFiles\nodejs\node.exe" }
+if (-not $node) {
+  Write-Host '  Não está instalado: a instalar o Node.js LTS (precisa de internet)...'
+  # A versão LTS mais recente, do site oficial; se a lista falhar, uma LTS conhecida.
+  $versao = 'v22.12.0'
+  try { $versao = ((Invoke-RestMethod 'https://nodejs.org/dist/index.json' -TimeoutSec 20) | Where-Object { $_.lts -and $_.files -contains 'win-x64-msi' } | Select-Object -First 1).version } catch { }
+  $msi = Join-Path $env:TEMP "node-$versao-x64.msi"
+  Invoke-WebRequest "https://nodejs.org/dist/$versao/node-$versao-x64.msi" -OutFile $msi -UseBasicParsing
+  $p = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /qn /norestart" -Wait -PassThru
+  if ($p.ExitCode -notin 0, 3010) { throw "A instalação do Node.js falhou (código $($p.ExitCode))." }
+  $node = "$env:ProgramFiles\nodejs\node.exe"
+  if (-not (Test-Path $node)) { throw 'O Node.js não ficou instalado.' }
+  Write-Host "  Node.js $versao instalado"
+}
+# O npm vem com o Node; a janela antiga ainda não o conhece no PATH.
+$env:Path = "$(Split-Path $node);$env:Path"
 Write-Host "  $node ($(& $node --version))"
 
 Passo 'Dependências (só da primeira vez precisa de internet)'
