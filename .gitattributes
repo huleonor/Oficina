@@ -1,0 +1,3 @@
+# Os .bat precisam de CRLF no Windows (o download "raw" do GitHub entrega o ficheiro tal como esta guardado).
+*.bat -text
+*.cmd -text
