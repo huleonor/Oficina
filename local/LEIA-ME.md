@@ -15,26 +15,32 @@ Para a página estar sempre ligada, mesmo depois de reiniciar e sem ninguém abr
 1. Copie **um só ficheiro** para o computador da oficina:
    [`INOVACAR-INSTALAR.bat`](https://github.com/huleonor/Oficina/raw/main/local/INOVACAR-INSTALAR.bat)
    (por pen USB, email ou descarregado nesse computador).
-2. Dois cliques nele e aceite o pedido de administrador. Precisa de internet nesse momento: descarrega o código
-   para `C:\INOVACAR\Oficina`, instala o **Node.js** se faltar e prepara tudo.
-3. Quando perguntar, deixe mudar o nome do computador para **INOVACAR** e reinicie.
+2. Dois cliques nele e aceite o pedido de administrador. Precisa de internet nesse momento. O instalador:
+   - descarrega o código para `C:\INOVACAR\Oficina`;
+   - usa o **Node.js** que já estiver instalado (só o instala se faltar);
+   - liga a página ao Excel `C:\INOVACAR\dados\tempos.xlsx` e põe o servidor a arrancar com o Windows;
+   - faz o browser abrir a página **sempre que alguém entra no Windows**;
+   - cria no Ambiente de Trabalho os atalhos **INOVACAR Tempos** (a página) e **INOVACAR Excel** (o ficheiro);
+   - testa a página e a ligação ao Excel e abre o browser no fim.
 
+Para atualizar, corra o mesmo ficheiro outra vez: o Excel não é tocado.
 (Com a pasta do código já no computador, `local\INSTALAR.bat` faz o mesmo sem descarregar.)
+Para o computador ficar também com o nome **INOVACAR** na rede, corra uma vez
+`powershell -ExecutionPolicy Bypass -File C:\INOVACAR\Oficina\local\instalar-windows.ps1 -MudarNome` e reinicie.
 
 Fica assim:
 
 | Onde | Endereço |
 | --- | --- |
 | Neste computador | http://localhost/gestao/ |
-| Outros computadores Windows na mesma rede | http://inovacar/gestao/ |
-| Telemóveis, tablets e Mac na mesma rede | http://inovacar.local/gestao/ |
-| Se o nome não abrir | o endereço com o IP que o instalador mostra |
+| Telemóveis e outros computadores na mesma rede | o endereço com o IP que o instalador mostra |
+| Com o nome INOVACAR (opção `-MudarNome`) | http://inovacar/gestao/ ou http://inovacar.local/gestao/ |
 
 - O Excel fica em **`C:\INOVACAR\dados\tempos.xlsx`** e o registo do servidor em `C:\INOVACAR\dados\servidor.log`.
 - A tarefa **INOVACAR Tempos** (Agendador de Tarefas) arranca com o Windows e volta a ligar o servidor se ele parar.
 - O computador tem de estar ligado e na mesma rede que os telemóveis. Desative a suspensão
   (**Definições > Sistema > Energia > Suspender: Nunca**), senão a página deixa de responder quando ele adormece.
-- Para tirar: `desinstalar-windows.ps1` (botão direito > Executar com o PowerShell). O Excel fica.
+- Para tirar: `desinstalar-windows.ps1` (botão direito > Executar com o PowerShell). Tira também os atalhos. O Excel fica.
 - Para atualizar o código: substitua a pasta e corra o `INSTALAR.bat` outra vez.
 
 ## Abrir à mão
